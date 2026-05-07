@@ -1,0 +1,10 @@
+# Local Supabase credentials (see GolfLab/Config/Secrets.local.example.xcconfig)
+GolfLab/Config/Secrets.local.xcconfig
+
+# Xcode / tooling
+**/xcuserdata/**
+**/*.xcuserstate
+DerivedData/
+.build/
+*.moved-aside
+.DS_Store
