@@ -1,224 +1,23 @@
 import SwiftUI
 
-// MARK: - Presentation style
-
-/// How the vs-par series is drawn: **semantic** vs par splits red/green; **accent sparkline** matches Home’s scoring trend chrome (`docs/design.md`).
-enum GLTrendChartStyle: Equatable {
-    case semanticVsPar
-    case accentSparkline
-}
-
-/// Line + area for vs-par trends. Default **semantic** style uses red/green vs par; **accent sparkline** uses a single accent line, soft fill, grid, and endpoint emphasis.
+/// Chronological strokes vs par: accent series line, soft fill, optional par line, mean line, and endpoint label.
 struct VsParTrendChartView: View {
-    /// Chronological vs-par values (strokes − par per round).
     let values: [Double]
     var height: CGFloat = 100
-    /// Horizontal dashed guide (mean vs par).
     var averageVsPar: Double? = nil
-    /// Baseline at par (dashed in sparkline style; solid hairline in semantic when enabled).
     var showZeroLine: Bool = true
-    var style: GLTrendChartStyle = .semanticVsPar
-    /// When `style == .accentSparkline`, draws the last value in mono beside the endpoint (Home scoring trend).
     var showEndpointLabel: Bool = false
-    /// Optional load / filter-change intro (accent sparkline only). Presets live in ``GLChartIntroAnimation``.
     var introAnimation: GLChartIntroAnimation? = nil
-    /// Combined with the series hash so the intro replays when filters change (e.g. Home time pill).
     var introReplayToken: AnyHashable? = nil
-    /// Stroke, fill, and endpoint emphasis for ``GLTrendChartStyle/accentSparkline`` (default matches Home).
     var sparklineSeriesColor: Color = .accent
-    /// Trailing endpoint label; default formats vs-par like Home.
     var sparklineValueFormatter: ((Double) -> String)? = nil
 
-    var body: some View {
-        switch style {
-        case .semanticVsPar:
-            semanticChartCanvas
-        case .accentSparkline:
-            accentSparklineBody
-        }
-    }
+    var body: some View { sparklineBody }
 
-    // MARK: - Semantic (Stats / legacy)
-
-    private var semanticChartCanvas: some View {
-        Canvas { context, size in
-            guard !values.isEmpty else { return }
-            let w = size.width
-            let h = size.height
-            let ys = values
-            let yMin = min(0, ys.min() ?? 0) - 1
-            let yMax = max(0, ys.max() ?? 0) + 1
-
-            func xPos(_ i: Int) -> CGFloat {
-                guard ys.count > 1 else { return w / 2 }
-                return CGFloat(i) / CGFloat(ys.count - 1) * w
-            }
-
-            func yPos(_ y: Double) -> CGFloat {
-                let t = (y - yMin) / (yMax - yMin)
-                return CGFloat(h) - CGFloat(t) * h
-            }
-
-            let zY = yPos(0)
-
-            if showZeroLine {
-                var zeroPath = Path()
-                zeroPath.move(to: CGPoint(x: 0, y: zY))
-                zeroPath.addLine(to: CGPoint(x: w, y: zY))
-                context.stroke(zeroPath, with: .color(Color.black.opacity(0.07)), lineWidth: 1)
-            }
-
-            let red = Color.chartNegativeFill
-            let green = Color.chartPositiveFill
-
-            for i in 0..<(ys.count - 1) {
-                let y0 = ys[i]
-                let y1 = ys[i + 1]
-                let x0 = xPos(i)
-                let x1 = xPos(i + 1)
-                let p0 = yPos(y0)
-                let p1 = yPos(y1)
-
-                if y0 >= 0, y1 >= 0 {
-                    var path = Path()
-                    path.move(to: CGPoint(x: x0, y: p0))
-                    path.addLine(to: CGPoint(x: x1, y: p1))
-                    path.addLine(to: CGPoint(x: x1, y: zY))
-                    path.addLine(to: CGPoint(x: x0, y: zY))
-                    path.closeSubpath()
-                    context.fill(path, with: .color(red))
-                } else if y0 <= 0, y1 <= 0 {
-                    var path = Path()
-                    path.move(to: CGPoint(x: x0, y: p0))
-                    path.addLine(to: CGPoint(x: x1, y: p1))
-                    path.addLine(to: CGPoint(x: x1, y: zY))
-                    path.addLine(to: CGPoint(x: x0, y: zY))
-                    path.closeSubpath()
-                    context.fill(path, with: .color(green))
-                } else if y0 > 0, y1 < 0 {
-                    let denom = y0 - y1
-                    guard abs(denom) > 1e-9 else { continue }
-                    let t = y0 / denom
-                    let xCross = x0 + CGFloat(t) * (x1 - x0)
-                    var redPath = Path()
-                    redPath.move(to: CGPoint(x: x0, y: p0))
-                    redPath.addLine(to: CGPoint(x: xCross, y: zY))
-                    redPath.addLine(to: CGPoint(x: x0, y: zY))
-                    redPath.closeSubpath()
-                    context.fill(redPath, with: .color(red))
-                    var greenPath = Path()
-                    greenPath.move(to: CGPoint(x: xCross, y: zY))
-                    greenPath.addLine(to: CGPoint(x: x1, y: p1))
-                    greenPath.addLine(to: CGPoint(x: x1, y: zY))
-                    greenPath.closeSubpath()
-                    context.fill(greenPath, with: .color(green))
-                } else if y0 < 0, y1 > 0 {
-                    let denom = y1 - y0
-                    guard abs(denom) > 1e-9 else { continue }
-                    let t = -y0 / denom
-                    let xCross = x0 + CGFloat(t) * (x1 - x0)
-                    var greenPath = Path()
-                    greenPath.move(to: CGPoint(x: x0, y: p0))
-                    greenPath.addLine(to: CGPoint(x: xCross, y: zY))
-                    greenPath.addLine(to: CGPoint(x: x0, y: zY))
-                    greenPath.closeSubpath()
-                    context.fill(greenPath, with: .color(green))
-                    var redPath = Path()
-                    redPath.move(to: CGPoint(x: xCross, y: zY))
-                    redPath.addLine(to: CGPoint(x: x1, y: p1))
-                    redPath.addLine(to: CGPoint(x: x1, y: zY))
-                    redPath.closeSubpath()
-                    context.fill(redPath, with: .color(red))
-                }
-            }
-
-            let lineStyle = StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
-            if ys.count == 1 {
-                let y = ys[0]
-                let dot = CGPoint(x: xPos(0), y: yPos(y))
-                let dotColor: Color = y > 0 ? .chartNegative : (y < 0 ? .chartPositive : .textTertiary)
-                context.fill(
-                    Path(ellipseIn: CGRect(x: dot.x - 4, y: dot.y - 4, width: 8, height: 8)),
-                    with: .color(dotColor)
-                )
-            } else {
-                for i in 0..<(ys.count - 1) {
-                    let y0 = ys[i]
-                    let y1 = ys[i + 1]
-                    let x0 = xPos(i)
-                    let x1 = xPos(i + 1)
-                    let p0 = yPos(y0)
-                    let p1 = yPos(y1)
-
-                    if y0 >= 0, y1 >= 0 {
-                        var seg = Path()
-                        seg.move(to: CGPoint(x: x0, y: p0))
-                        seg.addLine(to: CGPoint(x: x1, y: p1))
-                        context.stroke(seg, with: .color(.chartNegative), style: lineStyle)
-                    } else if y0 <= 0, y1 <= 0 {
-                        var seg = Path()
-                        seg.move(to: CGPoint(x: x0, y: p0))
-                        seg.addLine(to: CGPoint(x: x1, y: p1))
-                        context.stroke(seg, with: .color(.chartPositive), style: lineStyle)
-                    } else if y0 > 0, y1 < 0 {
-                        let denom = y0 - y1
-                        guard abs(denom) > 1e-9 else { continue }
-                        let t = y0 / denom
-                        let xCross = x0 + CGFloat(t) * (x1 - x0)
-                        var segA = Path()
-                        segA.move(to: CGPoint(x: x0, y: p0))
-                        segA.addLine(to: CGPoint(x: xCross, y: zY))
-                        context.stroke(segA, with: .color(.chartNegative), style: lineStyle)
-                        var segB = Path()
-                        segB.move(to: CGPoint(x: xCross, y: zY))
-                        segB.addLine(to: CGPoint(x: x1, y: p1))
-                        context.stroke(segB, with: .color(.chartPositive), style: lineStyle)
-                    } else if y0 < 0, y1 > 0 {
-                        let denom = y1 - y0
-                        guard abs(denom) > 1e-9 else { continue }
-                        let t = -y0 / denom
-                        let xCross = x0 + CGFloat(t) * (x1 - x0)
-                        var segA = Path()
-                        segA.move(to: CGPoint(x: x0, y: p0))
-                        segA.addLine(to: CGPoint(x: xCross, y: zY))
-                        context.stroke(segA, with: .color(.chartPositive), style: lineStyle)
-                        var segB = Path()
-                        segB.move(to: CGPoint(x: xCross, y: zY))
-                        segB.addLine(to: CGPoint(x: x1, y: p1))
-                        context.stroke(segB, with: .color(.chartNegative), style: lineStyle)
-                    }
-                }
-
-                if let last = ys.indices.last {
-                    let yLast = ys[last]
-                    let dot = CGPoint(x: xPos(last), y: yPos(yLast))
-                    let dotColor: Color = yLast > 0 ? .chartNegative : (yLast < 0 ? .chartPositive : .textTertiary)
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: dot.x - 4, y: dot.y - 4, width: 8, height: 8)),
-                        with: .color(dotColor)
-                    )
-                }
-            }
-
-            if let avg = averageVsPar {
-                let ay = yPos(avg)
-                var avgPath = Path()
-                avgPath.move(to: CGPoint(x: 0, y: ay))
-                avgPath.addLine(to: CGPoint(x: w, y: ay))
-                context.stroke(
-                    avgPath,
-                    with: .color(Color.black.opacity(0.07)),
-                    style: StrokeStyle(lineWidth: 1, dash: [4, 3])
-                )
-            }
-        }
-        .frame(height: height)
-    }
-
-    // MARK: - Accent sparkline (Home)
+    // MARK: - Sparkline
 
     @ViewBuilder
-    private var accentSparklineBody: some View {
+    private var sparklineBody: some View {
         let plotLeading: CGFloat = 8
         let plotTrailing: CGFloat = showEndpointLabel ? 28 : 12
         if let intro = introAnimation {
@@ -264,7 +63,7 @@ struct VsParTrendChartView: View {
         return String(hasher.finalize())
     }
 
-    /// Shared layout for accent sparkline (Canvas + optional label overlay). Horizontal insets keep the endpoint halo and label inside bounds.
+    /// Shared plot layout for Canvas + optional trailing endpoint label.
     private static func sparklineLayout(
         values: [Double],
         size: CGSize,
@@ -471,7 +270,7 @@ struct VsParTrendChartView: View {
     }
 }
 
-// MARK: - Accent sparkline layers (shared + intro)
+// MARK: - Sparkline layers (shared + intro)
 
 private struct AccentSparklineLayeredView: View {
     let values: [Double]
@@ -558,8 +357,7 @@ private struct AccentSparklineLayeredView: View {
     }
 }
 
-/// Hosts the accent sparkline intro only after the view has **appeared** (so it never runs while a parent
-/// loading branch keeps this view out of the hierarchy, and it does not race the first visible frame).
+/// Defers chart intro animation until after `onAppear` (avoids animating off-screen / during loading placeholders).
 private struct AccentSparklineIntroHost: View {
     let values: [Double]
     var height: CGFloat
@@ -576,7 +374,6 @@ private struct AccentSparklineIntroHost: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var lineReveal: CGFloat = 0
     @State private var glowEnvelope: CGFloat = 0
-    /// Set in `onAppear` so `.task` does not animate until the user can see this chart (post–loading UI, on-screen).
     @State private var sparklineHostDidAppear = false
 
     private var introTaskIdentity: String {
@@ -614,7 +411,6 @@ private struct AccentSparklineIntroHost: View {
             }
             lineReveal = 0
             glowEnvelope = 0
-            // One main-queue pass after appear so layout/paint completes, then the reveal reads as intentional polish.
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 DispatchQueue.main.async {
                     continuation.resume()
@@ -635,84 +431,5 @@ private struct AccentSparklineIntroHost: View {
                 glowEnvelope = 1
             }
         }
-    }
-}
-
-// MARK: - Stats tab card (header + vs-par chart + mean)
-
-struct VsParScoreStatsCard: View {
-    let title: String
-    let subtitle: String
-    let dataPoints: [ChartPoint]
-
-    private var sortedValues: [Double] {
-        dataPoints.sorted { $0.index < $1.index }.map(\.value)
-    }
-
-    private var averageVsPar: Double? {
-        guard !dataPoints.isEmpty else { return nil }
-        return dataPoints.map(\.value).reduce(0, +) / Double(dataPoints.count)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title.uppercased())
-                    .font(.glCaption)
-                    .foregroundColor(.textTertiary)
-                    .tracking(0.10 * 11)
-                Spacer()
-                if let last = sortedValues.last {
-                    Text(formatVsParHeader(last))
-                        .font(GLFonts.mono(size: 12, weight: .semibold))
-                        .foregroundColor(last <= 0 ? Color.accent : Color.chartNegative)
-                }
-            }
-            .padding(.top, 2)
-            .padding(.bottom, 11)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color.borderDefault)
-                    .frame(height: 1)
-            }
-
-            if !subtitle.isEmpty {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(subtitle)
-                        .font(.glCaption)
-                        .foregroundColor(.textTertiary)
-                    Spacer()
-                    Text("\(dataPoints.count) rounds")
-                        .font(.glMicro)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-
-            VsParTrendChartView(values: sortedValues, height: 140, averageVsPar: averageVsPar, showZeroLine: true)
-
-            if let avg = averageVsPar {
-                HStack {
-                    Spacer()
-                    Text(String(format: "Avg %+.1f", avg))
-                        .font(.glMicro)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-        .padding(GLCardMetrics.padding)
-        .background(Color.cardBackground)
-        .cornerRadius(GLCardMetrics.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-        .padding(.horizontal, GLLayout.horizontalInset)
-    }
-
-    private func formatVsParHeader(_ v: Double) -> String {
-        if abs(v.rounded() - v) < 0.01 {
-            return String(format: "%+.0f", v)
-        }
-        return String(format: "%+.1f", v)
     }
 }

@@ -39,6 +39,24 @@ extension Font {
 
 enum GLLayout {
     static let horizontalInset: CGFloat = 22
+
+    enum TabBar {
+        static let borderHeight: CGFloat = 1
+        static let contentTopPadding: CGFloat = 12
+        static let contentBottomPadding: CGFloat = 4
+        static let itemSpacing: CGFloat = 4
+        static let iconPointSize: CGFloat = 16
+        static let activeDotSize: CGFloat = 3
+        /// Icon + spacing + eyebrow label + dot in `MainTabView.tabButton`.
+        static let itemStackHeight: CGFloat = iconPointSize + itemSpacing + 11 + itemSpacing + activeDotSize
+        static var occupiedHeight: CGFloat {
+            borderHeight + contentTopPadding + itemStackHeight + contentBottomPadding
+        }
+    }
+
+    /// Bottom scroll margin for tab roots (and pushed destinations). Applied in `MainTabView.tabRoot`.
+    static let tabRootScrollBottomMargin: CGFloat = TabBar.occupiedHeight + 20
+    static let sheetContentBottomPadding: CGFloat = 32
 }
 
 // MARK: - Layout tokens (cards, sheets, chart panels)

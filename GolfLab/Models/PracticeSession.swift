@@ -45,4 +45,19 @@ extension PracticeSession {
         if practicedPutting { bits.append("Putting") }
         return bits.joined(separator: " · ")
     }
+
+    /// Newest session date first; ties broken by `createdAt`, then `id` (matches Supabase list ordering).
+    static func sortedForDisplay(_ rows: [PracticeSession]) -> [PracticeSession] {
+        rows.sorted { lhs, rhs in
+            if lhs.sessionDate != rhs.sessionDate {
+                return lhs.sessionDate > rhs.sessionDate
+            }
+            let lc = lhs.createdAt ?? ""
+            let rc = rhs.createdAt ?? ""
+            if lc != rc {
+                return lc > rc
+            }
+            return lhs.id.uuidString > rhs.id.uuidString
+        }
+    }
 }

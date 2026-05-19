@@ -1,14 +1,58 @@
 import Foundation
 import Supabase
 
+// MARK: - `users` row PATCH (file scope: avoids nested-type resolution issues with `WeeklyGoalTargetRevision` in some Xcode builds)
+
+private struct UsersTableProfileUpdate: Encodable {
+    let displayName: String?
+    let homeCourseName: String?
+    let homeCourseTee: String?
+    let preferredUnits: String
+    let weeklyRoundTarget: Int?
+    let weeklyPracticeTarget: Int?
+    let weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+
+    enum CodingKeys: String, CodingKey {
+        case displayName    = "display_name"
+        case homeCourseName = "home_course_name"
+        case homeCourseTee  = "home_course_tee"
+        case preferredUnits = "preferred_units"
+        case weeklyRoundTarget = "weekly_round_target"
+        case weeklyPracticeTarget = "weekly_practice_target"
+        case weeklyGoalTargetRevisions = "weekly_goal_target_revisions"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(displayName, forKey: .displayName)
+        try c.encodeIfPresent(homeCourseName, forKey: .homeCourseName)
+        try c.encodeIfPresent(homeCourseTee, forKey: .homeCourseTee)
+        try c.encode(preferredUnits, forKey: .preferredUnits)
+        try c.encodeIfPresent(weeklyRoundTarget, forKey: .weeklyRoundTarget)
+        try c.encodeIfPresent(weeklyPracticeTarget, forKey: .weeklyPracticeTarget)
+        if let weeklyGoalTargetRevisions {
+            try c.encode(weeklyGoalTargetRevisions, forKey: .weeklyGoalTargetRevisions)
+        }
+    }
+}
+
 class SupabaseService {
     static let shared = SupabaseService()
 
     let client: SupabaseClient
 
     private init() {
+        let rawURL = Config.supabaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsedURL = URL(string: rawURL), parsedURL.host != nil else {
+            fatalError(
+                """
+                Invalid SUPABASE_URL: '\(rawURL)'.
+                Set SUPABASE_URL in GolfLab/Config/Secrets.local.xcconfig (copy from Secrets.local.example.xcconfig).
+                """
+            )
+        }
         client = SupabaseClient(
-            supabaseURL: URL(string: Config.supabaseURL)!,
+            supabaseURL: parsedURL,
             supabaseKey: Config.supabaseAnonKey
         )
     }
@@ -33,30 +77,94 @@ class SupabaseService {
         return response.first
     }
 
-    func updateProfile(userId: UUID, displayName: String?, homeCourseName: String?, homeCourseTee: String?, preferredUnits: String) async throws {
-        struct ProfileUpdate: Encodable {
-            let displayName: String?
-            let homeCourseName: String?
-            let homeCourseTee: String?
-            let preferredUnits: String
-            enum CodingKeys: String, CodingKey {
-                case displayName    = "display_name"
-                case homeCourseName = "home_course_name"
-                case homeCourseTee  = "home_course_tee"
-                case preferredUnits = "preferred_units"
-            }
+    /// Persists profile fields and returns the updated row (read-after-write for weekly goals + streak UI).
+    /// If `weekly_goal_target_revisions` is not yet migrated on Supabase, retries without that column and merges revisions into the returned model for the current session.
+    @discardableResult
+    func updateProfile(
+        userId: UUID,
+        displayName: String?,
+        homeCourseName: String?,
+        homeCourseTee: String?,
+        preferredUnits: String,
+        weeklyRoundTarget: Int?,
+        weeklyPracticeTarget: Int?,
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+    ) async throws -> UserProfile {
+        let requestedRevisions = weeklyGoalTargetRevisions
+        do {
+            let updated = try await updateUsersRow(
+                userId: userId,
+                displayName: displayName,
+                homeCourseName: homeCourseName,
+                homeCourseTee: homeCourseTee,
+                preferredUnits: preferredUnits,
+                weeklyRoundTarget: weeklyRoundTarget,
+                weeklyPracticeTarget: weeklyPracticeTarget,
+                weeklyGoalTargetRevisions: requestedRevisions
+            )
+            return updated.coalescingWeeklyPersistAttempt(
+                requestedRound: weeklyRoundTarget,
+                requestedPractice: weeklyPracticeTarget,
+                requestedRevisions: requestedRevisions
+            )
+        } catch {
+            guard requestedRevisions != nil,
+                  Self.isLikelyMissingWeeklyGoalRevisionsColumnError(error)
+            else { throw error }
+            let updated = try await updateUsersRow(
+                userId: userId,
+                displayName: displayName,
+                homeCourseName: homeCourseName,
+                homeCourseTee: homeCourseTee,
+                preferredUnits: preferredUnits,
+                weeklyRoundTarget: weeklyRoundTarget,
+                weeklyPracticeTarget: weeklyPracticeTarget,
+                weeklyGoalTargetRevisions: nil as [WeeklyGoalTargetRevision]?
+            )
+            return updated.coalescingWeeklyPersistAttempt(
+                requestedRound: weeklyRoundTarget,
+                requestedPractice: weeklyPracticeTarget,
+                requestedRevisions: requestedRevisions
+            )
         }
-        let update = ProfileUpdate(
+    }
+
+    /// PostgREST when the `users.weekly_goal_target_revisions` column was never added (run `docs/supabase/users_weekly_targets.sql`).
+    private static func isLikelyMissingWeeklyGoalRevisionsColumnError(_ error: Error) -> Bool {
+        let blob = "\(error.localizedDescription) \(String(describing: error))".lowercased()
+        return blob.contains("weekly_goal_target_revisions")
+    }
+
+    private func updateUsersRow(
+        userId: UUID,
+        displayName: String?,
+        homeCourseName: String?,
+        homeCourseTee: String?,
+        preferredUnits: String,
+        weeklyRoundTarget: Int?,
+        weeklyPracticeTarget: Int?,
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+    ) async throws -> UserProfile {
+        let update = UsersTableProfileUpdate(
             displayName: displayName,
             homeCourseName: homeCourseName,
             homeCourseTee: homeCourseTee,
-            preferredUnits: preferredUnits
+            preferredUnits: preferredUnits,
+            weeklyRoundTarget: weeklyRoundTarget,
+            weeklyPracticeTarget: weeklyPracticeTarget,
+            weeklyGoalTargetRevisions: weeklyGoalTargetRevisions
         )
-        try await client
+        let rows: [UserProfile] = try await client
             .from("users")
             .update(update)
             .eq("id", value: userId)
+            .select()
             .execute()
+            .value
+        guard let updated = rows.first else {
+            throw DatabaseError.insertFailed("Profile update returned no row")
+        }
+        return updated
     }
 
     // MARK: - Rounds
@@ -156,27 +264,16 @@ class SupabaseService {
 
     // MARK: - Practice sessions
 
-    func fetchPracticeSessions(userId: UUID, fromInclusiveYMD: String, toInclusiveYMD: String) async throws -> [PracticeSession] {
+    /// All logged practice for the user (same scope idea as `fetchRounds` — History filters by month in memory).
+    func fetchAllPracticeSessions(userId: UUID) async throws -> [PracticeSession] {
         let rows: [PracticeSession] = try await client
             .from("practice_sessions")
             .select()
             .eq("user_id", value: userId)
-            .gte("session_date", value: fromInclusiveYMD)
-            .lte("session_date", value: toInclusiveYMD)
             .order("session_date", ascending: false)
             .execute()
             .value
-        return rows.sorted { lhs, rhs in
-            if lhs.sessionDate != rhs.sessionDate {
-                return lhs.sessionDate > rhs.sessionDate
-            }
-            let lc = lhs.createdAt ?? ""
-            let rc = rhs.createdAt ?? ""
-            if lc != rc {
-                return lc > rc
-            }
-            return lhs.id.uuidString > rhs.id.uuidString
-        }
+        return PracticeSession.sortedForDisplay(rows)
     }
 
     func insertPracticeSession(_ insert: PracticeSessionInsert) async throws -> PracticeSession {

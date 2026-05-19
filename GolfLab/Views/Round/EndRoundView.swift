@@ -16,7 +16,7 @@ struct EndRoundView: View {
                     VStack(spacing: 0) {
                         endRoundTopNav
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.top, GLTopBarMetrics.sheetTopPadding)
+                            .padding(.top, GLTopBarMetrics.sheetTopPadding + GLTopBarMetrics.sheetExtraTopInset)
                             .padding(.bottom, GLTopBarMetrics.titleBarBottomSpacing)
 
                         endRoundHeaderCard(round: round)
@@ -26,6 +26,13 @@ struct EndRoundView: View {
                         endRoundStatGrid(round: round)
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
+
+                        RoundVsParProgressCardActive(
+                            savedHoles: savedHoles(round),
+                            totalHoles: round.setup.totalHoles
+                        )
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.bottom, 16)
 
                         if incompleteSavedScorecard(round) {
                             Text("This round has \(savedHoles(round).count) of \(round.setup.totalHoles) hole records saved. The figures above sum only those holes.")
@@ -47,7 +54,7 @@ struct EndRoundView: View {
 
                         endRoundCtas
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 28)
+                            .padding(.bottom, GLLayout.sheetContentBottomPadding)
                     }
                 }
             }
@@ -61,16 +68,19 @@ struct EndRoundView: View {
     }
 
     private var endRoundTopNav: some View {
-        GLScreenTopBar(title: "End round") {
-            Button("← Round") {
-                dismiss()
-            }
-            .font(GLFonts.sans(size: 14, weight: .regular))
-            .foregroundColor(.accent)
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        } trailing: {
+        HStack {
+            GLCircleBackButton { dismiss() }
+
+            Spacer()
+
+            Text("End round")
+                .font(.glNavTitle)
+                .foregroundColor(.textPrimary)
+
+            Spacer()
+
             Color.clear
+                .frame(width: 32, height: 32)
         }
     }
 
@@ -132,7 +142,7 @@ struct EndRoundView: View {
             GLStatSummaryTile(
                 label: "Score vs par",
                 value: scoreVsPar.map(formatVsPar) ?? "—",
-                valueUsesAccent: (scoreVsPar ?? 1) <= 0
+                valueUsesAccent: scoreVsPar != nil
             )
             GLStatSummaryTile(
                 label: "GIR %",
@@ -161,19 +171,12 @@ struct EndRoundView: View {
     }
 
     private var endRoundCtas: some View {
-        VStack(spacing: 12) {
-            GLPrimaryCTAButton(
-                title: "Save round",
-                isBusy: isSaving,
-                busyTitle: "Saving…",
-                action: { saveRound() }
-            )
-
-            GLSecondaryGhostButton(title: "Abandon round") {
-                roundStore.abandonRound()
-                dismiss()
-            }
-        }
+        GLPrimaryCTAButton(
+            title: "Save round",
+            isBusy: isSaving,
+            busyTitle: "Saving…",
+            action: { saveRound() }
+        )
     }
 
     // MARK: - Actions
@@ -237,8 +240,7 @@ struct EndRoundView: View {
         guard par > 0 else { return ("--", .textTertiary) }
         let delta = Double(totals.score - par)
         let text = formatVsPar(delta)
-        let color: Color = delta <= 0 ? .chartPositive : .chartNegative
-        return (text, color)
+        return (text, Color.accent)
     }
 
     private func formatVsPar(_ value: Double) -> String {

@@ -80,7 +80,7 @@ extension Round {
         holes > 0 && storedHoleRows < holes
     }
 
-    /// Home / History / Last Round header: strokes vs par (`%+.1f`) and teal/coral, or `--` when par is unknown.
+    /// Home / History / Last Round header: strokes vs par (`%+.1f`) in accent, or `--` when par is unknown.
     func vsParHeadline(totalParFromStoredHoles: Int?) -> (text: String, color: Color) {
         guard let score = totalScore,
               let par = totalParFromStoredHoles,
@@ -88,7 +88,7 @@ extension Round {
         else { return ("--", .textTertiary) }
         let delta = score - par
         let text = String(format: "%+.1f", Double(delta))
-        let color: Color = delta <= 0 ? .chartPositive : .chartNegative
+        let color: Color = .accent
         return (text, color)
     }
 }

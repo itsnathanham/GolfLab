@@ -5,6 +5,8 @@ struct HomeView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @EnvironmentObject private var authService: AuthService
     @State private var avatarInitials = ""
+    @State private var showLogPractice = false
+    @State private var logPracticeSheetUserId: UUID?
 
     var body: some View {
         NavigationStack {
@@ -20,7 +22,7 @@ struct HomeView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.top, 8)
                     } else if roundStore.allRounds.isEmpty {
-                        EmptyHomeView(selectedTab: $selectedTab)
+                        EmptyHomeView(selectedTab: $selectedTab, showLogPractice: $showLogPractice)
                             .padding(.top, 8)
                     } else {
                         seasonBlock
@@ -32,6 +34,10 @@ struct HomeView: View {
                             .padding(.bottom, 10)
 
                         homeStatGrid
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.bottom, 22)
+
+                        WeeklyGoalsStreakSection()
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 22)
 
@@ -47,9 +53,8 @@ struct HomeView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 24)
 
-                        startRoundButton
+                        homeRoundActionButtons
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 8)
                     }
                 }
             }
@@ -59,6 +64,25 @@ struct HomeView: View {
         .task {
             await roundStore.loadRounds()
             await loadAvatarInitials()
+        }
+        .onChange(of: showLogPractice) { _, open in
+            if !open {
+                logPracticeSheetUserId = nil
+            }
+        }
+        .sheet(isPresented: $showLogPractice) {
+            Group {
+                if let uid = logPracticeSheetUserId {
+                    LogPracticeSheet(userId: uid)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .presentationDragIndicator(.visible)
+            .task {
+                logPracticeSheetUserId = await authService.currentUserId
+            }
         }
     }
 
@@ -79,6 +103,7 @@ struct HomeView: View {
         GLHubRootTopBar {
             NavigationLink {
                 ProfileView()
+                    .environmentObject(roundStore)
             } label: {
                 Text(avatarInitials.isEmpty ? "?" : avatarInitials)
                     .font(.glMicro)
@@ -139,18 +164,7 @@ struct HomeView: View {
     // MARK: - Quick stats
 
     private var quickStatsSectionHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            GLFormFieldLabel(text: "Quick stats")
-            Spacer()
-            Button {
-                selectedTab = 2
-            } label: {
-                Text("All →")
-                    .font(.glCaption)
-                    .foregroundColor(.accent)
-            }
-            .buttonStyle(.plain)
-        }
+        GLFormFieldLabel(text: "Quick stats")
     }
 
     // MARK: - Stat grid (2×2, same chrome + order as Last round)
@@ -168,7 +182,6 @@ struct HomeView: View {
         let firPct = firPercentageFromRoundTotals(for: rounds)
 
         let scoreText = avgVsPar.map { formatAvgVsPar($0) } ?? "—"
-        let scoreAccent = (avgVsPar ?? 0) <= 0
 
         let girText: String = {
             guard let v = girPct else { return "—" }
@@ -186,7 +199,7 @@ struct HomeView: View {
             GLStatSummaryTile(
                 label: "Score vs par",
                 value: scoreText,
-                valueUsesAccent: scoreAccent && avgVsPar != nil
+                valueUsesAccent: avgVsPar != nil
             )
             GLStatSummaryTile(label: "GIR %", value: girText, valueUsesAccent: false)
             GLStatSummaryTile(label: "FIR %", value: firText, valueUsesAccent: false)
@@ -223,7 +236,6 @@ struct HomeView: View {
                         height: 80,
                         averageVsPar: nil,
                         showZeroLine: true,
-                        style: .accentSparkline,
                         showEndpointLabel: true,
                         introAnimation: .accentSparklineHome,
                         introReplayToken: roundStore.roundsListEpoch
@@ -236,18 +248,7 @@ struct HomeView: View {
     // MARK: - Recent rounds
 
     private var recentSectionHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            GLFormFieldLabel(text: "Recent rounds")
-            Spacer()
-            Button {
-                selectedTab = 3
-            } label: {
-                Text("All →")
-                    .font(.glCaption)
-                    .foregroundColor(.accent)
-            }
-            .buttonStyle(.plain)
-        }
+        GLFormFieldLabel(text: "Recent rounds")
     }
 
     private var recentRoundsGroupedList: some View {
@@ -281,6 +282,15 @@ struct HomeView: View {
         GLPrimaryCTAButton(title: "+ Start round") {
             roundStore.requestRoundSetupFromHome()
             selectedTab = 1
+        }
+    }
+
+    private var homeRoundActionButtons: some View {
+        VStack(spacing: 12) {
+            startRoundButton
+            GLSecondaryGhostButton(title: "Log practice") {
+                showLogPractice = true
+            }
         }
     }
 
@@ -426,6 +436,7 @@ struct RoundSummaryBubbleCard: View {
 
 struct EmptyHomeView: View {
     @Binding var selectedTab: Int
+    @Binding var showLogPractice: Bool
     @EnvironmentObject private var roundStore: RoundStore
 
     var body: some View {
@@ -441,11 +452,19 @@ struct EmptyHomeView: View {
                     .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
-            .padding(.bottom, 28)
+            .padding(.bottom, 20)
 
-            GLPrimaryCTAButton(title: "+ Start round") {
-                roundStore.requestRoundSetupFromHome()
-                selectedTab = 1
+            WeeklyGoalsStreakSection()
+                .padding(.bottom, 20)
+
+            VStack(spacing: 12) {
+                GLPrimaryCTAButton(title: "+ Start round") {
+                    roundStore.requestRoundSetupFromHome()
+                    selectedTab = 1
+                }
+                GLSecondaryGhostButton(title: "Log practice") {
+                    showLogPractice = true
+                }
             }
         }
         .padding(.horizontal, GLLayout.horizontalInset)

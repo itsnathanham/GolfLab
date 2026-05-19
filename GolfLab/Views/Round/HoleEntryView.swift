@@ -4,6 +4,13 @@ import UIKit
 struct HoleEntryView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @State private var showEndRound = false
+    /// Drives asymmetric slide when changing holes (arrows or save → next).
+    @State private var holeSlideAxis: HoleSlideAxis = .forward
+
+    private enum HoleSlideAxis {
+        case forward
+        case backward
+    }
 
     var body: some View {
         ScrollView {
@@ -18,31 +25,40 @@ struct HoleEntryView: View {
                     let livePar = throughCurrent.reduce(0) { $0 + $1.par }
                     let vs = liveScore - livePar
 
-                    topNav
+                    topNav(round: round)
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, GLTopBarMetrics.titleBarBottomSpacing)
 
-                    holeHeader(hole: hole)
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.bottom, 12)
+                    VStack(spacing: 0) {
+                        holeHeader(hole: hole)
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.bottom, 12)
 
-                    progressRow(progress: progress, progressCount: progressCount, total: round.holes.count)
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                    scoreVsParRow(vs: vs, hasSavedHoles: progressCount > 0)
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.top, 6)
-                        .padding(.bottom, 18)
+                        progressRow(progress: progress, progressCount: progressCount, total: round.holes.count)
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                        scoreVsParRow(vs: vs, hasSavedHoles: progressCount > 0)
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.top, 6)
+                            .padding(.bottom, 18)
 
-                    HoleEntryForm(hole: hole, commitInPlace: true) { updated in
-                        roundStore.saveHole(updated)
-                        advance()
+                        HoleEntryForm(hole: hole, commitInPlace: true) { updated in
+                            holeSlideAxis = .forward
+                            withAnimation(.easeInOut(duration: 0.28)) {
+                                if let outcome = roundStore.saveCurrentScorecardHoleMergingAdvance(updated) {
+                                    if outcome == .completedRoundSaveLastHole {
+                                        showEndRound = true
+                                    }
+                                }
+                            }
+                        }
+                        .id(hole.holeNumber)
+                        .padding(.horizontal, GLLayout.horizontalInset)
                     }
-                    .id(hole.holeNumber)
-                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .id(round.currentHoleIndex)
+                    .transition(holeEnterExitTransition)
                 }
             }
-            .padding(.bottom, 24)
         }
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
@@ -50,19 +66,65 @@ struct HoleEntryView: View {
             EndRoundView()
         }
     }
-    
-    private var topNav: some View {
+
+    private var holeEnterExitTransition: AnyTransition {
+        switch holeSlideAxis {
+        case .forward:
+            return .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+        case .backward:
+            return .asymmetric(
+                insertion: .move(edge: .leading).combined(with: .opacity),
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        }
+    }
+
+    private func topNav(round: ActiveRound) -> some View {
         GLScreenTopBar(title: "Scorecard") {
-            Button("← Round") {
-                roundStore.persistUnsavedCurrentHoleIfEligible()
-                showEndRound = true
+            GLCircleChevronButton(direction: .backward, isEnabled: canGoBack(round: round)) {
+                guard let r = roundStore.activeRound else { return }
+                goToPreviousHole(round: r)
             }
-            .font(GLFonts.sans(size: 14, weight: .regular))
-            .foregroundColor(.accent)
-            .buttonStyle(.plain)
+            .animation(nil, value: canGoBack(round: round))
             .frame(maxWidth: .infinity, alignment: .leading)
         } trailing: {
-            Color.clear
+            GLCircleChevronButton(direction: .forward, isEnabled: canGoForward(round: round)) {
+                guard let r = roundStore.activeRound else { return }
+                goToNextHoleViaArrow(round: r)
+            }
+            .animation(nil, value: canGoForward(round: round))
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    private func canGoBack(round: ActiveRound) -> Bool {
+        round.currentHoleIndex > 0
+    }
+
+    /// Next hole is only reachable after the current hole has been saved (scorecard commit).
+    private func canGoForward(round: ActiveRound) -> Bool {
+        let idx = round.currentHoleIndex
+        guard idx < round.holes.count else { return false }
+        guard idx < round.holes.count - 1 else { return false }
+        return round.holes[idx].isSaved
+    }
+
+    private func goToPreviousHole(round: ActiveRound) {
+        guard canGoBack(round: round) else { return }
+        holeSlideAxis = .backward
+        withAnimation(.easeInOut(duration: 0.28)) {
+            roundStore.updateActiveRoundCurrentHoleIndex(round.currentHoleIndex - 1)
+        }
+    }
+
+    private func goToNextHoleViaArrow(round: ActiveRound) {
+        guard canGoForward(round: round) else { return }
+        holeSlideAxis = .forward
+        withAnimation(.easeInOut(duration: 0.28)) {
+            roundStore.updateActiveRoundCurrentHoleIndex(round.currentHoleIndex + 1)
         }
     }
     
@@ -136,11 +198,14 @@ struct HoleEntryView: View {
                         .fill(Color.accent.opacity(0.45))
                         .frame(width: geo.size.width * progress, height: 3)
                 }
+                .animation(.easeOut(duration: 0.24), value: progress)
             }
             .frame(height: 3)
             Text("\(progressCount) of \(total) holes")
                 .font(.glFootnote)
                 .foregroundColor(.textTertiary)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.24), value: progressCount)
         }
     }
     
@@ -152,7 +217,7 @@ struct HoleEntryView: View {
                 .foregroundColor(.textTertiary)
             Text(hasSavedHoles ? formatVs(vs) : "--")
                 .font(GLFonts.mono(size: 13, weight: .semibold))
-                .foregroundColor(vs <= 0 ? .accent : .chartNegative)
+                .foregroundColor(hasSavedHoles ? .accent : .textTertiary)
         }
     }
     
@@ -161,215 +226,6 @@ struct HoleEntryView: View {
         return v > 0 ? "+\(v)" : "\(v)"
     }
 
-    private func advance() {
-        guard let round = roundStore.activeRound else { return }
-        if round.currentHoleIndex < round.holes.count - 1 {
-            roundStore.updateActiveRoundCurrentHoleIndex(round.currentHoleIndex + 1)
-        } else {
-            showEndRound = true
-        }
-    }
-
-}
-
-// MARK: - Scorecard row with traditional golf notation
-
-struct ScorecardRow: View {
-    let hole: ActiveHole
-
-    var body: some View {
-        HStack {
-            Text("\(hole.holeNumber)")
-                .font(GLFonts.mono(size: 14, weight: .medium))
-                .foregroundColor(.textSecondary)
-                .frame(width: 28, alignment: .leading)
-
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("Par")
-                    .font(.glCaption)
-                    .foregroundColor(.textTertiary)
-                    .tracking(0.10 * 12)
-                    .textCase(.uppercase)
-                Text("\(hole.par)")
-                    .font(GLFonts.mono(size: 12, weight: .medium))
-                    .foregroundColor(.textTertiary)
-            }
-
-            Spacer()
-
-            ScorecardBadge(score: hole.score, par: hole.par)
-
-            Image(systemName: "pencil")
-                .font(.glCaption)
-                .foregroundColor(.textTertiary)
-                .padding(.leading, 8)
-        }
-        .padding(.horizontal, GLLayout.horizontalInset)
-        .padding(.vertical, 10)
-    }
-}
-
-// MARK: - Traditional golf scorecard badge
-
-struct ScorecardBadge: View {
-    /// Ink and optional color cues for in-round entry vs. neutral history scorecards.
-    enum Appearance: Equatable {
-        /// Semantic score palette (docs/design.md).
-        case colorCoded
-        /// Single ink for strokes and score (paper scorecard style).
-        case traditionalInk
-    }
-
-    let score: Int
-    let par: Int
-    var appearance: Appearance = .colorCoded
-
-    private var vsP: Int { score - par }
-
-    private static let ink = Color.textPrimary
-    private let strokeW: CGFloat = 1
-
-    var body: some View {
-        ZStack {
-            outerDecoration
-            innerDecoration
-            Text("\(score)")
-                .font(GLFonts.mono(size: 12, weight: .semibold))
-                .foregroundColor(scoreTextColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-                .frame(minWidth: 24, idealWidth: 28, maxHeight: 24)
-        }
-        .frame(width: 44, height: 44)
-    }
-
-    private func strokeColorOuterCoded() -> Color? {
-        switch appearance {
-        case .traditionalInk:
-            switch vsP {
-            case ..<(-1), 2...: return Self.ink
-            default: return nil
-            }
-        case .colorCoded:
-            switch vsP {
-            case ..<(-1): return .scoreEagleText
-            case 2...: return .scoreDoubleText
-            default: return nil
-            }
-        }
-    }
-
-    private func strokeColorInnerCoded() -> Color? {
-        switch appearance {
-        case .traditionalInk:
-            if vsP < 0 || vsP >= 1 { return Self.ink }
-            return nil
-        case .colorCoded:
-            switch vsP {
-            case ..<(-1): return .scoreEagleText
-            case -1: return .scoreBirdieText
-            case 1: return .scoreBogeyText
-            case 2...: return .scoreDoubleText
-            default: return nil
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var outerDecoration: some View {
-        if let stroke = strokeColorOuterCoded() {
-            if vsP < -1 {
-                Circle()
-                    .stroke(stroke, lineWidth: strokeW)
-                    .frame(width: 38, height: 38)
-            } else if vsP >= 2 {
-                RoundedRectangle(cornerRadius: 3)
-                    .stroke(stroke, lineWidth: strokeW)
-                    .frame(width: 38, height: 38)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var innerDecoration: some View {
-        if let stroke = strokeColorInnerCoded() {
-            if vsP < 0 {
-                Circle()
-                    .stroke(stroke, lineWidth: strokeW)
-                    .frame(width: 28, height: 28)
-            } else if vsP >= 1 {
-                RoundedRectangle(cornerRadius: 2)
-                    .stroke(stroke, lineWidth: strokeW)
-                    .frame(width: 28, height: 28)
-            }
-        }
-    }
-
-    private var scoreTextColor: Color {
-        switch appearance {
-        case .traditionalInk:
-            return Self.ink
-        case .colorCoded:
-            switch vsP {
-            case ..<(-1): return .scoreEagleText
-            case -1: return .scoreBirdieText
-            case 0: return .scoreParText
-            case 1: return .scoreBogeyText
-            default: return .scoreDoubleText
-            }
-        }
-    }
-}
-
-// MARK: - In-round hole edit sheet
-
-struct ScorecardHoleEditSheet: View {
-    let hole: ActiveHole
-    let onSave: (ActiveHole) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var edited: ActiveHole
-
-    init(hole: ActiveHole, onSave: @escaping (ActiveHole) -> Void) {
-        self.hole = hole
-        self.onSave = onSave
-        self._edited = State(initialValue: hole)
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                HoleMetaHeaderCard(
-                    holeNumber: hole.holeNumber,
-                    par: hole.par,
-                    yardage: hole.yardage
-                )
-                .padding(.horizontal, GLLayout.horizontalInset)
-                .padding(.top, 8)
-
-                HoleEntryForm(hole: edited, commitInPlace: true) { updated in
-                    onSave(updated)
-                    dismiss()
-                }
-                .padding(.horizontal, GLLayout.horizontalInset)
-
-                Spacer()
-            }
-            .background(Color.appBackground)
-            .navigationTitle("Edit Hole \(hole.holeNumber)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - ActiveHole Identifiable for sheet(item:)
-
-extension ActiveHole: Identifiable {
-    var id: Int { holeNumber }
 }
 
 // MARK: - Stepper field (shared)

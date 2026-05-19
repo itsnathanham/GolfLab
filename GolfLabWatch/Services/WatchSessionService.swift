@@ -9,19 +9,10 @@ class WatchSessionService: NSObject, ObservableObject {
     @Published var isRoundActive = false
     @Published var currentHoleIndex = 0
     @Published var holeEntries: [WatchHoleEntry] = []
-    /// Increments whenever `roundSetup`/`roundState` arrives from iPhone — refresh transient stepper defaults.
     @Published private(set) var syncGeneration: UInt64 = 0
 
-    func applyRoundStateFromPhone(_ state: WatchRoundState) {
-        guard roundSetup != nil else { return }
-        let holeCount = roundSetup?.holeSetups.count ?? 0
-        guard holeCount > 0 else { return }
-        let maxIdx = holeCount - 1
-        currentHoleIndex = min(max(0, state.currentHoleIndex), maxIdx)
-        holeEntries = state.savedEntries.sorted { $0.holeNumber < $1.holeNumber }
-        isRoundActive = true
-        syncGeneration += 1
-    }
+    private var appliedSessionId: UUID?
+    private var lastAppliedRevision: UInt64 = 0
 
     private override init() {
         super.init()
@@ -30,8 +21,6 @@ class WatchSessionService: NSObject, ObservableObject {
             WCSession.default.activate()
         }
     }
-
-    // MARK: - Hole management
 
     var currentHole: WatchHoleSetup? {
         guard let setup = roundSetup, currentHoleIndex < setup.holeSetups.count else { return nil }
@@ -44,7 +33,70 @@ class WatchSessionService: NSObject, ObservableObject {
         holeEntries.reduce(0) { $0 + ($1.score - $1.par) }
     }
 
-    // MARK: - Send hole entry to iPhone
+    func requestCompanionSyncFromPhone() {
+        guard WCSession.isSupported() else { return }
+        let message: [String: Any] = [
+            WatchMessageKey.type: WatchMessageType.syncRequest.rawValue
+        ]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(message)
+        }
+        applyApplicationContextIfPresent()
+    }
+
+    func applyCompanionSnapshot(_ snapshot: WatchCompanionSnapshot) {
+        if let appliedSessionId, appliedSessionId == snapshot.sessionId {
+            guard snapshot.revision > lastAppliedRevision else { return }
+        }
+        appliedSessionId = snapshot.sessionId
+        lastAppliedRevision = snapshot.revision
+        roundSetup = snapshot.setup
+        applyRoundState(snapshot.state)
+    }
+
+    private func applyRoundState(_ state: WatchRoundState) {
+        guard let setup = roundSetup else { return }
+        let holeCount = setup.holeSetups.count
+        guard holeCount > 0 else { return }
+        let maxIdx = holeCount - 1
+        currentHoleIndex = min(max(0, state.currentHoleIndex), maxIdx)
+        holeEntries = state.savedEntries.sorted { $0.holeNumber < $1.holeNumber }
+        isRoundActive = true
+        syncGeneration += 1
+    }
+
+    private func applyApplicationContextIfPresent() {
+        guard WCSession.isSupported() else { return }
+        applyReceivedApplicationContext(WCSession.default.receivedApplicationContext)
+    }
+
+    private func applyReceivedApplicationContext(_ context: [String: Any]) {
+        guard let typeRaw = context[WatchMessageKey.type] as? String,
+              let type = WatchMessageType(rawValue: typeRaw)
+        else { return }
+        switch type {
+        case .companionSnapshot:
+            if let data = context[WatchMessageKey.companionSnapshot] as? Data,
+               let snapshot = WatchCompanionSnapshot.decode(from: data) {
+                applyCompanionSnapshot(snapshot)
+            }
+        case .companionEnded:
+            clearCompanionSession()
+        default:
+            break
+        }
+    }
+
+    private func clearCompanionSession() {
+        isRoundActive = false
+        roundSetup = nil
+        currentHoleIndex = 0
+        holeEntries = []
+        appliedSessionId = nil
+        lastAppliedRevision = 0
+    }
 
     func sendHoleEntry(_ entry: WatchHoleEntry) {
         let message: [String: Any] = [
@@ -76,70 +128,44 @@ class WatchSessionService: NSObject, ObservableObject {
         ]
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(message)
         }
-        isRoundActive = false
-        roundSetup = nil
-        currentHoleIndex = 0
-        holeEntries = []
+        clearCompanionSession()
+    }
+
+    private func handleIncomingPayload(_ payload: [String: Any]) {
+        guard let typeRaw = payload[WatchMessageKey.type] as? String,
+              let type = WatchMessageType(rawValue: typeRaw)
+        else { return }
+
+        switch type {
+        case .companionSnapshot:
+            if let snapshot = WatchCompanionSnapshot.from(message: payload) {
+                applyCompanionSnapshot(snapshot)
+            }
+        case .companionEnded:
+            clearCompanionSession()
+        case .holeEntry, .endRound, .syncRequest:
+            break
+        }
     }
 }
 
-// MARK: - WCSessionDelegate
-
 extension WatchSessionService: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        Task { @MainActor in applyApplicationContextIfPresent() }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        Task { @MainActor in applyReceivedApplicationContext(applicationContext) }
+    }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let typeRaw = message[WatchMessageKey.type] as? String,
-              let type = WatchMessageType(rawValue: typeRaw)
-        else { return }
-
-        Task { @MainActor in
-            switch type {
-            case .roundSetup:
-                if let dict = message[WatchMessageKey.roundSetup] as? [String: Any],
-                   let setup = WatchRoundSetup.from(dictionary: dict) {
-                    roundSetup = setup
-                    isRoundActive = true
-                    currentHoleIndex = 0
-                    holeEntries = []
-                    syncGeneration += 1
-                }
-            case .roundState:
-                if let data = message[WatchMessageKey.roundState] as? Data,
-                   let state = WatchRoundState.decode(from: data) {
-                    applyRoundStateFromPhone(state)
-                }
-            case .holeEntry, .endRound, .syncRequest:
-                break
-            }
-        }
+        Task { @MainActor in handleIncomingPayload(message) }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        guard let typeRaw = userInfo[WatchMessageKey.type] as? String,
-              let type = WatchMessageType(rawValue: typeRaw)
-        else { return }
-
-        Task { @MainActor in
-            switch type {
-            case .roundSetup:
-                if let dataRaw = userInfo[WatchMessageKey.roundSetup] as? Data,
-                   let setup = try? JSONDecoder().decode(WatchRoundSetup.self, from: dataRaw) {
-                    roundSetup = setup
-                    isRoundActive = true
-                    currentHoleIndex = 0
-                    holeEntries = []
-                    syncGeneration += 1
-                }
-            case .roundState:
-                if let data = userInfo[WatchMessageKey.roundState] as? Data,
-                   let state = WatchRoundState.decode(from: data) {
-                    applyRoundStateFromPhone(state)
-                }
-            case .holeEntry, .endRound, .syncRequest:
-                break
-            }
-        }
+        Task { @MainActor in handleIncomingPayload(userInfo) }
     }
 }

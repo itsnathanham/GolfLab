@@ -24,32 +24,49 @@ struct HoleEditView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                HoleMetaHeaderCard(
-                    holeNumber: hole.holeNumber,
-                    par: hole.par,
-                    yardage: hole.yardage
-                )
-                .padding(.top, 8)
+            VStack(alignment: .leading, spacing: 0) {
+                topNav
+                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .padding(.top, 4)
+                    .padding(.bottom, 16)
 
-                HoleEntryForm(hole: activeHole, commitInPlace: false) { updated in
-                    activeHole = updated
-                    saveHole()
-                }
+                VStack(spacing: 20) {
+                    HoleMetaHeaderCard(
+                        holeNumber: hole.holeNumber,
+                        par: hole.par,
+                        yardage: hole.yardage
+                    )
 
-                if let error = errorMessage {
-                    Text(error)
-                        .font(.glSubhead)
-                        .foregroundColor(.chartNegativeStrong)
-                        .multilineTextAlignment(.center)
+                    HoleEntryForm(hole: activeHole, commitInPlace: false) { updated in
+                        activeHole = updated
+                        saveHole()
+                    }
+
+                    if let error = errorMessage {
+                        Text(error)
+                            .font(.glSubhead)
+                            .foregroundColor(.chartNegativeStrong)
+                            .multilineTextAlignment(.center)
+                    }
                 }
+                .padding(.horizontal, GLLayout.horizontalInset)
             }
-            .padding(.horizontal, GLLayout.horizontalInset)
-            .padding(.bottom, 32)
         }
         .background(Color.appBackground)
-        .navigationTitle("Edit Hole \(hole.holeNumber)")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var topNav: some View {
+        HStack {
+            GLCircleBackButton { dismiss() }
+            Spacer()
+            Text("Edit hole \(hole.holeNumber)")
+                .font(.glNavTitle)
+                .foregroundColor(.textPrimary)
+            Spacer()
+            Color.clear
+                .frame(width: 32, height: 32)
+        }
     }
 
     private func saveHole() {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LogPracticeSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var roundStore: RoundStore
 
     let userId: UUID
     var onLogged: () -> Void = {}
@@ -18,8 +19,13 @@ struct LogPracticeSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                topNav
+                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .padding(.top, GLTopBarMetrics.sheetTopPadding + GLTopBarMetrics.sheetExtraTopInset)
+                    .padding(.bottom, 16)
+
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Practice day")
@@ -30,30 +36,14 @@ struct LogPracticeSheet: View {
                             .font(GLFonts.mono(size: 22, weight: .semibold))
                             .foregroundStyle(Color.textPrimary)
 
-                        DatePicker(
-                            "",
-                            selection: $sessionDate,
-                            displayedComponents: .date
-                        )
-                        .datePickerStyle(.graphical)
-                        .labelsHidden()
-                        .accentColor(Color.accent)
+                        GLCalendarDatePickerPanel(selectedDate: $sessionDate)
                     }
                     .glCardSurface(outlined: true)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Focus")
-                            .font(GLFonts.sans(size: 12, weight: .medium))
-                            .foregroundStyle(Color.textSecondary)
-
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                StatToggle(label: "Range", subtitle: "Full swing reps", isOn: $practicedRange, style: .practice)
-                                StatToggle(label: "Chipping", subtitle: "Short game", isOn: $practicedChipping, style: .practice)
-                            }
-                            StatToggle(label: "Putting", subtitle: "Speed & line work", isOn: $practicedPutting, style: .practice)
-                                .frame(maxWidth: .infinity)
-                        }
+                    HStack(spacing: 8) {
+                        StatToggle(label: "Range", isOn: $practicedRange, style: .practice)
+                        StatToggle(label: "Chipping", isOn: $practicedChipping, style: .practice)
+                        StatToggle(label: "Putting", isOn: $practicedPutting, style: .practice)
                     }
 
                     if let saveError {
@@ -73,20 +63,27 @@ struct LogPracticeSheet: View {
                     }
                 }
                 .padding(.horizontal, GLLayout.horizontalInset)
-                .padding(.bottom, 28)
-                .padding(.top, 8)
+                .padding(.bottom, GLLayout.sheetContentBottomPadding)
             }
-            .background(Color.appBackground)
-            .navigationTitle("Log practice")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundStyle(Color.accent)
-                }
-            }
+        }
+        .background(Color.appBackground)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var topNav: some View {
+        HStack {
+            GLCircleBackButton { dismiss() }
+
+            Spacer()
+
+            Text("Log practice")
+                .font(.glNavTitle)
+                .foregroundColor(.textPrimary)
+
+            Spacer()
+
+            Color.clear
+                .frame(width: 32, height: 32)
         }
     }
 
@@ -106,7 +103,8 @@ struct LogPracticeSheet: View {
             practicedPutting: practicedPutting
         )
         do {
-            _ = try await SupabaseService.shared.insertPracticeSession(insert)
+            let inserted = try await SupabaseService.shared.insertPracticeSession(insert)
+            roundStore.upsertPracticeSession(inserted)
             onLogged()
             dismiss()
         } catch {

@@ -13,8 +13,10 @@ enum Config {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String else {
             fatalError("Missing \(key). \(hint)")
         }
-        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty, !value.contains("YOUR_") else {
+        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        let hasUnresolvedBuildSetting = value.contains("$(") || value.contains("${")
+        guard !value.isEmpty, !value.contains("YOUR_"), !hasUnresolvedBuildSetting else {
             fatalError("Invalid or placeholder \(key). \(hint)")
         }
         return value

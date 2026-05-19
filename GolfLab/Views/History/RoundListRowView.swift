@@ -21,12 +21,11 @@ struct RoundListRowView: View {
         else { return ("—", .textTertiary) }
         let delta = score - par
         if delta == 0 {
-            return ("E", .textTertiary)
+            return ("E", .accent)
         }
         let raw = String(format: "%+.0f", Double(delta))
         let text = raw.replacingOccurrences(of: "-", with: "\u{2212}")
-        let color: Color = delta < 0 ? .accent : .chartNegative
-        return (text, color)
+        return (text, .accent)
     }
 
     var body: some View {

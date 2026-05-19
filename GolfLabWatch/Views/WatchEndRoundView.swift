@@ -14,7 +14,7 @@ struct WatchEndRoundView: View {
             let vs = session.scoreVsPar
             Text(vs == 0 ? "Even par" : (vs > 0 ? "+\(vs)" : "\(vs)"))
                 .font(.system(size: 28, weight: .semibold, design: .monospaced))
-                .foregroundColor(vs <= 0 ? WatchPalette.chartPositive : WatchPalette.chartNegative)
+                .foregroundColor(WatchPalette.accent)
 
             Text("\(session.holeEntries.count) holes logged")
                 .font(.footnote)

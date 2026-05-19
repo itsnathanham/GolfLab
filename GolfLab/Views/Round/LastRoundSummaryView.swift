@@ -28,6 +28,10 @@ struct LastRoundSummaryView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
 
+                        RoundVsParProgressCard(holes: holes, totalHoles: round.holes)
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.bottom, 16)
+
                         if isIncompleteScorecard {
                             Text("This round has \(holes.count) of \(round.holes) hole records stored. The figures above sum only those holes.")
                                 .font(.glCaption)
@@ -43,9 +47,7 @@ struct LastRoundSummaryView: View {
 
                         ctaButtons
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 28)
                     }
-                    .padding(.bottom, 16)
                 } else {
                     loadingState
                         .padding(.horizontal, GLLayout.horizontalInset)
@@ -179,7 +181,7 @@ struct LastRoundSummaryView: View {
             GLStatSummaryTile(
                 label: "Score vs par",
                 value: scoreVsPar.map(formatVsPar) ?? "—",
-                valueUsesAccent: (scoreVsPar ?? 1) <= 0
+                valueUsesAccent: scoreVsPar != nil
             )
             GLStatSummaryTile(
                 label: "GIR %",

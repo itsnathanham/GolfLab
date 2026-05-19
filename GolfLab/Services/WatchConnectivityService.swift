@@ -6,7 +6,6 @@ class WatchConnectivityService: NSObject, ObservableObject {
     static let shared = WatchConnectivityService()
 
     @Published var receivedHoleEntries: [WatchHoleEntry] = []
-    /// Bumps when `handleHoleEntry` runs so the app can merge into `RoundStore` immediately (not only on End round).
     @Published private(set) var receivedHoleEntriesRevision: UInt64 = 0
     @Published var isWatchReachable = false
 
@@ -18,34 +17,42 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Send round setup to Watch
+    func pushCompanionSnapshot(_ snapshot: WatchCompanionSnapshot) {
+        guard WCSession.isSupported(), let data = snapshot.encoded() else { return }
 
-    func sendRoundSetup(_ setup: WatchRoundSetup) {
-        guard WCSession.default.isReachable else {
-            // Store for transfer when Watch reconnects
-            if let data = try? JSONEncoder().encode(setup) {
-                WCSession.default.transferUserInfo([
-                    WatchMessageKey.type: WatchMessageType.roundSetup.rawValue,
-                    WatchMessageKey.roundSetup: data
-                ])
-            }
-            return
-        }
-        let message: [String: Any] = [
-            WatchMessageKey.type: WatchMessageType.roundSetup.rawValue,
-            WatchMessageKey.roundSetup: setup.toDictionary()
+        let payload: [String: Any] = [
+            WatchMessageKey.type: WatchMessageType.companionSnapshot.rawValue,
+            WatchMessageKey.companionSnapshot: data,
+            WatchMessageKey.sessionId: snapshot.sessionId.uuidString,
+            WatchMessageKey.revision: snapshot.revision
         ]
-        WCSession.default.sendMessage(message, replyHandler: nil)
+
+        do {
+            try WCSession.default.updateApplicationContext([
+                WatchMessageKey.type: WatchMessageType.companionSnapshot.rawValue,
+                WatchMessageKey.companionSnapshot: data
+            ])
+        } catch {
+            // Live messages still apply if context is too large or pending.
+        }
+
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(payload)
+        }
     }
 
-    // MARK: - Push live round progress to Watch
-
-    func sendRoundState(_ state: WatchRoundState) {
-        guard let data = state.encoded() else { return }
+    func notifyCompanionEnded() {
+        guard WCSession.isSupported() else { return }
         let message: [String: Any] = [
-            WatchMessageKey.type: WatchMessageType.roundState.rawValue,
-            WatchMessageKey.roundState: data
+            WatchMessageKey.type: WatchMessageType.companionEnded.rawValue
         ]
+        do {
+            try WCSession.default.updateApplicationContext([
+                WatchMessageKey.type: WatchMessageType.companionEnded.rawValue
+            ])
+        } catch {}
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil)
         } else {
@@ -53,7 +60,9 @@ class WatchConnectivityService: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Handle incoming hole data from Watch
+    func clearEntries() {
+        receivedHoleEntries = []
+    }
 
     private func handleHoleEntry(from dict: [String: Any]) {
         guard let entry = WatchHoleEntry.from(dictionary: dict) else { return }
@@ -66,12 +75,25 @@ class WatchConnectivityService: NSObject, ObservableObject {
         receivedHoleEntriesRevision += 1
     }
 
-    func clearEntries() {
-        receivedHoleEntries = []
+    private func handleIncomingFromWatch(_ payload: [String: Any]) {
+        guard let typeRaw = payload[WatchMessageKey.type] as? String,
+              let type = WatchMessageType(rawValue: typeRaw)
+        else { return }
+
+        switch type {
+        case .holeEntry:
+            if let holeDict = payload[WatchMessageKey.holeData] as? [String: Any] {
+                handleHoleEntry(from: holeDict)
+            }
+        case .endRound:
+            NotificationCenter.default.post(name: .watchRequestedEndRound, object: nil)
+        case .syncRequest:
+            NotificationCenter.default.post(name: .watchRequestedCompanionSync, object: nil)
+        case .companionSnapshot, .companionEnded:
+            break
+        }
     }
 }
-
-// MARK: - WCSessionDelegate
 
 extension WatchConnectivityService: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
@@ -89,46 +111,22 @@ extension WatchConnectivityService: WCSessionDelegate {
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
         Task { @MainActor in
             isWatchReachable = session.isReachable
+            if session.isReachable {
+                NotificationCenter.default.post(name: .watchRequestedCompanionSync, object: nil)
+            }
         }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let typeRaw = message[WatchMessageKey.type] as? String,
-              let type = WatchMessageType(rawValue: typeRaw)
-        else { return }
-
-        Task { @MainActor in
-            switch type {
-            case .holeEntry:
-                if let holeDict = message[WatchMessageKey.holeData] as? [String: Any] {
-                    handleHoleEntry(from: holeDict)
-                }
-            case .endRound:
-                NotificationCenter.default.post(name: .watchRequestedEndRound, object: nil)
-            case .roundSetup, .roundState, .syncRequest:
-                break
-            }
-        }
+        Task { @MainActor in handleIncomingFromWatch(message) }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        guard let typeRaw = userInfo[WatchMessageKey.type] as? String,
-              let type = WatchMessageType(rawValue: typeRaw)
-        else { return }
-
-        Task { @MainActor in
-            switch type {
-            case .holeEntry:
-                if let holeDict = userInfo[WatchMessageKey.holeData] as? [String: Any] {
-                    handleHoleEntry(from: holeDict)
-                }
-            case .roundSetup, .roundState, .syncRequest, .endRound:
-                break
-            }
-        }
+        Task { @MainActor in handleIncomingFromWatch(userInfo) }
     }
 }
 
 extension Notification.Name {
     static let watchRequestedEndRound = Notification.Name("watchRequestedEndRound")
+    static let watchRequestedCompanionSync = Notification.Name("watchRequestedCompanionSync")
 }

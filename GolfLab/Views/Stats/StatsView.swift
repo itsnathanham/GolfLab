@@ -64,7 +64,6 @@ struct StatsView: View {
 
                         avgScoreByParCard
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 24)
                     }
                 }
             }
@@ -141,8 +140,6 @@ struct StatsView: View {
         let firPct = firPercentageFromHoles(holesForStats)
 
         let scoreText = avgVsPar.map { formatAvgVsPar($0) } ?? "—"
-        let scoreAccent = (avgVsPar ?? 0) <= 0
-
         let girText: String = {
             guard let v = girPct else { return "—" }
             return String(format: "%.0f", v)
@@ -161,7 +158,7 @@ struct StatsView: View {
                 GLStatStripCell(
                     label: "Avg score",
                     value: scoreText,
-                    valueUsesAccent: scoreAccent && avgVsPar != nil
+                    valueUsesAccent: avgVsPar != nil
                 )
                 Rectangle()
                     .fill(Color.borderDefault)
@@ -211,7 +208,6 @@ struct StatsView: View {
                         height: height,
                         averageVsPar: average,
                         showZeroLine: showParZeroLine,
-                        style: .accentSparkline,
                         showEndpointLabel: true,
                         introAnimation: .accentSparklineStats,
                         introReplayToken: statsIntroReplayToken,
@@ -276,8 +272,7 @@ struct StatsView: View {
     private func avgScoreByParRow(row: ParAvgRow) -> some View {
         let maxAvg = max(avgScoreByParRows.map(\.avgScore).max() ?? 1, 0.01)
         let widthFrac = min(1, row.avgScore / maxAvg)
-        let atOrUnderPar = row.avgScore <= Double(row.par) + 0.001
-        let barColor: Color = atOrUnderPar ? .accent : .chartNegative
+        let barColor: Color = .accent
 
         return HStack(alignment: .center, spacing: 10) {
             Text("Par \(row.par)")
@@ -515,13 +510,4 @@ struct StatsView: View {
             isLoadingHoles = false
         }
     }
-}
-
-// MARK: - ChartPoint (shared with `VsParScoreStatsCard`)
-
-struct ChartPoint: Identifiable {
-    let id = UUID()
-    let index: Int
-    let value: Double
-    let label: String
 }

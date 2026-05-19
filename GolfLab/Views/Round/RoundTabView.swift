@@ -8,7 +8,10 @@ struct RoundTabView: View {
     var body: some View {
         NavigationStack {
             if roundStore.isRoundActive {
-                HoleEntryView()
+                VStack(spacing: 0) {
+                    ActiveRoundResumeBanner()
+                    HoleEntryView()
+                }
             } else if roundStore.preferNewRoundSetup || roundStore.allRounds.isEmpty {
                 RoundSetupView()
             } else {

@@ -15,51 +15,21 @@ struct WatchHoleEntryView: View {
     private var par: Int { currentHole?.par ?? 4 }
     private var displayHoleOrdinal: Int { currentHole?.holeNumber ?? session.currentHoleIndex + 1 }
 
+    /// Drives slide transition when advancing to the next hole after save.
+    private var holeSlideIdentity: Int { session.currentHoleIndex }
+
+    private static let holeAdvanceTransition: AnyTransition = .asymmetric(
+        insertion: .move(edge: .trailing).combined(with: .opacity),
+        removal: .move(edge: .leading).combined(with: .opacity)
+    )
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                holeHeader
-
-                Group {
-                    WatchMetricStepper(
-                        title: "Score",
-                        value: $score,
-                        min: 1,
-                        max: 12,
-                        valuePointSize: 30,
-                        buttonSize: 44
-                    )
-                }
-                .digitalCrownRotation($crownValue, from: 1.0, through: 12.0, by: 1.0, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true)
-                .onChange(of: crownValue) { _, newValue in
-                    score = Int(newValue.rounded())
-                }
-
-                WatchMetricStepper(
-                    title: "Putts",
-                    value: $putts,
-                    min: 0,
-                    max: 5,
-                    valuePointSize: 24,
-                    buttonSize: 40
-                )
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Stats")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(WatchPalette.textTertiary)
-                        .textCase(.uppercase)
-                    WatchToggle(label: "GIR", isOn: $gir, kind: .stat)
-                    if par > 3 {
-                        WatchToggle(label: "FIR", isOn: $fir, kind: .stat)
-                    }
-                    WatchToggle(label: "Penalty", isOn: $penalty, kind: .penalty)
-                }
-
-                saveButton
-            }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            holeEntryColumn
+                .id(holeSlideIdentity)
+                .transition(Self.holeAdvanceTransition)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
         }
         .background(WatchPalette.bg)
         .navigationTitle("Hole \(displayHoleOrdinal)")
@@ -85,6 +55,50 @@ struct WatchHoleEntryView: View {
 
     // MARK: - Subviews
 
+    private var holeEntryColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            holeHeader
+
+            Group {
+                WatchMetricStepper(
+                    title: "Score",
+                    value: $score,
+                    min: 1,
+                    max: 12,
+                    valuePointSize: 30,
+                    buttonSize: 44
+                )
+            }
+            .digitalCrownRotation($crownValue, from: 1.0, through: 12.0, by: 1.0, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true)
+            .onChange(of: crownValue) { _, newValue in
+                score = Int(newValue.rounded())
+            }
+
+            WatchMetricStepper(
+                title: "Putts",
+                value: $putts,
+                min: 0,
+                max: 5,
+                valuePointSize: 24,
+                buttonSize: 40
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Stats")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(WatchPalette.textTertiary)
+                    .textCase(.uppercase)
+                WatchToggle(label: "GIR", isOn: $gir, kind: .stat)
+                if par > 3 {
+                    WatchToggle(label: "FIR", isOn: $fir, kind: .stat)
+                }
+                WatchToggle(label: "Penalty", isOn: $penalty, kind: .penalty)
+            }
+
+            saveButton
+        }
+    }
+
     private var holeHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 0) {
@@ -105,7 +119,7 @@ struct WatchHoleEntryView: View {
                 let vs = session.scoreVsPar
                 Text(vs == 0 ? "E" : (vs > 0 ? "+\(vs)" : "\(vs)"))
                     .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                    .foregroundColor(vs <= 0 ? WatchPalette.chartPositive : WatchPalette.chartNegative)
+                    .foregroundColor(WatchPalette.accent)
                 Text("\(session.currentHoleIndex + 1)/\(session.totalHoles)")
                     .font(.system(size: 11))
                     .foregroundColor(WatchPalette.textSecondary)
@@ -154,9 +168,12 @@ struct WatchHoleEntryView: View {
         session.sendHoleEntry(entry)
 
         if session.currentHoleIndex < session.totalHoles - 1 {
-            session.advanceHole()
+            withAnimation(.easeInOut(duration: 0.28)) {
+                session.advanceHole()
+            }
             resetToDefaults()
         } else {
+            resetToDefaults()
             showEndRound = true
         }
     }

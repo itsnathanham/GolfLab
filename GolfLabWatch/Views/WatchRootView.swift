@@ -2,12 +2,23 @@ import SwiftUI
 
 struct WatchRootView: View {
     @EnvironmentObject private var session: WatchSessionService
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        if session.isRoundActive {
-            WatchHoleEntryView()
-        } else {
-            WatchIdleView()
+        Group {
+            if session.isRoundActive {
+                WatchHoleEntryView()
+            } else {
+                WatchIdleView()
+            }
+        }
+        .onAppear {
+            session.requestCompanionSyncFromPhone()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                session.requestCompanionSyncFromPhone()
+            }
         }
     }
 }

@@ -1,5 +1,19 @@
 import Foundation
+import os
 import SwiftUI
+
+private let roundStoreLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "GolfLab",
+    category: "RoundStore"
+)
+
+/// Outcome of saving the **current** scorecard hole in one store write (commit + optional index advance).
+enum ScorecardHoleCommitOutcome: Equatable {
+    /// Saved and moved `currentHoleIndex` to the next hole.
+    case advancedToNextHole
+    /// Saved the final hole; index unchanged — present End round UI.
+    case completedRoundSaveLastHole
+}
 
 // Central state object for an active round, shared across iPhone tabs and Watch sync
 @MainActor
@@ -13,6 +27,8 @@ class RoundStore: ObservableObject {
     // MARK: - Historical data (loaded on app launch / tab focus)
 
     @Published var allRounds: [Round] = []
+    /// Logged practice sessions for the signed-in user (loaded with `loadRounds`, same network pass as rounds).
+    @Published var allPracticeSessions: [PracticeSession] = []
     /// Increments when `loadRounds` replaces `allRounds` — use for `onChange` instead of mapping all ids.
     @Published private(set) var roundsListEpoch: UInt64 = 0
     /// Persisted hole row counts per round (from a single `holes` query). Empty until `loadRounds` succeeds.
@@ -22,12 +38,30 @@ class RoundStore: ObservableObject {
     /// Persisted `(roundId, par, score)` rows from `fetchHoleAggregatesByUser` (same query as round/par sums).
     @Published private(set) var holeParScoreSamples: [HoleParScoreSample] = []
     @Published var isLoadingRounds = false
+    /// From `users` profile (`weekly_round_target` / `weekly_practice_target`); defaults used until loaded.
+    @Published var weeklyRoundTarget: Int = 1
+    @Published var weeklyPracticeTarget: Int = 2
+    /// Goal history for streak math (past weeks use targets that were active then).
+    @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
 
     /// Minimum holes of this par in the **resolved default season** (persisted + in-season active saved) before showing a numeric average in Hole Entry.
     private let minimumParAverageSample = 3
 
     /// When true, the Round tab shows **New Round** setup even if a last-round summary would normally appear (e.g. **Start round** from Home).
     @Published var preferNewRoundSetup = false
+
+    /// Set after restoring an in-progress scorecard from local storage (process kill / relaunch).
+    @Published private(set) var didRestoreActiveRoundFromDraft = false
+
+    /// Coalesces overlapping `loadRounds()` calls (Home + History `.task`, pull-to-refresh) so `syncWeeklyTargetsFromProfile` does not race.
+    private var loadRoundsInflight: Task<Void, Never>?
+
+    private var companionSessionId = UUID()
+    private var companionRevision: UInt64 = 0
+
+    init() {
+        restoreActiveRoundFromDraftIfNeeded()
+    }
 
     func requestRoundSetupFromHome() {
         preferNewRoundSetup = true
@@ -37,32 +71,48 @@ class RoundStore: ObservableObject {
         preferNewRoundSetup = false
     }
 
+    func dismissRestoredRoundBanner() {
+        didRestoreActiveRoundFromDraft = false
+    }
+
+    /// Abandons the in-progress scorecard without saving to Supabase.
+    func discardActiveRound() {
+        activeRound = nil
+        isRoundActive = false
+        didRestoreActiveRoundFromDraft = false
+        preferNewRoundSetup = false
+        ActiveRoundDraftStore.clear()
+        WatchConnectivityService.shared.clearEntries()
+        WatchConnectivityService.shared.notifyCompanionEnded()
+    }
+
     // MARK: - Start a new round
 
     func startRound(setup: RoundSetup, userId: UUID) {
         preferNewRoundSetup = false
+        didRestoreActiveRoundFromDraft = false
         WatchConnectivityService.shared.clearEntries()
+        companionSessionId = UUID()
+        companionRevision = 0
 
         let holes: [ActiveHole] = setup.holeSetups.map { h in
             ActiveHole(holeNumber: h.holeNumber, par: h.par, yardage: h.yardage, strokeIndex: h.strokeIndex)
         }
         activeRound = ActiveRound(setup: setup, userId: userId, holes: holes)
         isRoundActive = true
-
-        let watchSetup = WatchRoundSetup(
-            courseName: setup.courseName,
-            tee: setup.tee,
-            totalHoles: setup.totalHoles,
-            holeSetups: setup.holeSetups.map {
-                WatchHoleSetup(holeNumber: $0.holeNumber, par: $0.par, yardage: $0.yardage, strokeIndex: $0.strokeIndex)
-            }
-        )
-        WatchConnectivityService.shared.sendRoundSetup(watchSetup)
+        pushCompanionSnapshotToWatch()
     }
 
-    /// Pushes `currentHoleIndex` and saved hole rows to Watch so picking up mid-round stays aligned with the phone.
-    func pushActiveRoundStateToCompanion() {
+    /// Pushes setup + `currentHoleIndex` + saved holes to Watch (and persists a local draft).
+    func pushCompanionSnapshotToWatch() {
         guard let round = activeRound, isRoundActive else { return }
+        let snapshot = makeCompanionSnapshot(for: round)
+        companionRevision = snapshot.revision
+        WatchConnectivityService.shared.pushCompanionSnapshot(snapshot)
+        persistActiveRoundDraft()
+    }
+
+    private func makeCompanionSnapshot(for round: ActiveRound) -> WatchCompanionSnapshot {
         let lastIdx = max(0, round.holes.count - 1)
         let idx = min(max(0, round.currentHoleIndex), lastIdx)
         let saved = round.holes.filter(\.isSaved).map { h in
@@ -76,8 +126,47 @@ class RoundStore: ObservableObject {
                 penalty: h.penalty
             )
         }
-        let state = WatchRoundState(currentHoleIndex: idx, savedEntries: saved)
-        WatchConnectivityService.shared.sendRoundState(state)
+        let setup = WatchRoundSetup(
+            courseName: round.setup.courseName,
+            tee: round.setup.tee,
+            totalHoles: round.setup.totalHoles,
+            holeSetups: round.holes.map {
+                WatchHoleSetup(
+                    holeNumber: $0.holeNumber,
+                    par: $0.par,
+                    yardage: $0.yardage,
+                    strokeIndex: $0.strokeIndex
+                )
+            }
+        )
+        let nextRevision = companionRevision + 1
+        return WatchCompanionSnapshot(
+            sessionId: companionSessionId,
+            revision: nextRevision,
+            setup: setup,
+            state: WatchRoundState(currentHoleIndex: idx, savedEntries: saved)
+        )
+    }
+
+    private func restoreActiveRoundFromDraftIfNeeded() {
+        guard let envelope = ActiveRoundDraftStore.load() else { return }
+        activeRound = envelope.round
+        isRoundActive = true
+        companionSessionId = envelope.companionSessionId
+        companionRevision = envelope.companionRevision
+        didRestoreActiveRoundFromDraft = true
+    }
+
+    private func persistActiveRoundDraft() {
+        guard isRoundActive, let round = activeRound else {
+            ActiveRoundDraftStore.clear()
+            return
+        }
+        ActiveRoundDraftStore.save(
+            round: round,
+            companionSessionId: companionSessionId,
+            companionRevision: companionRevision
+        )
     }
 
     // MARK: - Save a hole (from iPhone entry)
@@ -89,7 +178,33 @@ class RoundStore: ObservableObject {
         saved.isSaved = true
         round.holes[index] = saved
         activeRound = round
-        pushActiveRoundStateToCompanion()
+        pushCompanionSnapshotToWatch()
+    }
+
+    /// Saves `entry` on the current hole and bumps `currentHoleIndex` in **one** `activeRound` assignment when not on the last hole.
+    /// Avoids a one-frame state where the current hole is saved (forward chevron enabled) before the index advances.
+    @discardableResult
+    func saveCurrentScorecardHoleMergingAdvance(_ entry: ActiveHole) -> ScorecardHoleCommitOutcome? {
+        guard var round = activeRound else { return nil }
+        guard let index = round.holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }),
+              index == round.currentHoleIndex
+        else {
+            saveHole(entry)
+            return nil
+        }
+        var saved = entry
+        saved.isSaved = true
+        round.holes[index] = saved
+
+        if index < round.holes.count - 1 {
+            round.currentHoleIndex = index + 1
+            activeRound = round
+            pushCompanionSnapshotToWatch()
+            return .advancedToNextHole
+        }
+        activeRound = round
+        pushCompanionSnapshotToWatch()
+        return .completedRoundSaveLastHole
     }
 
     /// Writes score, putts, GIR, FIR, penalty, and `isSaved` on the existing hole row (no `builtHole()` rebuild).
@@ -104,7 +219,7 @@ class RoundStore: ObservableObject {
         round.holes[idx].penalty = penalty
         round.holes[idx].isSaved = true
         activeRound = round
-        pushActiveRoundStateToCompanion()
+        pushCompanionSnapshotToWatch()
     }
 
     /// Optional-chaining writes to nested `struct` fields do not persist; always copy the round, mutate, assign back.
@@ -112,7 +227,7 @@ class RoundStore: ObservableObject {
         guard var round = activeRound else { return }
         round.currentHoleIndex = index
         activeRound = round
-        pushActiveRoundStateToCompanion()
+        pushCompanionSnapshotToWatch()
     }
 
     /// Mutate one hole on the in-progress round (single source of truth for toggles / steppers).
@@ -144,7 +259,7 @@ class RoundStore: ObservableObject {
         if appliedAny {
             reconcileCurrentHoleAfterCompanionSave()
         }
-        pushActiveRoundStateToCompanion()
+        pushCompanionSnapshotToWatch()
     }
 
     /// After Watch (or reconciliation) saves holes: move the scorecard to the first hole that still needs a scorecard save.
@@ -164,6 +279,18 @@ class RoundStore: ObservableObject {
         mergeWatchEntries(WatchConnectivityService.shared.receivedHoleEntries)
     }
 
+    /// Watch **End & Save** — same persistence path as iPhone End round (merges queued hole payloads first).
+    func saveActiveRoundFromWatchEndRequest() async {
+        guard isRoundActive, activeRound != nil else { return }
+        do {
+            _ = try await saveRoundToSupabase()
+        } catch RoundError.noActiveRound {
+            // Already finished (e.g. duplicate end message).
+        } catch {
+            roundStoreLogger.error("Watch end-round save failed: \(error.localizedDescription)")
+        }
+    }
+
     /// Marks the **current** hole as saved when every earlier hole is already saved and the user is past the first hole.
     /// This fixes losing the last hole (or any in-progress hole) when **End Round** is used without tapping **Save Hole**:
     /// score/putts live in the form until committed, while GIR/FIR already patch the store.
@@ -174,7 +301,7 @@ class RoundStore: ObservableObject {
         guard round.holes[..<idx].allSatisfy(\.isSaved), !round.holes[idx].isSaved else { return }
         round.holes[idx].isSaved = true
         activeRound = round
-        pushActiveRoundStateToCompanion()
+        pushCompanionSnapshotToWatch()
     }
 
     // MARK: - Save round to Supabase
@@ -222,35 +349,50 @@ class RoundStore: ObservableObject {
         _ = try await SupabaseService.shared.insertHoles(holeInserts)
 
         WatchConnectivityService.shared.clearEntries()
+        WatchConnectivityService.shared.notifyCompanionEnded()
+        ActiveRoundDraftStore.clear()
 
         let newId = savedRound.id
         // Clear before reload so par averages from `fetchHoleAggregatesByUser` are not merged twice with the same holes.
         activeRound = nil
         isRoundActive = false
+        didRestoreActiveRoundFromDraft = false
         await loadRounds()
         return newId
-    }
-
-    func abandonRound() {
-        activeRound = nil
-        isRoundActive = false
-        preferNewRoundSetup = false
-        WatchConnectivityService.shared.clearEntries()
     }
 
     // MARK: - Load all rounds
 
     func loadRounds() async {
+        if let existing = loadRoundsInflight {
+            await existing.value
+            return
+        }
+        let task = Task { @MainActor in
+            await self.performLoadRoundsBody()
+        }
+        loadRoundsInflight = task
+        await task.value
+        loadRoundsInflight = nil
+    }
+
+    private func performLoadRoundsBody() async {
         guard let userId = await AuthService.shared.currentUserId else { return }
         isLoadingRounds = true
+        defer { isLoadingRounds = false }
+
+        async let fetchedPractice = SupabaseService.shared.fetchAllPracticeSessions(userId: userId)
+
         do {
             var rounds = try await SupabaseService.shared.fetchRounds(userId: userId)
             rounds = await reconcileStoredRoundTotals(rounds: rounds)
             allRounds = rounds
             roundsListEpoch += 1
 
+            async let fetchedAggregates = SupabaseService.shared.fetchHoleAggregatesByUser(userId: userId)
+
             do {
-                let aggregates = try await SupabaseService.shared.fetchHoleAggregatesByUser(userId: userId)
+                let aggregates = try await fetchedAggregates
                 holeRowCountByRoundId = Dictionary(uniqueKeysWithValues: rounds.map { round in
                     (round.id, aggregates.rowCountByRound[round.id] ?? 0)
                 })
@@ -265,15 +407,47 @@ class RoundStore: ObservableObject {
                 totalParSumByRoundId = parByRound
                 holeParScoreSamples = aggregates.holeParScoreSamples
             } catch {
-                print("Error loading hole aggregates: \(error)")
+                roundStoreLogger.error("Error loading hole aggregates: \(error.localizedDescription)")
                 holeRowCountByRoundId = [:]
                 totalParSumByRoundId = [:]
                 holeParScoreSamples = []
             }
+
+            allPracticeSessions = (try? await fetchedPractice) ?? []
         } catch {
-            print("Error loading rounds: \(error)")
+            roundStoreLogger.error("Error loading rounds: \(error.localizedDescription)")
+            allPracticeSessions = []
+            _ = try? await fetchedPractice
         }
-        isLoadingRounds = false
+
+        await syncWeeklyTargetsFromProfile()
+    }
+
+    /// Refreshes weekly goal state from Supabase (e.g. after `loadRounds`).
+    func syncWeeklyTargetsFromProfile() async {
+        guard let userId = await AuthService.shared.currentUserId else { return }
+        guard let profile = try? await SupabaseService.shared.fetchProfile(userId: userId) else { return }
+        applyWeeklyGoalState(from: profile)
+    }
+
+    /// Applies profile weekly targets + revision history (Home / History streak UI).
+    func applyWeeklyGoalState(from profile: UserProfile) {
+        let r = profile.weeklyRoundTarget ?? 1
+        let p = profile.weeklyPracticeTarget ?? 2
+        weeklyRoundTarget = r
+        weeklyPracticeTarget = p
+        weeklyGoalTargetRevisions = WeeklyGoalTargetRevision.revisionsAlignedWithFlatColumns(
+            revisions: profile.weeklyGoalTargetRevisions,
+            flatRound: r,
+            flatPractice: p
+        )
+    }
+
+    /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
+    func upsertPracticeSession(_ session: PracticeSession) {
+        var next = allPracticeSessions.filter { $0.id != session.id }
+        next.append(session)
+        allPracticeSessions = PracticeSession.sortedForDisplay(next)
     }
 
     /// Gross score average for holes of this par in the **same calendar season as the Stats season picker** (`StatsSeasonFilter.seasonYearAlignedWithStatsPicker`).
@@ -335,7 +509,7 @@ class RoundStore: ObservableObject {
                 updated[i].totalGir = agg.gir
                 updated[i].totalFir = agg.fir
             } catch {
-                print("Reconcile totals for round \(round.id): \(error)")
+                roundStoreLogger.error("Reconcile totals for round \(round.id.uuidString): \(error.localizedDescription)")
             }
         }
         return updated
@@ -344,7 +518,7 @@ class RoundStore: ObservableObject {
 
 // MARK: - Supporting types
 
-struct RoundSetup {
+struct RoundSetup: Codable, Equatable {
     var courseName: String
     var tee: String?
     var totalHoles: Int
@@ -352,14 +526,14 @@ struct RoundSetup {
     var holeSetups: [HoleSetup]
 }
 
-struct HoleSetup {
+struct HoleSetup: Codable, Equatable {
     let holeNumber: Int
     var par: Int
     var yardage: Int?
     var strokeIndex: Int?
 }
 
-struct ActiveRound {
+struct ActiveRound: Codable, Equatable {
     let setup: RoundSetup
     let userId: UUID
     var holes: [ActiveHole]
@@ -384,7 +558,7 @@ struct ActiveRound {
     var totalPar: Int { holes.reduce(0) { $0 + $1.par } }
 }
 
-struct ActiveHole {
+struct ActiveHole: Codable, Equatable {
     let holeNumber: Int
     let par: Int
     let yardage: Int?

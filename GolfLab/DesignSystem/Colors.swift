@@ -52,6 +52,17 @@ extension Color {
     static var chartPositiveFill: Color { chartPositive.opacity(0.14) }
     static var chartNegativeFill: Color { chartNegative.opacity(0.14) }
 
+    // MARK: - Scorecard (paper-style rings / boxes; same semantics as chart vs par)
+
+    /// Birdie ring, inner eagle ring — `accentMid` (“positive deltas” / lighter green).
+    static var scorecardUnderParMuted: Color { accentMid }
+    /// Eagle outer ring — deep forest `accent`.
+    static var scorecardUnderParStrong: Color { accent }
+    /// Bogey box, inner double-bogey+ box — bogey orange (`chartNegative`).
+    static var scorecardOverPar: Color { chartNegative }
+    /// Double-bogey+ outer box — penalty red (`chartNegativeStrong`).
+    static var scorecardOverParStrong: Color { chartNegativeStrong }
+
     // MARK: - History calendar (completed rounds vs logged practice)
 
 #if canImport(UIKit)
@@ -62,23 +73,6 @@ extension Color {
     static let calendarPracticeDot = Color(hex: "#4268AE")
     static var calendarPracticeDim: Color { calendarPracticeDot.opacity(0.10) }
     static var calendarPracticeBorder: Color { calendarPracticeDot.opacity(0.30) }
-
-    // MARK: - Score vs par (semantic — not general UI chrome)
-
-    static let scoreEagleBackground = Color(hex: "#9A7020").opacity(0.12)
-    static let scoreEagleText = Color(hex: "#9A7020")
-
-    static let scoreBirdieBackground = Color(hex: "#19693A").opacity(0.08)
-    static let scoreBirdieText = Color(hex: "#19693A")
-
-    static let scoreParBackground = Color(hex: "#8FA898").opacity(0.12)
-    static let scoreParText = Color(hex: "#8FA898")
-
-    static let scoreBogeyBackground = Color(hex: "#C05020").opacity(0.10)
-    static let scoreBogeyText = Color(hex: "#C05020")
-
-    static let scoreDoubleBackground = Color(hex: "#C0412D").opacity(0.10)
-    static let scoreDoubleText = Color(hex: "#C0412D")
 
     // MARK: - Legacy palette (kept for gradual migration; prefer tokens above)
 
@@ -118,17 +112,3 @@ extension Color {
     }
 }
 
-struct ScoreBadgeColors {
-    let background: Color
-    let text: Color
-}
-
-func scoreBadgeColors(scoreVsPar: Int) -> ScoreBadgeColors {
-    switch scoreVsPar {
-    case ..<(-1): return ScoreBadgeColors(background: .scoreEagleBackground, text: .scoreEagleText)
-    case -1: return ScoreBadgeColors(background: .scoreBirdieBackground, text: .scoreBirdieText)
-    case 0: return ScoreBadgeColors(background: .scoreParBackground, text: .scoreParText)
-    case 1: return ScoreBadgeColors(background: .scoreBogeyBackground, text: .scoreBogeyText)
-    default: return ScoreBadgeColors(background: .scoreDoubleBackground, text: .scoreDoubleText)
-    }
-}

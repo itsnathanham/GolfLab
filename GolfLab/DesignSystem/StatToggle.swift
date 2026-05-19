@@ -9,7 +9,8 @@ struct StatToggle: View {
     }
 
     let label: String
-    let subtitle: String
+    /// Omit or pass `""` for label-only compact toggles (e.g. Log practice row).
+    var subtitle: String = ""
     @Binding var isOn: Bool
     var style: Style = .positive
     var isEnabled: Bool = true
@@ -26,15 +27,20 @@ struct StatToggle: View {
             }
         } label: {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 3) {
+                VStack(spacing: subtitle.isEmpty ? 0 : 3) {
                     Text(label)
                         .font(GLFonts.sans(size: 12, weight: .semibold))
                         .foregroundColor(toggleTextColor)
-                    Text(subtitle)
-                        .font(.glFootnote)
-                        .foregroundColor(.textTertiary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.glFootnote)
+                            .foregroundColor(.textTertiary)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 
@@ -46,7 +52,7 @@ struct StatToggle: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 68)
+            .frame(minHeight: subtitle.isEmpty ? 52 : 68)
             .background(toggleBackground)
             .cornerRadius(GLCardMetrics.cornerRadius)
             .overlay(

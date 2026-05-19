@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RoundDetailView: View {
     let round: Round
@@ -43,9 +44,12 @@ struct RoundDetailView: View {
 
                     scorecardTable
                         .padding(.horizontal, GLLayout.horizontalInset)
+
+                    RoundVsParProgressCard(holes: holes, totalHoles: round.holes)
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.top, 16)
                 }
             }
-            .padding(.bottom, 24)
         }
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
@@ -118,18 +122,7 @@ struct RoundDetailView: View {
 
     private var topNav: some View {
         HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Color.cardBackground)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.borderDefault, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
+            GLCircleBackButton { dismiss() }
 
             Spacer()
 
@@ -196,10 +189,10 @@ struct RoundDetailView: View {
         else { return ("—", .textTertiary) }
         let delta = score - par
         if delta == 0 {
-            return ("E", .textTertiary)
+            return ("E", .accent)
         }
         let raw = String(format: "%+.0f", Double(delta))
-        return (raw.replacingOccurrences(of: "-", with: "\u{2212}"), delta < 0 ? .accent : .chartNegative)
+        return (raw.replacingOccurrences(of: "-", with: "\u{2212}"), Color.accent)
     }
 
     private var roundSummaryHeader: some View {
@@ -409,9 +402,9 @@ private struct HoleDetailRow: View {
                 .foregroundColor(.textPrimary)
                 .frame(width: layout.putts)
 
-            boolCell(hole.gir, width: layout.gir)
-            boolCell(hole.fir ?? false, width: layout.fir, showDash: hole.fir == nil)
-            boolCell(hole.penalty ?? false, width: layout.pen)
+            statCheckCell(hole.gir, width: layout.gir)
+            statCheckCell(hole.fir ?? false, width: layout.fir, showDash: hole.fir == nil)
+            penaltyCheckCell(hole.penalty ?? false, width: layout.pen)
             Text("›")
                 .font(GLFonts.sans(size: 14, weight: .regular))
                 .foregroundColor(.textTertiary)
@@ -427,32 +420,32 @@ private struct HoleDetailRow: View {
         let delta = hole.score - hole.par
         if delta <= -2 {
             Circle()
-                .stroke(Color.textPrimary, lineWidth: 1.5)
+                .stroke(Color.scorecardUnderParStrong, lineWidth: 1.5)
                 .frame(width: 22, height: 22)
                 .overlay {
                     Circle()
-                        .stroke(Color.textPrimary, lineWidth: 1.5)
+                        .stroke(Color.scorecardUnderParMuted, lineWidth: 1.5)
                         .frame(width: 17, height: 17)
                 }
                 .overlay(scoreText)
         } else if delta == -1 {
             Circle()
-                .stroke(Color.textPrimary, lineWidth: 1.5)
+                .stroke(Color.scorecardUnderParMuted, lineWidth: 1.5)
                 .frame(width: 22, height: 22)
                 .overlay(scoreText)
         } else if delta >= 2 {
             RoundedRectangle(cornerRadius: 3)
-                .stroke(Color.textPrimary, lineWidth: 1.5)
+                .stroke(Color.scorecardOverParStrong, lineWidth: 1.5)
                 .frame(width: 22, height: 22)
                 .overlay {
                     RoundedRectangle(cornerRadius: 3)
-                        .stroke(Color.textPrimary, lineWidth: 1.5)
+                        .stroke(Color.scorecardOverPar, lineWidth: 1.5)
                         .frame(width: 17, height: 17)
                 }
                 .overlay(scoreText)
         } else if delta == 1 {
             RoundedRectangle(cornerRadius: 3)
-                .stroke(Color.textPrimary, lineWidth: 1.5)
+                .stroke(Color.scorecardOverPar, lineWidth: 1.5)
                 .frame(width: 22, height: 22)
                 .overlay(scoreText)
         } else {
@@ -466,7 +459,7 @@ private struct HoleDetailRow: View {
             .foregroundColor(.textPrimary)
     }
 
-    private func boolCell(_ value: Bool, width: CGFloat, showDash: Bool = false) -> some View {
+    private func statCheckCell(_ value: Bool, width: CGFloat, showDash: Bool = false) -> some View {
         Group {
             if showDash {
                 Text("—")
@@ -475,7 +468,22 @@ private struct HoleDetailRow: View {
             } else if value {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.textPrimary)
+                    .foregroundColor(.scorecardUnderParMuted)
+            } else {
+                Text("—")
+                    .font(GLFonts.mono(size: 12, weight: .medium))
+                    .foregroundColor(.textTertiary)
+            }
+        }
+        .frame(width: width)
+    }
+
+    private func penaltyCheckCell(_ value: Bool, width: CGFloat) -> some View {
+        Group {
+            if value {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.scorecardOverPar)
             } else {
                 Text("—")
                     .font(GLFonts.mono(size: 12, weight: .medium))

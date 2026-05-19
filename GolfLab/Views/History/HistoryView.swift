@@ -6,9 +6,7 @@ struct HistoryView: View {
     @State private var selectedSeasonYear = Calendar.current.component(.year, from: Date())
     @State private var calendarMonthStart = GLCalendarISO.startOfMonth(containing: Date())
     @State private var selectedCalendarYMD: String?
-    @State private var practiceSessionsMonth: [PracticeSession] = []
-    @State private var showLogPractice = false
-    @State private var logPracticeSheetUserId: UUID?
+    @State private var showDaySummarySheet = false
     @State private var roundToDelete: Round?
     @State private var showDeleteAlert = false
 
@@ -25,19 +23,7 @@ struct HistoryView: View {
         return base.sortedByDatePlayedDescending()
     }
 
-    private var listFilteredRounds: [Round] {
-        guard let ymd = selectedCalendarYMD else { return displayedRounds }
-        return displayedRounds.filter { $0.datePlayedYMD == ymd }
-    }
-
-    private var filteredPracticeSessions: [PracticeSession] {
-        guard let ymd = selectedCalendarYMD else { return practiceSessionsMonth }
-        return practiceSessionsMonth.filter { $0.sessionDate == ymd }
-    }
-
-    private var hasListContent: Bool {
-        !filteredPracticeSessions.isEmpty || !listFilteredRounds.isEmpty
-    }
+    private var listFilteredRounds: [Round] { displayedRounds }
 
     private var historyRoundDotsInMonth: Set<String> {
         let bounds = GLCalendarISO.inclusiveMonthBoundsYMD(monthStart: calendarMonthStart)
@@ -50,7 +36,12 @@ struct HistoryView: View {
     }
 
     private var historyPracticeDotsInMonth: Set<String> {
-        Set(practiceSessionsMonth.map(\.sessionDate))
+        let bounds = GLCalendarISO.inclusiveMonthBoundsYMD(monthStart: calendarMonthStart)
+        return Set(
+            roundStore.allPracticeSessions
+                .map(\.sessionDate)
+                .filter { $0 >= bounds.start && $0 <= bounds.end }
+        )
     }
 
     private func isCompletedRoundForCalendar(_ round: Round) -> Bool {
@@ -68,26 +59,7 @@ struct HistoryView: View {
         return "\(n) in \(resolvedSeasonYear)"
     }
 
-    private var roundCountSubtitle: String {
-        if practiceSessionsMonth.isEmpty {
-            return roundCountCaption
-        }
-        return "\(roundCountCaption) · \(practiceSessionsMonth.count) practice log(s) this month"
-    }
-
-    private var roundCountDetailLine: String {
-        if selectedCalendarYMD != nil {
-            return "\(listFilteredRounds.count) round(s) · \(filteredPracticeSessions.count) practice"
-        }
-        return roundCountSubtitle
-    }
-
-    private var combinedEmptyMessage: String {
-        if let ymd = selectedCalendarYMD {
-            return "No rounds or practice on \(GLCalendarISO.mmddyyyyDisplay(from: ymd)) for this filter."
-        }
-        return emptyMessage
-    }
+    private var roundCountDetailLine: String { roundCountCaption }
 
     var body: some View {
         NavigationStack {
@@ -98,9 +70,9 @@ struct HistoryView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 14)
 
-                    scopePills
+                    WeeklyGoalsStreakSection()
                         .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 18)
 
                     HistoryCalendarMonthCard(
                         monthStart: $calendarMonthStart,
@@ -110,66 +82,31 @@ struct HistoryView: View {
                         onTapYMD: toggleCalendarDayFilter
                     )
                     .padding(.horizontal, GLLayout.horizontalInset)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 24)
 
-                    GLSecondaryGhostButton(title: "Log practice") {
-                        showLogPractice = true
-                    }
-                    .padding(.horizontal, GLLayout.horizontalInset)
-                    .padding(.bottom, 14)
-
-                    if selectedCalendarYMD != nil {
-                        HStack {
-                            Text("Showing one day")
-                                .font(GLFonts.sans(size: 12, weight: .medium))
-                                .foregroundColor(.textSecondary)
-                            Spacer()
-                            Button("Clear day") {
-                                selectedCalendarYMD = nil
-                            }
-                            .font(GLFonts.sans(size: 12, weight: .semibold))
-                            .foregroundColor(.accent)
-                        }
+                    scopePills
                         .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.bottom, 12)
-                    }
+                        .padding(.bottom, 20)
 
-                    if !hasListContent {
-                        Text(combinedEmptyMessage)
+                    if listFilteredRounds.isEmpty {
+                        Text(emptyMessage)
                             .font(GLFonts.sans(size: 14, weight: .regular))
                             .foregroundColor(.textTertiary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 28)
                             .padding(.horizontal, GLLayout.horizontalInset)
                     } else {
-                        if !filteredPracticeSessions.isEmpty {
-                            practiceSessionsCardList
-                                .padding(.horizontal, GLLayout.horizontalInset)
-                                .padding(.bottom, 14)
-                        }
-
                         roundCountRow
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 10)
 
-                        if listFilteredRounds.isEmpty {
-                            Text("No rounds match this filter.")
-                                .font(GLFonts.sans(size: 14, weight: .regular))
-                                .foregroundColor(.textTertiary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, GLLayout.horizontalInset)
-                        } else {
-                            historyRoundCardList
-                                .padding(.horizontal, GLLayout.horizontalInset)
-                                .padding(.bottom, 24)
-                        }
+                        historyRoundCardList
+                            .padding(.horizontal, GLLayout.horizontalInset)
                     }
                 }
             }
             .refreshable {
                 await roundStore.loadRounds()
-                await reloadPracticeSessionsForMonth()
             }
             .background(Color.appBackground)
             .toolbar(.hidden, for: .navigationBar)
@@ -177,7 +114,6 @@ struct HistoryView: View {
         .task {
             await roundStore.loadRounds()
             normalizeSelectedSeasonYear()
-            await reloadPracticeSessionsForMonth()
         }
         .onChange(of: roundStore.roundsListEpoch) { _, _ in
             normalizeSelectedSeasonYear()
@@ -186,56 +122,35 @@ struct HistoryView: View {
             let bounds = GLCalendarISO.inclusiveMonthBoundsYMD(monthStart: calendarMonthStart)
             if let sel = selectedCalendarYMD, (sel < bounds.start || sel > bounds.end) {
                 selectedCalendarYMD = nil
-            }
-            Task { await reloadPracticeSessionsForMonth() }
-        }
-        .onChange(of: showLogPractice) { _, open in
-            if !open {
-                logPracticeSheetUserId = nil
+                showDaySummarySheet = false
             }
         }
-        .sheet(isPresented: $showLogPractice) {
-            Group {
-                if let uid = logPracticeSheetUserId {
-                    LogPracticeSheet(userId: uid) {
-                        Task { await reloadPracticeSessionsForMonth() }
-                    }
-                } else {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
-            .presentationDragIndicator(.visible)
-            .task {
-                logPracticeSheetUserId = await AuthService.shared.currentUserId
+        .sheet(isPresented: $showDaySummarySheet) {
+            if let ymd = selectedCalendarYMD {
+                HistoryDaySummarySheet(
+                    ymd: ymd,
+                    rounds: roundsForDay(ymd: ymd),
+                    practices: practicesForDay(ymd: ymd)
+                )
+                .presentationDragIndicator(.visible)
             }
         }
         .alert(isPresented: $showDeleteAlert) { deleteAlert }
     }
 
-    private func reloadPracticeSessionsForMonth() async {
-        guard let uid = await AuthService.shared.currentUserId else {
-            practiceSessionsMonth = []
-            return
-        }
-        let bounds = GLCalendarISO.inclusiveMonthBoundsYMD(monthStart: calendarMonthStart)
-        do {
-            practiceSessionsMonth = try await SupabaseService.shared.fetchPracticeSessions(
-                userId: uid,
-                fromInclusiveYMD: bounds.start,
-                toInclusiveYMD: bounds.end
-            )
-        } catch {
-            practiceSessionsMonth = []
-        }
+    private func toggleCalendarDayFilter(_ ymd: String) {
+        selectedCalendarYMD = ymd
+        showDaySummarySheet = true
     }
 
-    private func toggleCalendarDayFilter(_ ymd: String) {
-        if selectedCalendarYMD == ymd {
-            selectedCalendarYMD = nil
-        } else {
-            selectedCalendarYMD = ymd
-        }
+    private func roundsForDay(ymd: String) -> [Round] {
+        roundStore.allRounds
+            .filter { $0.datePlayedYMD == ymd }
+            .sortedByDatePlayedDescending()
+    }
+
+    private func practicesForDay(ymd: String) -> [PracticeSession] {
+        roundStore.allPracticeSessions.filter { $0.sessionDate == ymd }
     }
 
     private var emptyMessage: String {
@@ -331,36 +246,6 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Practice logs list
-
-    private var practiceSessionsCardList: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            GLFormFieldLabel(text: "Practice logs")
-            LazyVStack(spacing: 0) {
-                ForEach(Array(filteredPracticeSessions.enumerated()), id: \.element.id) { index, session in
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(GLCalendarISO.mmddyyyyDisplay(from: session.sessionDate))
-                            .font(GLFonts.mono(size: 13, weight: .medium))
-                            .foregroundColor(.textPrimary)
-                        Spacer(minLength: 12)
-                        Text(session.focusSubtitle)
-                            .font(GLFonts.sans(size: 12, weight: .regular))
-                            .foregroundColor(.textSecondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    .padding(.horizontal, GLCardMetrics.padding)
-                    .padding(.vertical, 14)
-                    if index < filteredPracticeSessions.count - 1 {
-                        Rectangle()
-                            .fill(Color.borderDefault)
-                            .frame(height: 1)
-                    }
-                }
-            }
-            .glCardChromeFrame(outlined: true)
-        }
-    }
-
     // MARK: - Rounds list
 
     private var historyRoundCardList: some View {
@@ -413,5 +298,144 @@ struct HistoryView: View {
     private static func calendarYear(from round: Round) -> Int? {
         let prefix = String(round.datePlayed.prefix(4))
         return Int(prefix)
+    }
+}
+
+private struct HistoryDaySummarySheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let ymd: String
+    let rounds: [Round]
+    let practices: [PracticeSession]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                topNav
+                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .padding(.top, GLTopBarMetrics.sheetTopPadding + GLTopBarMetrics.sheetExtraTopInset)
+                    .padding(.bottom, 16)
+
+                VStack(alignment: .leading, spacing: 18) {
+                    summaryHeader
+                    summaryCounts
+
+                    if !rounds.isEmpty {
+                        roundList
+                    }
+
+                    if !practices.isEmpty {
+                        practiceList
+                    }
+                }
+                .padding(.horizontal, GLLayout.horizontalInset)
+                .padding(.bottom, GLLayout.sheetContentBottomPadding)
+            }
+        }
+        .background(Color.appBackground)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var topNav: some View {
+        HStack {
+            GLCircleBackButton { dismiss() }
+            Spacer()
+            Text("Day summary")
+                .font(.glNavTitle)
+                .foregroundColor(.textPrimary)
+            Spacer()
+            Color.clear.frame(width: 32, height: 32)
+        }
+    }
+
+    private var summaryHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(GLCalendarISO.mmddyyyyDisplay(from: ymd))
+                .font(GLFonts.mono(size: 22, weight: .semibold))
+                .foregroundColor(.textPrimary)
+            Text("Selected date")
+                .font(.glFootnote)
+                .foregroundColor(.textTertiary)
+        }
+        .glCardSurface(outlined: true)
+    }
+
+    private var summaryCounts: some View {
+        HStack(spacing: 8) {
+            countPill(label: "Rounds", value: rounds.count)
+            countPill(label: "Practice", value: practices.count)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func countPill(label: String, value: Int) -> some View {
+        HStack(spacing: 8) {
+            Text(label.uppercased())
+                .font(.glEyebrow)
+                .foregroundColor(.textTertiary)
+                .tracking(0.08 * 11)
+            Text("\(value)")
+                .font(GLFonts.mono(size: 14, weight: .semibold))
+                .foregroundColor(.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var roundList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GLFormFieldLabel(text: "Rounds")
+            VStack(spacing: 0) {
+                ForEach(Array(rounds.enumerated()), id: \.element.id) { index, round in
+                    HStack {
+                        Text(round.courseName)
+                            .font(.glSubhead)
+                            .foregroundColor(.textPrimary)
+                        Spacer()
+                        Text(round.datePlayedDisplay)
+                            .font(GLFonts.mono(size: 12, weight: .medium))
+                            .foregroundColor(.textTertiary)
+                    }
+                    .padding(.horizontal, GLCardMetrics.padding)
+                    .padding(.vertical, 12)
+                    if index < rounds.count - 1 {
+                        Rectangle()
+                            .fill(Color.borderDefault)
+                            .frame(height: 1)
+                    }
+                }
+            }
+            .glCardChromeFrame(outlined: true)
+        }
+    }
+
+    private var practiceList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GLFormFieldLabel(text: "Practice")
+            VStack(spacing: 0) {
+                ForEach(Array(practices.enumerated()), id: \.element.id) { index, session in
+                    HStack {
+                        Text(session.focusSubtitle.isEmpty ? "Logged practice" : session.focusSubtitle)
+                            .font(.glSubhead)
+                            .foregroundColor(.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, GLCardMetrics.padding)
+                    .padding(.vertical, 12)
+                    if index < practices.count - 1 {
+                        Rectangle()
+                            .fill(Color.borderDefault)
+                            .frame(height: 1)
+                    }
+                }
+            }
+            .glCardChromeFrame(outlined: true)
+        }
     }
 }
