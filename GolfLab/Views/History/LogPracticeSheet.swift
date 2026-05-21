@@ -11,11 +11,16 @@ struct LogPracticeSheet: View {
     @State private var practicedRange = false
     @State private var practicedChipping = false
     @State private var practicedPutting = false
+    @State private var rangeBalls = GLPracticeRangeBalls.defaultCount
     @State private var isSaving = false
     @State private var saveError: String?
 
     private var anyFocusSelected: Bool {
         practicedRange || practicedChipping || practicedPutting
+    }
+
+    private var canSave: Bool {
+        anyFocusSelected && (!practicedRange || rangeBalls >= GLPracticeRangeBalls.min)
     }
 
     var body: some View {
@@ -46,6 +51,23 @@ struct LogPracticeSheet: View {
                         StatToggle(label: "Putting", isOn: $practicedPutting, style: .practice)
                     }
 
+                    if practicedRange {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Range balls")
+                                .font(GLFonts.sans(size: 12, weight: .medium))
+                                .foregroundStyle(Color.textSecondary)
+
+                            StepperField(
+                                label: "balls",
+                                value: $rangeBalls,
+                                min: GLPracticeRangeBalls.min,
+                                max: .max,
+                                step: GLPracticeRangeBalls.step
+                            )
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     if let saveError {
                         Text(saveError)
                             .font(.glFootnote)
@@ -57,7 +79,7 @@ struct LogPracticeSheet: View {
                         title: "Save practice",
                         isBusy: isSaving,
                         busyTitle: "Saving…",
-                        isEnabled: anyFocusSelected
+                        isEnabled: canSave
                     ) {
                         Task { await save() }
                     }
@@ -68,6 +90,12 @@ struct LogPracticeSheet: View {
         }
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .animation(.easeInOut(duration: 0.2), value: practicedRange)
+        .onChange(of: practicedRange) { _, isOn in
+            if isOn {
+                rangeBalls = PracticeSession.defaultRangeBallsHit(from: roundStore.allPracticeSessions)
+            }
+        }
     }
 
     private var topNav: some View {
@@ -89,7 +117,7 @@ struct LogPracticeSheet: View {
 
     @MainActor
     private func save() async {
-        guard anyFocusSelected else { return }
+        guard canSave else { return }
         saveError = nil
         isSaving = true
         defer { isSaving = false }
@@ -100,7 +128,8 @@ struct LogPracticeSheet: View {
             sessionDate: ymd,
             practicedRange: practicedRange,
             practicedChipping: practicedChipping,
-            practicedPutting: practicedPutting
+            practicedPutting: practicedPutting,
+            rangeBallsHit: practicedRange ? rangeBalls : nil
         )
         do {
             let inserted = try await SupabaseService.shared.insertPracticeSession(insert)

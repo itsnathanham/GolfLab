@@ -23,6 +23,7 @@ enum GLWeeklyGoalsStreak {
         let practiceTarget: Int
         let roundsThisWeek: Int
         let practiceSessionsThisWeek: Int
+        let rangeBallsHitThisWeek: Int
         /// Both active requirements satisfied for the calendar week containing `now`.
         let currentWeekComplete: Bool
         /// Consecutive calendar weeks (including the current week when complete) meeting all active requirements.
@@ -67,6 +68,7 @@ enum GLWeeklyGoalsStreak {
                 practiceTarget: practiceTarget,
                 roundsThisWeek: 0,
                 practiceSessionsThisWeek: 0,
+                rangeBallsHitThisWeek: 0,
                 currentWeekComplete: false,
                 completedWeeksStreak: 0,
                 weekHistory: []
@@ -75,6 +77,7 @@ enum GLWeeklyGoalsStreak {
 
         let rThis = ctx.countRounds(startYMD: thisBounds.start, endYMD: thisBounds.end)
         let pThis = ctx.countPractice(startYMD: thisBounds.start, endYMD: thisBounds.end)
+        let rangeBallsThis = ctx.countRangeBallsHit(startYMD: thisBounds.start, endYMD: thisBounds.end)
         let (curR, curP) = ctx.targets(forWeekStartYMD: thisBounds.start)
         let currentMet = ctx.weekSatisfied(startYMD: thisBounds.start, endYMD: thisBounds.end, roundT: curR, practiceT: curP)
 
@@ -116,6 +119,7 @@ enum GLWeeklyGoalsStreak {
             practiceTarget: curP,
             roundsThisWeek: rThis,
             practiceSessionsThisWeek: pThis,
+            rangeBallsHitThisWeek: rangeBallsThis,
             currentWeekComplete: currentMet,
             completedWeeksStreak: streak,
             weekHistory: history
@@ -207,6 +211,7 @@ enum GLWeeklyGoalsStreak {
             practiceTarget: practiceTarget,
             roundsThisWeek: 0,
             practiceSessionsThisWeek: 0,
+            rangeBallsHitThisWeek: 0,
             currentWeekComplete: false,
             completedWeeksStreak: 0,
             weekHistory: []
@@ -236,6 +241,13 @@ enum GLWeeklyGoalsStreak {
 
         func countPractice(startYMD: String, endYMD: String) -> Int {
             practiceSessions.filter { $0.sessionDate >= startYMD && $0.sessionDate <= endYMD }.count
+        }
+
+        func countRangeBallsHit(startYMD: String, endYMD: String) -> Int {
+            practiceSessions
+                .filter { $0.sessionDate >= startYMD && $0.sessionDate <= endYMD }
+                .compactMap(\.loggedRangeBallsHit)
+                .reduce(0, +)
         }
 
         func weekSatisfied(startYMD: String, endYMD: String, roundT: Int, practiceT: Int) -> Bool {

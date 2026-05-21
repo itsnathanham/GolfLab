@@ -26,7 +26,8 @@ struct WeeklyGoalsStreakSection: View {
                         label: "Practice",
                         current: snap.practiceSessionsThisWeek,
                         target: snap.practiceTarget,
-                        active: snap.practiceTarget > 0
+                        active: snap.practiceTarget > 0,
+                        footnote: GLPracticeRangeBalls.weeklyGoalsFootnote(count: snap.rangeBallsHitThisWeek)
                     )
                     weekHistoryBlock(snap: snap)
                 } else {
@@ -44,7 +45,13 @@ struct WeeklyGoalsStreakSection: View {
     }
 
     @ViewBuilder
-    private func progressRow(label: String, current: Int, target: Int, active: Bool) -> some View {
+    private func progressRow(
+        label: String,
+        current: Int,
+        target: Int,
+        active: Bool,
+        footnote: String? = nil
+    ) -> some View {
         if active {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -69,6 +76,13 @@ struct WeeklyGoalsStreakSection: View {
                     }
                 }
                 .frame(height: progressBarHeight)
+
+                if let footnote {
+                    Text(footnote)
+                        .font(.glFootnote)
+                        .foregroundColor(.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }

@@ -238,6 +238,7 @@ struct StepperField: View {
     @Binding var value: Int
     let min: Int
     let max: Int
+    var step: Int = 1
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
@@ -245,7 +246,7 @@ struct StepperField: View {
                 systemName: "minus",
                 enabled: value > min,
                 action: {
-                    value -= 1
+                    value = Swift.max(min, value - step)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
             )
@@ -274,7 +275,8 @@ struct StepperField: View {
                 systemName: "plus",
                 enabled: value < max,
                 action: {
-                    value += 1
+                    let next = value + step
+                    value = next > max ? max : next
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
             )

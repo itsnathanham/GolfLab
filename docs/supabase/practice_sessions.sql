@@ -8,9 +8,14 @@ CREATE TABLE IF NOT EXISTS public.practice_sessions (
     practiced_range BOOLEAN NOT NULL DEFAULT FALSE,
     practiced_chipping BOOLEAN NOT NULL DEFAULT FALSE,
     practiced_putting BOOLEAN NOT NULL DEFAULT FALSE,
+    range_balls_hit INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT practice_sessions_some_focus_chk CHECK (
         practiced_range IS TRUE OR practiced_chipping IS TRUE OR practiced_putting IS TRUE
+    ),
+    CONSTRAINT practice_sessions_range_balls_chk CHECK (
+        (NOT practiced_range AND range_balls_hit IS NULL)
+        OR (practiced_range AND range_balls_hit IS NOT NULL AND range_balls_hit >= 1)
     )
 );
 
