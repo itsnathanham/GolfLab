@@ -68,6 +68,9 @@
 		EFFFDFAB6EF91842B60160FB /* GLChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C36111E50165737A0D9111 /* GLChrome.swift */; };
 		F5787A8AEE8E90AD00B59BDB /* IBMPlexMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 893C03BF01D3497E4F942204 /* IBMPlexMono-Medium.ttf */; };
 		F8B4C201AF066B312B2326B1 /* GLWeeklyGoalsStreak.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */; };
+		A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */; };
+		A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */; };
+		A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */; };
 		F96B4C287E36D83588DC4D3E /* RoundSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86CF55060735713D51C5D0DD /* RoundSetupView.swift */; };
 		FA82C54B829ACB8D9E223E27 /* WatchEndRoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F8C01404D6954DBFDA3EC62 /* WatchEndRoundView.swift */; };
 /* End PBXBuildFile section */
@@ -162,6 +165,9 @@
 		EEDCC95CF164002D554B194D /* GolfLabSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = GolfLabSecrets.xcconfig; sourceTree = "<group>"; };
 		F85BEC47BB1FC6F7E802D99D /* WatchHoleEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHoleEntryView.swift; sourceTree = "<group>"; };
 		F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLWeeklyGoalsStreak.swift; sourceTree = "<group>"; };
+		A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebration.swift; sourceTree = "<group>"; };
+		A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiEmitterView.swift; sourceTree = "<group>"; };
+		A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebrationOverlay.swift; sourceTree = "<group>"; };
 		FD0AA89D8A464687DDBBCC15 /* GLChartIntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLChartIntroAnimation.swift; sourceTree = "<group>"; };
 		FDFCE8AE4060E5CBC32FC70B /* Secrets.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -271,6 +277,7 @@
 				A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */,
 				5E60441036AA2A749FC58294 /* GLCalendarISO.swift */,
 				F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */,
+				A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -389,6 +396,8 @@
 			children = (
 				A1B2C3D4E5F60718293A4B5B /* ActiveRoundResumeBanner.swift */,
 				D8B4C201AF066B312B2326C0 /* WeeklyGoalsStreakSection.swift */,
+				A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */,
+				A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -586,6 +595,9 @@
 				A1B2C3D4E5F60718293A4B5C /* ActiveRoundDraftStore.swift in Sources */,
 				0F85AD028983E20DEF29E6EF /* GLCalendarISO.swift in Sources */,
 				F8B4C201AF066B312B2326B1 /* GLWeeklyGoalsStreak.swift in Sources */,
+				A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */,
+				A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */,
+				A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5D /* ActiveRoundResumeBanner.swift in Sources */,
 				5E7A8768A7E8971778F629A1 /* GLChartIntroAnimation.swift in Sources */,
 				EFFFDFAB6EF91842B60160FB /* GLChrome.swift in Sources */,

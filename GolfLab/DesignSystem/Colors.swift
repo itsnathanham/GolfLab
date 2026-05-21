@@ -74,6 +74,17 @@ extension Color {
     static var calendarPracticeDim: Color { calendarPracticeDot.opacity(0.10) }
     static var calendarPracticeBorder: Color { calendarPracticeDot.opacity(0.30) }
 
+    // MARK: - Weekly goals / streak (habit lane — see `docs/design.md` § Weekly goals)
+
+    /// Met week circle + flame (honey amber).
+    static let streakSuccess = Color(hex: "#D4952A")
+    /// Confetti particles + deep gold accents (`scoreEagle` family).
+    static let streakSuccessDeep = Color(hex: "#9A7020")
+    /// Checkmark on amber week circles.
+    static let streakOnSuccess = Color(hex: "#FFFBF3")
+    /// Active streak footer caption.
+    static let streakTextActive = Color(hex: "#8F6420")
+
     // MARK: - Legacy palette (kept for gradual migration; prefer tokens above)
 
     static let green900 = Color(hex: "#19693A")

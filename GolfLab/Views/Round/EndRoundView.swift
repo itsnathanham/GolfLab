@@ -189,9 +189,8 @@ struct EndRoundView: View {
                 _ = try await roundStore.saveRoundToSupabase()
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    roundStore.activeRound = nil
-                    roundStore.isRoundActive = false
                     dismiss()
+                    roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
                 }
             } catch {
                 await MainActor.run {

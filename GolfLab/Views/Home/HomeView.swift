@@ -68,6 +68,7 @@ struct HomeView: View {
         .onChange(of: showLogPractice) { _, open in
             if !open {
                 logPracticeSheetUserId = nil
+                roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
             }
         }
         .sheet(isPresented: $showLogPractice) {

@@ -84,6 +84,43 @@ Encode meaning, not identity:
 - Neutral / steady metrics: secondary #4A6655
 - Negative trend indicators: bogey #C05020
 
+### Weekly goals / streak (habit lane)
+A **second, sparing palette** for the Home + History **Weekly goals** card and completion
+celebration only. It signals habit momentum (weeks met), not score-vs-par. Do not use these
+tokens for scorecards, charts, or general CTAs.
+
+Progress bars inside the card still use **accent** green — only the week history row and streak
+footer use gold.
+
+```swift
+Color(hex: "#D4952A")        // streak-success     — met week circle, flame (active streak)
+Color(hex: "#9A7020")        // streak-success-deep — confetti accent (eagle-gold family)
+Color(hex: "#FFFBF3")        // streak-on-success  — checkmark on amber circles
+Color(hex: "#8F6420")        // streak-text-active — streak caption when streak > 0
+```
+
+**Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
+
+| State | Visual |
+|-------|--------|
+| Met (past or current week) | 28pt circle, `streak-success` fill, `streak-on-success` checkmark |
+| Missed (finished week only) | 28pt circle, `bg-elevated` fill, `streak-on-success` × |
+| In progress (current week, not yet met) | 28pt circle, `bg-elevated` fill, `streak-on-success` `ellipsis` |
+
+Connectors between nodes: 2pt × 10pt `bg-elevated` bars, vertically aligned to circle centers.
+Auto-scroll to the newest week on appear.
+
+**Streak footer:** `flame.fill` (`streak-success`, full opacity) + footnote caption (`streak-text-active`).
+
+**Weekly goal completion celebration** (app-root overlay on `MainTabView`):
+- Full-screen confetti (gold / deep gold / `accent-mid` / practice-blue particles) — **off**
+  when Reduce Motion is enabled.
+- Top banner: “Weekly goals complete” + short copy that targets were met **this week** (not
+  round score). Optional streak line in `streak-text-active`.
+- Haptics: `.success` notification, then `.medium` impact ~120ms later.
+- Once per calendar week (`UserDefaults`); queued if a sheet (practice log / end round) or
+  background save would hide the overlay until dismiss or foreground.
+
 ---
 
 ## Typography
@@ -339,6 +376,7 @@ Haptics:
 - Stepper increment/decrement: `UIImpactFeedbackGenerator(.light)`
 - Hole save confirm: `UINotificationFeedbackGenerator(.success)`
 - Penalty toggle activation: `UIImpactFeedbackGenerator(.medium)`
+- Weekly goals completed (overlay): `.success` notification, then `.medium` impact
 
 ---
 
@@ -349,7 +387,8 @@ Haptics:
 - **No shadows** — separation comes from surface contrast and 1px borders
 - **No pill-shaped buttons or cards** — 8pt radius maximum
 - **No gradients** except the chart area fill (functional, not decorative)
-- **No multiple accent colors** — one deep green, used sparingly
+- **No multiple accent colors** — one deep green for product chrome; **exception:** weekly-goals
+  gold tokens (`streak-success` family) on the Weekly goals card and completion overlay only
 - **No system blue** anywhere in the UI
 - **No heavy borders** — 1px at low opacity only
 - **No Mono font for labels** — Sans only for field labels, toggle labels, tab

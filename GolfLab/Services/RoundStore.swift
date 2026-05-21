@@ -44,6 +44,11 @@ class RoundStore: ObservableObject {
     /// Goal history for streak math (past weeks use targets that were active then).
     @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
 
+    /// Active weekly-goals celebration overlay (set on `MainTabView`).
+    @Published var weeklyGoalCelebration: WeeklyGoalCelebrationPresentation?
+    /// Queued until practice sheet dismisses or app returns to foreground.
+    private var weeklyGoalCelebrationPending: WeeklyGoalCelebrationPresentation?
+
     /// Minimum holes of this par in the **resolved default season** (persisted + in-season active saved) before showing a numeric average in Hole Entry.
     private let minimumParAverageSample = 3
 
@@ -307,6 +312,7 @@ class RoundStore: ObservableObject {
     // MARK: - Save round to Supabase
 
     func saveRoundToSupabase() async throws -> UUID {
+        let goalsBeforeSave = weeklyGoalsSnapshot()
         mergePendingWatchHoleEntries()
         persistUnsavedCurrentHoleIfEligible()
         guard let round = activeRound else { throw RoundError.noActiveRound }
@@ -358,6 +364,7 @@ class RoundStore: ObservableObject {
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
         await loadRounds()
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBeforeSave)
         return newId
     }
 
@@ -445,9 +452,46 @@ class RoundStore: ObservableObject {
 
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
     func upsertPracticeSession(_ session: PracticeSession) {
+        let goalsBefore = weeklyGoalsSnapshot()
         var next = allPracticeSessions.filter { $0.id != session.id }
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore)
+    }
+
+    // MARK: - Weekly goal celebration
+
+    func weeklyGoalsSnapshot(now: Date = Date(), calendar: Calendar = .current) -> GLWeeklyGoalsStreak.Snapshot {
+        GLWeeklyGoalsStreak.snapshot(
+            now: now,
+            calendar: calendar,
+            roundTarget: weeklyRoundTarget,
+            practiceTarget: weeklyPracticeTarget,
+            goalRevisions: weeklyGoalTargetRevisions,
+            rounds: allRounds,
+            holeRowCountByRoundId: holeRowCountByRoundId,
+            practiceSessions: allPracticeSessions
+        )
+    }
+
+    func dismissWeeklyGoalCelebration() {
+        weeklyGoalCelebration = nil
+    }
+
+    /// Call after the practice log sheet closes so confetti is not hidden behind the sheet.
+    func presentPendingWeeklyGoalCelebrationIfNeeded() {
+        guard weeklyGoalCelebration == nil, let pending = weeklyGoalCelebrationPending else { return }
+        weeklyGoalCelebrationPending = nil
+        WeeklyGoalCelebration.markCelebrated(weekStartYMD: pending.weekStartYMD)
+        weeklyGoalCelebration = pending
+    }
+
+    private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot) {
+        let after = weeklyGoalsSnapshot()
+        guard let presentation = WeeklyGoalCelebration.presentationIfNewlyCompleted(before: before, after: after) else {
+            return
+        }
+        weeklyGoalCelebrationPending = presentation
     }
 
     /// Gross score average for holes of this par in the **same calendar season as the Stats season picker** (`StatsSeasonFilter.seasonYearAlignedWithStatsPicker`).

@@ -46,7 +46,10 @@ struct MainTabView: View {
                 roundStore.pushCompanionSnapshotToWatch()
             }
         }
-        .onChange(of: scenePhase) { _, _ in
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+            }
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
             }
@@ -59,11 +62,21 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .watchRequestedEndRound)) { _ in
             Task {
                 await roundStore.saveActiveRoundFromWatchEndRequest()
+                roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .watchRequestedCompanionSync)) { _ in
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
+            }
+        }
+        .overlay {
+            if let celebration = roundStore.weeklyGoalCelebration {
+                WeeklyGoalCelebrationOverlay(
+                    presentation: celebration,
+                    onDismiss: { roundStore.dismissWeeklyGoalCelebration() }
+                )
+                .zIndex(1000)
             }
         }
     }

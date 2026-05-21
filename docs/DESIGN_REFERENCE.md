@@ -42,8 +42,13 @@ Implement in `GolfLab/DesignSystem/Colors.swift` (names can match or alias these
 | `chartImproving` | `#19693A` | Improving series |
 | `chartNeutral` | `#4A6655` | Steady series |
 | `chartNegative` | `#C05020` | Negative trend |
+| **Weekly goals only** | | *Habit lane — not scorecard chrome* |
+| `streakSuccess` | `#D4952A` | Met week circle, active flame |
+| `streakSuccessDeep` | `#9A7020` | Confetti particles (eagle-gold family) |
+| `streakOnSuccess` | `#FFFBF3` | Checkmark on amber circles |
+| `streakTextActive` | `#8F6420` | Streak footer when streak > 0 |
 
-**System blue:** do not use for app chrome.
+**System blue:** do not use for app chrome (practice calendar dot `#4268AE` is History-only).
 
 ---
 
@@ -119,8 +124,13 @@ No decorative dividers; separation = **bg** contrast + **1px** borders. **No sha
 | `GLTrendCardHeader` | `Typography.swift` | 11pt uppercase chart/table card title (`glEyebrow`) + hairline (`GLStatTrendCard`, Stats “avg by par”). |
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value only (Last round, End round, Home quick stats). |
 | `GLStatStripCell` | `Typography.swift` | Micro label + mono value + optional “Vs season avg” footnote — Stats four-up strip. |
+| `WeeklyGoalsStreakSection` | `Views/Components/WeeklyGoalsStreakSection.swift` | Home + History: round/practice bars (accent), week `Wn` scroll row, streak footer. |
+| `WeeklyGoalCelebrationOverlay` | `Views/Components/WeeklyGoalCelebrationOverlay.swift` | Root overlay: banner + confetti when the current week newly completes. |
+| `ConfettiEmitterView` | `Views/Components/ConfettiEmitterView.swift` | `CAEmitterLayer` burst; respects Reduce Motion. |
 
 **Navigation split:** Tab roots (Home / Stats / History / Round flows above) use **hidden** `NavigationStack` chrome and the components above. **Pushed** editors and account (e.g. Profile, date picker, hole edit) may use **visible** `navigationTitle` / toolbar where system patterns help (Cancel/Done).
+
+**Weekly goals logic:** `GLWeeklyGoalsStreak.swift` (snapshots + week history); `WeeklyGoalCelebration.swift` (once-per-week guard); `RoundStore` queues overlay after practice/round save.
 
 ---
 
@@ -135,6 +145,7 @@ No decorative dividers; separation = **bg** contrast + **1px** borders. **No sha
 | Stepper ± | `.light` impact |
 | Hole saved | `.success` notification |
 | Penalty on | `.medium` impact |
+| Weekly goals complete | `.success` notification, then `.medium` impact (~120ms later) |
 
 ---
 
@@ -167,3 +178,4 @@ Dark page bg · pure white **page** (use `#F4F6F4`) · shadows · pill **buttons
 |------|--------|
 | 2026-04-18 | Imported brief from `DESIGN.md`; added digest + repo paths for Cursor. |
 | 2026-05-06 | Typography scale nudge for legibility: larger body/caption/subhead, `glEyebrow` / `glFootnote` / nav & button tokens (`Typography.swift`). |
+| 2026-05-20 | Weekly goals card: `streak-*` tokens, week history circles (met / missed / in-progress), completion overlay + confetti; documented in `design.md` § Weekly goals. Missed / in-progress: `bg-elevated` + white × or `ellipsis`; met: white check on amber. |
