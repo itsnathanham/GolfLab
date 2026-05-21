@@ -1,78 +1,104 @@
 import SwiftUI
 
-// MARK: - Series (cumulative strokes vs par)
+// MARK: - Series
 
-struct RoundVsParProgressSeries {
+struct VsParLineChartSeries {
     struct Point: Equatable {
-        let hole: Int
-        let cumulativeVsPar: Double
+        let xIndex: Int
+        let value: Double
     }
 
     let solid: [Point]
-    /// Vertical continuation at last cumulative value through remaining holes (incomplete rounds).
     let dottedTail: [Point]?
 
-    /// Persisted hole rows from history / last round.
     init?(holes: [Hole], totalHoles: Int) {
-        let entries = holes.map { ScoredEntry(holeNumber: $0.holeNumber, vsPar: $0.score - $0.par) }
-        self.init(scoredEntries: entries, totalHoles: totalHoles)
+        let entries = holes.map { ScoredEntry(xIndex: $0.holeNumber, value: $0.score - $0.par) }
+        self.init(scoredEntries: entries, totalXSlots: totalHoles)
     }
 
-    /// End-round sheet: only saved holes on the active card.
     init?(savedHoles: [ActiveHole], totalHoles: Int) {
-        let entries = savedHoles.filter(\.isSaved).map { ScoredEntry(holeNumber: $0.holeNumber, vsPar: $0.score - $0.par) }
-        self.init(scoredEntries: entries, totalHoles: totalHoles)
+        let entries = savedHoles.filter(\.isSaved).map { ScoredEntry(xIndex: $0.holeNumber, value: $0.score - $0.par) }
+        self.init(scoredEntries: entries, totalXSlots: totalHoles)
+    }
+
+    init?(roundValues: [Double]) {
+        guard !roundValues.isEmpty else { return nil }
+        solid = roundValues.enumerated().map { index, value in
+            Point(xIndex: index + 1, value: value)
+        }
+        dottedTail = nil
     }
 
     private struct ScoredEntry {
-        let holeNumber: Int
-        let vsPar: Int
+        let xIndex: Int
+        let value: Int
     }
 
-    private init?(scoredEntries: [ScoredEntry], totalHoles: Int) {
-        guard totalHoles > 0, !scoredEntries.isEmpty else { return nil }
-        let sorted = scoredEntries.sorted { $0.holeNumber < $1.holeNumber }
+    private init?(scoredEntries: [ScoredEntry], totalXSlots: Int) {
+        guard totalXSlots > 0, !scoredEntries.isEmpty else { return nil }
+        let sorted = scoredEntries.sorted { $0.xIndex < $1.xIndex }
 
-        var solid: [Point] = []
-        var cum = 0.0
+        var built: [Point] = []
+        var running = 0.0
         for entry in sorted {
-            cum += Double(entry.vsPar)
-            solid.append(Point(hole: entry.holeNumber, cumulativeVsPar: cum))
+            running += Double(entry.value)
+            built.append(Point(xIndex: entry.xIndex, value: running))
         }
 
-        guard let lastPt = solid.last else { return nil }
+        guard let lastPt = built.last else { return nil }
         var tail: [Point] = []
-        if lastPt.hole < totalHoles {
-            for hn in (lastPt.hole + 1)...totalHoles {
-                tail.append(Point(hole: hn, cumulativeVsPar: lastPt.cumulativeVsPar))
+        if lastPt.xIndex < totalXSlots {
+            for slot in (lastPt.xIndex + 1)...totalXSlots {
+                tail.append(Point(xIndex: slot, value: lastPt.value))
             }
         }
 
-        self.solid = solid
+        self.solid = built
         self.dottedTail = tail.isEmpty ? nil : tail
     }
 }
 
-// MARK: - Chart (X = hole, Y = cumulative vs par)
+// MARK: - Chart configuration
 
-/// Horizontal axis: hole number. Vertical axis: cumulative score vs par.
-struct RoundVsParProgressChartView: View {
-    let series: RoundVsParProgressSeries
-    let totalHoles: Int
+enum GLTrendChartMetrics {
+    static let chartHeight: CGFloat = 168
+    static let axisLabelForeground = Color.black.opacity(0.18)
+    static let defaultYAxisLeadingMargin: CGFloat = 36
+    static let wideYAxisLeadingMargin: CGFloat = 48
+}
 
-    private let plotHeight: CGFloat = 168
-    /// Leading space for Y-axis labels (matches `VsParTrendChartView` sparkline `plotLeading` intent).
-    private let horizontalMargin: CGFloat = 36
-    /// Trailing inset so the last hole’s marker + halo aren’t clipped (`VsParTrendChartView` uses 12pt `plotTrailing` without endpoint label).
+enum VsParLineChartGridStyle: Equatable {
+    case vsParStrokes
+    case step(Double)
+}
+
+struct VsParLineChartView: View {
+    let series: VsParLineChartSeries
+    let totalXSlots: Int
+    let xAxisLabel: String
+    let yAxisLabel: String
+    var gridStyle: VsParLineChartGridStyle = .vsParStrokes
+    var anchorLineAtEvenPar: Bool = true
+    var yAxisLeadingMargin: CGFloat = GLTrendChartMetrics.defaultYAxisLeadingMargin
+    var showLastValueLabel: Bool = false
+    var lastValueFormatter: ((Double) -> String)? = nil
+    var seriesColor: Color = .accent
+
+    private let plotHeight = GLTrendChartMetrics.chartHeight
     private let horizontalPlotTrailing: CGFloat = 12
+    private let horizontalPlotTrailingWithLabel: CGFloat = 28
     private let verticalMarginTop: CGFloat = 8
     private let verticalMarginBottom: CGFloat = 22
+
+    private var plotTrailingInset: CGFloat {
+        showLastValueLabel ? horizontalPlotTrailingWithLabel : horizontalPlotTrailing
+    }
 
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = plotHeight
-            let plotW = max(1, w - horizontalMargin - horizontalPlotTrailing)
+            let plotW = max(1, w - yAxisLeadingMargin - plotTrailingInset)
             let plotH = max(1, h - verticalMarginTop - verticalMarginBottom)
             let domain = yDomain(for: series)
 
@@ -89,37 +115,81 @@ struct RoundVsParProgressChartView: View {
                 .frame(width: w, height: h)
 
                 axisLabels(width: w, height: h, plotH: plotH, domain: domain)
+
+                if showLastValueLabel, let last = series.solid.last {
+                    let pt = plotPoint(for: last, plotW: plotW, plotH: plotH, domain: domain)
+                    let labelText = lastValueFormatter?(last.value) ?? Self.formatVsPar(last.value)
+                    Text(labelText)
+                        .font(.glAxis)
+                        .foregroundColor(seriesColor)
+                        .position(
+                            x: min(pt.x + 8, w - 14),
+                            y: max(12, pt.y - 12)
+                        )
+                }
             }
         }
         .frame(height: plotHeight)
     }
 
-    private func yDomain(for series: RoundVsParProgressSeries) -> (lo: Double, hi: Double) {
-        var vals: [Double] = [0]
-        vals.append(contentsOf: series.solid.map(\.cumulativeVsPar))
-        if let t = series.dottedTail { vals.append(contentsOf: t.map(\.cumulativeVsPar)) }
-        let minV = vals.min() ?? 0
-        let maxV = vals.max() ?? 0
-        var lo = min(minV, 0)
-        var hi = max(maxV, 0)
-        if abs(hi - lo) < 1e-6 {
-            lo -= 1
-            hi += 1
-        }
-        let span = hi - lo
-        let pad = max(span * 0.06, 0.5)
-        return (lo - pad, hi + pad)
+    private func plotPoint(
+        for point: VsParLineChartSeries.Point,
+        plotW: CGFloat,
+        plotH: CGFloat,
+        domain: (lo: Double, hi: Double)
+    ) -> CGPoint {
+        CGPoint(
+            x: yAxisLeadingMargin + xPos(xIndex: point.xIndex, plotW: plotW),
+            y: verticalMarginTop + yPos(point.value, plotH: plotH, domain: domain)
+        )
     }
 
-    /// Hole 0 maps to x = 0 (the even-par origin on the Y axis); hole `totalHoles` lands at the right edge.
-    /// This places the first scored hole one slot to the right of the Y axis so the line can begin at E.
-    private func xPos(hole: Int, plotW: CGFloat) -> CGFloat {
-        guard totalHoles > 0 else { return 0 }
-        let t = Double(hole) / Double(totalHoles)
+    static func formatVsPar(_ value: Double) -> String {
+        if abs(value.rounded() - value) < 0.05 {
+            return String(format: "%+.0f", value)
+        }
+        return String(format: "%+.1f", value)
+    }
+
+    private func yDomain(for series: VsParLineChartSeries) -> (lo: Double, hi: Double) {
+        var vals = series.solid.map(\.value)
+        if let t = series.dottedTail { vals.append(contentsOf: t.map(\.value)) }
+        guard let minV = vals.min(), let maxV = vals.max() else { return (-1, 1) }
+
+        switch gridStyle {
+        case .vsParStrokes:
+            var lo = min(minV, 0)
+            var hi = max(maxV, 0)
+            if abs(hi - lo) < 1e-6 {
+                lo -= 1
+                hi += 1
+            }
+            let pad = max((hi - lo) * 0.06, 0.5)
+            return (lo - pad, hi + pad)
+
+        case .step(let step):
+            guard step > 0 else { return (minV - 1, maxV + 1) }
+            var lo = floor(minV / step) * step
+            var hi = ceil(maxV / step) * step
+            if hi - lo < step { hi = lo + step }
+            let pad = step * 0.5
+            return (lo - pad, hi + pad)
+        }
+    }
+
+    private func xPos(xIndex: Int, plotW: CGFloat) -> CGFloat {
+        guard totalXSlots > 0 else { return 0 }
+        if anchorLineAtEvenPar {
+            let t = Double(xIndex) / Double(totalXSlots)
+            return CGFloat(t) * plotW
+        }
+        let n = series.solid.count
+        guard n > 1 else { return plotW / 2 }
+        let slot = min(max(xIndex - 1, 0), n - 1)
+        let t = Double(slot) / Double(n - 1)
         return CGFloat(t) * plotW
     }
 
-    /// Positive deltas are higher on the chart, zero is the even-par baseline.
     private func yPos(_ v: Double, plotH: CGFloat, domain: (lo: Double, hi: Double)) -> CGFloat {
         let t = (v - domain.lo) / (domain.hi - domain.lo)
         return plotH - (CGFloat(t) * plotH)
@@ -132,74 +202,79 @@ struct RoundVsParProgressChartView: View {
         plotH: CGFloat,
         domain: (lo: Double, hi: Double)
     ) {
-        let originX = horizontalMargin
+        let originX = yAxisLeadingMargin
         let originY = verticalMarginTop
+        let gridDash = StrokeStyle(lineWidth: 1, dash: [4, 3])
+        let gridColor = Color.borderDefault
 
-        let integerGridDash = StrokeStyle(lineWidth: 1, dash: [4, 3])
-        let integerGridColor = Color.borderDefault
+        switch gridStyle {
+        case .vsParStrokes:
+            let kLo = Int(Darwin.ceil(domain.lo - 1e-9))
+            let kHi = Int(Darwin.floor(domain.hi + 1e-9))
+            if kLo <= kHi {
+                for k in kLo...kHi where k != 0 {
+                    strokeHorizontalGridLine(
+                        context: ctx, y: Double(k),
+                        originX: originX, originY: originY,
+                        plotW: plotW, plotH: plotH, domain: domain,
+                        color: gridColor, style: gridDash
+                    )
+                }
+            }
+            if domain.lo <= 0, domain.hi >= 0 {
+                strokeHorizontalGridLine(
+                    context: ctx, y: 0,
+                    originX: originX, originY: originY,
+                    plotW: plotW, plotH: plotH, domain: domain,
+                    color: gridColor,
+                    style: StrokeStyle(lineWidth: 1)
+                )
+            }
 
-        // Dashed horizontal line at each whole-number vs par (excluding E, drawn solid below).
-        let kLo = Int(Darwin.ceil(domain.lo - 1e-9))
-        let kHi = Int(Darwin.floor(domain.hi + 1e-9))
-        if kLo <= kHi {
-            for k in kLo...kHi where k != 0 {
-                let y = originY + yPos(Double(k), plotH: plotH, domain: domain)
-                var p = Path()
-                p.move(to: CGPoint(x: originX, y: y))
-                p.addLine(to: CGPoint(x: originX + plotW, y: y))
-                ctx.stroke(p, with: .color(integerGridColor), style: integerGridDash)
+        case .step(let step):
+            guard step > 0 else { break }
+            var y = floor(domain.lo / step) * step
+            while y <= domain.hi + step * 0.001 {
+                strokeHorizontalGridLine(
+                    context: ctx, y: y,
+                    originX: originX, originY: originY,
+                    plotW: plotW, plotH: plotH, domain: domain,
+                    color: gridColor, style: gridDash
+                )
+                y += step
             }
         }
 
-        // Even-par (E): single solid horizontal reference at cumulative vs par = 0.
-        if domain.lo <= 0, domain.hi >= 0 {
-            let zy = originY + yPos(0, plotH: plotH, domain: domain)
-            var zp = Path()
-            zp.move(to: CGPoint(x: originX, y: zy))
-            zp.addLine(to: CGPoint(x: originX + plotW, y: zy))
-            ctx.stroke(zp, with: .color(integerGridColor), style: StrokeStyle(lineWidth: 1))
-        }
-
-        // Solid path and markers. Always anchor the line at E on the Y axis (hole 0, vs par 0)
-        // so the first scored hole's marker sits one slot to the right of the Y axis.
         let solidPoints = series.solid
         if !solidPoints.isEmpty {
-            let startX = originX + xPos(hole: 0, plotW: plotW)
-            let startY = originY + yPos(0, plotH: plotH, domain: domain)
             var path = Path()
-            path.move(to: CGPoint(x: startX, y: startY))
-            for p in solidPoints {
-                let cx = originX + xPos(hole: p.hole, plotW: plotW)
-                let cy = originY + yPos(p.cumulativeVsPar, plotH: plotH, domain: domain)
-                path.addLine(to: CGPoint(x: cx, y: cy))
+            if anchorLineAtEvenPar {
+                let startX = originX + xPos(xIndex: 0, plotW: plotW)
+                let startY = originY + yPos(0, plotH: plotH, domain: domain)
+                path.move(to: CGPoint(x: startX, y: startY))
+            } else if let first = solidPoints.first {
+                path.move(to: plotPoint(for: first, plotW: plotW, plotH: plotH, domain: domain))
             }
-            ctx.stroke(path, with: .color(Color.accent), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+            let linePoints = anchorLineAtEvenPar ? solidPoints : Array(solidPoints.dropFirst())
+            for p in linePoints {
+                path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
+            }
+            ctx.stroke(path, with: .color(seriesColor), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
 
             for p in solidPoints {
-                let cx = originX + xPos(hole: p.hole, plotW: plotW)
-                let cy = originY + yPos(p.cumulativeVsPar, plotH: plotH, domain: domain)
-                let r: CGFloat = 3
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: cx - 6, y: cy - 6, width: 12, height: 12)),
-                    with: .color(Color.accent.opacity(0.12))
-                )
-                ctx.fill(
-                    Path(ellipseIn: CGRect(x: cx - r, y: cy - r, width: 2 * r, height: 2 * r)),
-                    with: .color(Color.accent)
+                Self.drawSeriesPointMarker(
+                    context: ctx,
+                    at: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain),
+                    color: seriesColor
                 )
             }
         }
 
-        // Dotted tail (incomplete); the join is the last solid hole's marker.
         if let tail = series.dottedTail, !tail.isEmpty, let join = series.solid.last {
             var path = Path()
-            let sx = originX + xPos(hole: join.hole, plotW: plotW)
-            let sy = originY + yPos(join.cumulativeVsPar, plotH: plotH, domain: domain)
-            path.move(to: CGPoint(x: sx, y: sy))
+            path.move(to: plotPoint(for: join, plotW: plotW, plotH: plotH, domain: domain))
             for p in tail {
-                let cx = originX + xPos(hole: p.hole, plotW: plotW)
-                let cy = originY + yPos(p.cumulativeVsPar, plotH: plotH, domain: domain)
-                path.addLine(to: CGPoint(x: cx, y: cy))
+                path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
             }
             ctx.stroke(
                 path,
@@ -209,58 +284,158 @@ struct RoundVsParProgressChartView: View {
         }
     }
 
+    private func strokeHorizontalGridLine(
+        context ctx: GraphicsContext,
+        y: Double,
+        originX: CGFloat,
+        originY: CGFloat,
+        plotW: CGFloat,
+        plotH: CGFloat,
+        domain: (lo: Double, hi: Double),
+        color: Color,
+        style: StrokeStyle
+    ) {
+        let lineY = originY + yPos(y, plotH: plotH, domain: domain)
+        var p = Path()
+        p.move(to: CGPoint(x: originX, y: lineY))
+        p.addLine(to: CGPoint(x: originX + plotW, y: lineY))
+        ctx.stroke(p, with: .color(color), style: style)
+    }
+
     private func axisLabels(width: CGFloat, height: CGFloat, plotH: CGFloat, domain: (lo: Double, hi: Double)) -> some View {
         let originY = verticalMarginTop
+        let yLabelX = yAxisLeadingMargin * 0.44
         return ZStack(alignment: .topLeading) {
-            Text("Score")
+            Text(yAxisLabel)
                 .font(.glAxis)
-                .foregroundColor(Color.black.opacity(0.18))
+                .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: plotH, height: yAxisLeadingMargin - 6, alignment: .center)
                 .rotationEffect(.degrees(-90))
-                .position(x: 16, y: originY + plotH / 2)
+                .position(x: yLabelX, y: originY + plotH / 2)
 
-            if domain.lo <= 0, domain.hi >= 0 {
+            if case .vsParStrokes = gridStyle, domain.lo <= 0, domain.hi >= 0 {
                 Text("E")
                     .font(.glAxis)
-                    .foregroundColor(Color.black.opacity(0.18))
+                    .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
                     .position(
-                        x: horizontalMargin - 10,
+                        x: yAxisLeadingMargin - 10,
                         y: originY + yPos(0, plotH: plotH, domain: domain)
                     )
             }
 
-            Text("Hole")
+            Text(xAxisLabel)
                 .font(.glAxis)
-                .foregroundColor(Color.black.opacity(0.18))
+                .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
                 .frame(width: width, height: height, alignment: .bottom)
                 .padding(.bottom, 4)
         }
     }
+
+    static func drawSeriesPointMarker(context: GraphicsContext, at p: CGPoint, color: Color) {
+        let coreRadius: CGFloat = 3
+        context.fill(
+            Path(ellipseIn: CGRect(x: p.x - 6, y: p.y - 6, width: 12, height: 12)),
+            with: .color(color.opacity(0.12))
+        )
+        context.fill(
+            Path(ellipseIn: CGRect(x: p.x - coreRadius, y: p.y - coreRadius, width: 2 * coreRadius, height: 2 * coreRadius)),
+            with: .color(color)
+        )
+    }
 }
 
-// MARK: - Card wrapper
+// MARK: - Card wrappers
 
 struct RoundVsParProgressCard: View {
-    let holes: [Hole]
+    private let series: VsParLineChartSeries?
     let totalHoles: Int
 
+    init(holes: [Hole], totalHoles: Int) {
+        self.series = VsParLineChartSeries(holes: holes, totalHoles: totalHoles)
+        self.totalHoles = totalHoles
+    }
+
+    init(savedHoles: [ActiveHole], totalHoles: Int) {
+        self.series = VsParLineChartSeries(savedHoles: savedHoles, totalHoles: totalHoles)
+        self.totalHoles = totalHoles
+    }
+
     var body: some View {
-        if let series = RoundVsParProgressSeries(holes: holes, totalHoles: totalHoles) {
+        if let series {
             GLStatTrendCard(title: "Vs par progression") {
-                RoundVsParProgressChartView(series: series, totalHoles: totalHoles)
+                VsParLineChartView(
+                    series: series,
+                    totalXSlots: totalHoles,
+                    xAxisLabel: "Hole",
+                    yAxisLabel: "Score"
+                )
             }
         }
     }
 }
 
-struct RoundVsParProgressCardActive: View {
-    let savedHoles: [ActiveHole]
-    let totalHoles: Int
+struct ScoringTrendCard: View {
+    let values: [Double]
 
     var body: some View {
-        if let series = RoundVsParProgressSeries(savedHoles: savedHoles, totalHoles: totalHoles) {
-            GLStatTrendCard(title: "Vs par progression") {
-                RoundVsParProgressChartView(series: series, totalHoles: totalHoles)
+        GLStatTrendCard(title: "Scoring trend") {
+            if let series = VsParLineChartSeries(roundValues: values) {
+                VsParLineChartView(
+                    series: series,
+                    totalXSlots: values.count,
+                    xAxisLabel: "Round",
+                    yAxisLabel: "Score",
+                    gridStyle: .vsParStrokes,
+                    anchorLineAtEvenPar: false,
+                    showLastValueLabel: true,
+                    lastValueFormatter: VsParLineChartView.formatVsPar
+                )
+            } else {
+                ChartEmptyPlaceholder()
             }
         }
+    }
+}
+
+struct StatsMetricTrendCard: View {
+    let title: String
+    let values: [Double]
+    let yAxisLabel: String
+    let gridStep: Double
+    var seriesColor: Color = .accent
+    let valueFormatter: (Double) -> String
+    var yAxisLeadingMargin: CGFloat = GLTrendChartMetrics.defaultYAxisLeadingMargin
+
+    var body: some View {
+        GLStatTrendCard(title: title) {
+            if let series = VsParLineChartSeries(roundValues: values) {
+                VsParLineChartView(
+                    series: series,
+                    totalXSlots: values.count,
+                    xAxisLabel: "Round",
+                    yAxisLabel: yAxisLabel,
+                    gridStyle: .step(gridStep),
+                    anchorLineAtEvenPar: false,
+                    yAxisLeadingMargin: yAxisLeadingMargin,
+                    showLastValueLabel: true,
+                    lastValueFormatter: valueFormatter,
+                    seriesColor: seriesColor
+                )
+            } else {
+                ChartEmptyPlaceholder()
+            }
+        }
+    }
+}
+
+private struct ChartEmptyPlaceholder: View {
+    var body: some View {
+        Text("No data yet")
+            .font(.glSubhead)
+            .foregroundColor(.textTertiary)
+            .frame(maxWidth: .infinity, minHeight: GLTrendChartMetrics.chartHeight)
     }
 }

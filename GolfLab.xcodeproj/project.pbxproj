@@ -29,7 +29,6 @@
 		4BB63645AF5E9A31CD0E10B0 /* WatchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A5007B516AC096AA30F6635 /* WatchRootView.swift */; };
 		4D33160937859E8DE3F2A41A /* RoundVsParProgressChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193D2052419D826D8DC60A28 /* RoundVsParProgressChartView.swift */; };
 		544C74ABA754E927D5DCE643 /* GLButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34DE04AC8A262F78ADDE78B /* GLButtonStyles.swift */; };
-		5E7A8768A7E8971778F629A1 /* GLChartIntroAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0AA89D8A464687DDBBCC15 /* GLChartIntroAnimation.swift */; };
 		5ECBBD351ED295279EA7973F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CBBE2CC7442B4EC856DC52C /* Assets.xcassets */; };
 		5FB922777E835CB285DFF08B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E9C06557BCEA3106EDEC9FD /* Assets.xcassets */; };
 		680F79B05F0AC25CE9D36D92 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4744C913F6B55394C4529189 /* SignInView.swift */; };
@@ -39,7 +38,6 @@
 		74C2D9D4891838668CC8616D /* HistoryCalendarMonthCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F04EA2BB88B12F89DC920C0 /* HistoryCalendarMonthCard.swift */; };
 		760D2B7A586D4FB4A9235742 /* GolfLabWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13658D39C39B8C537D133239 /* GolfLabWatchApp.swift */; };
 		7617F88FC0CF2C45007ADF7C /* RoundListRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44DA17E0C7286BFC3E4F16A9 /* RoundListRowView.swift */; };
-		7F83087AAD14242CFBC0F921 /* VsParTrendChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F83D59CFFC9843A7E99AB99 /* VsParTrendChartView.swift */; };
 		808144D94F4C099CA8CF426D /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7E1EB249D58CA8A3DD377DB /* WatchConnectivityService.swift */; };
 		8113808916D32690C37DD2E9 /* LogPracticeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4B8591F4187C483E1F9529 /* LogPracticeSheet.swift */; };
 		8F53E740091C12AC119B8653 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A77AA3DEE559A847C230DB4 /* MainTabView.swift */; };
@@ -106,7 +104,6 @@
 		18EB49FC0F7CD8080C975EE1 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		193D2052419D826D8DC60A28 /* RoundVsParProgressChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundVsParProgressChartView.swift; sourceTree = "<group>"; };
 		1DE30AAB3C603E26C96545B9 /* RoundTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundTabView.swift; sourceTree = "<group>"; };
-		1F83D59CFFC9843A7E99AB99 /* VsParTrendChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VsParTrendChartView.swift; sourceTree = "<group>"; };
 		22373F4D3ECA5348604AAFC5 /* HoleMetaHeaderCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleMetaHeaderCard.swift; sourceTree = "<group>"; };
 		235608484F075DFE00EB837C /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		2829C4E6C051E3FCD2B584A2 /* GolfLab Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GolfLab Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -168,7 +165,6 @@
 		A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebration.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiEmitterView.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebrationOverlay.swift; sourceTree = "<group>"; };
-		FD0AA89D8A464687DDBBCC15 /* GLChartIntroAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLChartIntroAnimation.swift; sourceTree = "<group>"; };
 		FDFCE8AE4060E5CBC32FC70B /* Secrets.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.local.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -329,9 +325,7 @@
 		6D988C0C9578A1231BCE422A /* Charts */ = {
 			isa = PBXGroup;
 			children = (
-				FD0AA89D8A464687DDBBCC15 /* GLChartIntroAnimation.swift */,
 				193D2052419D826D8DC60A28 /* RoundVsParProgressChartView.swift */,
-				1F83D59CFFC9843A7E99AB99 /* VsParTrendChartView.swift */,
 			);
 			path = Charts;
 			sourceTree = "<group>";
@@ -599,7 +593,6 @@
 				A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */,
 				A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5D /* ActiveRoundResumeBanner.swift in Sources */,
-				5E7A8768A7E8971778F629A1 /* GLChartIntroAnimation.swift in Sources */,
 				EFFFDFAB6EF91842B60160FB /* GLChrome.swift in Sources */,
 				4229C626D0E0BD601E007AEA /* GLFonts.swift in Sources */,
 				D36A7C0AAF97FBF5594B679B /* GLFormChrome.swift in Sources */,
@@ -633,7 +626,6 @@
 				3718A3C1AF066B312B232611 /* UserProfile.swift in Sources */,
 				E8B4C201AF066B312B2326A2 /* WeeklyGoalTargetRevision.swift in Sources */,
 				D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */,
-				7F83087AAD14242CFBC0F921 /* VsParTrendChartView.swift in Sources */,
 				808144D94F4C099CA8CF426D /* WatchConnectivityService.swift in Sources */,
 				9416E535836DDDFE45BF570F /* WatchMessages.swift in Sources */,
 			);

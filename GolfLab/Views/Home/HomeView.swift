@@ -196,53 +196,28 @@ struct HomeView: View {
 
         let puttsText = pph.map { String(format: "%.1f", $0) } ?? "—"
 
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
-            GLStatSummaryTile(
-                label: "Score vs par",
-                value: scoreText,
-                valueUsesAccent: avgVsPar != nil
-            )
-            GLStatSummaryTile(label: "GIR %", value: girText, valueUsesAccent: false)
-            GLStatSummaryTile(label: "FIR %", value: firText, valueUsesAccent: false)
-            GLStatSummaryTile(label: "Putts / hole", value: puttsText, valueUsesAccent: false)
-        }
-        .background(Color.borderDefault)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        return GLStatFourUpSummaryGrid(
+            scoreLabel: "Score vs par",
+            scoreValue: scoreText,
+            scoreUsesAccent: avgVsPar != nil,
+            firValue: firText,
+            girValue: girText,
+            puttsValue: puttsText
         )
     }
 
     // MARK: - Chart
 
     private var scoringTrendPanel: some View {
-        let values: [Double] = homeSeasonRounds.reversed().compactMap { r in
+        ScoringTrendCard(values: homeScoringTrendSeries)
+    }
+
+    private var homeScoringTrendSeries: [Double] {
+        homeSeasonRounds.reversed().compactMap { r in
             guard let score = r.totalScore,
                   let par = roundStore.totalParSumByRoundId[r.id]
             else { return nil }
             return Double(score - par)
-        }
-
-        return GLStatTrendCard(title: "Scoring trend") {
-            Group {
-                if values.isEmpty {
-                    Text("No data yet")
-                        .font(.glSubhead)
-                        .foregroundColor(.textTertiary)
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                } else {
-                    VsParTrendChartView(
-                        values: values,
-                        height: 80,
-                        averageVsPar: nil,
-                        showZeroLine: true,
-                        showEndpointLabel: true,
-                        introAnimation: .accentSparklineHome,
-                        introReplayToken: roundStore.roundsListEpoch
-                    )
-                }
-            }
         }
     }
 

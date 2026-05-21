@@ -29,35 +29,49 @@ struct StatsView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
 
-                        statsTrendCard(
-                            title: "Scoring trend",
-                            values: scoringVsParSeries,
-                            height: 80,
-                            seriesColor: .accent,
-                            showParZeroLine: true,
-                            valueFormatter: Self.formatVsParEndpoint
-                        )
+                        ScoringTrendCard(values: scoringVsParSeries)
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
 
-                        statsTrendCard(
-                            title: "GIR %",
-                            values: girSeries,
-                            height: 60,
-                            seriesColor: .accent,
-                            showParZeroLine: false,
+                        StatsMetricTrendCard(
+                            title: "FIR %",
+                            values: firSeries,
+                            yAxisLabel: "FIR %",
+                            gridStep: 5,
                             valueFormatter: { String(format: "%.0f%%", $0) }
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
 
-                        statsTrendCard(
+                        StatsMetricTrendCard(
+                            title: "GIR %",
+                            values: girSeries,
+                            yAxisLabel: "GIR %",
+                            gridStep: 5,
+                            valueFormatter: { String(format: "%.0f%%", $0) }
+                        )
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.bottom, 12)
+
+                        StatsMetricTrendCard(
                             title: "Putts / hole",
                             values: puttsPerHoleSeries,
-                            height: 60,
+                            yAxisLabel: "Putts / hole",
+                            gridStep: 0.25,
                             seriesColor: .textSecondary,
-                            showParZeroLine: false,
-                            valueFormatter: { String(format: "%.1f", $0) }
+                            valueFormatter: { String(format: "%.1f", $0) },
+                            yAxisLeadingMargin: GLTrendChartMetrics.wideYAxisLeadingMargin
+                        )
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.bottom, 12)
+
+                        StatsMetricTrendCard(
+                            title: "Penalties / round",
+                            values: penaltiesPerRoundSeries,
+                            yAxisLabel: "Penalties / round",
+                            gridStep: 0.5,
+                            valueFormatter: { String(format: "%.0f", $0) },
+                            yAxisLeadingMargin: GLTrendChartMetrics.wideYAxisLeadingMargin
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
@@ -153,70 +167,14 @@ struct StatsView: View {
             return "—"
         }()
 
-        return VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                GLStatStripCell(
-                    label: "Avg score",
-                    value: scoreText,
-                    valueUsesAccent: avgVsPar != nil
-                )
-                Rectangle()
-                    .fill(Color.borderDefault)
-                    .frame(width: 1)
-                GLStatStripCell(label: "FIR %", value: firText, valueUsesAccent: false)
-            }
-            Rectangle()
-                .fill(Color.borderDefault)
-                .frame(height: 1)
-            HStack(spacing: 0) {
-                GLStatStripCell(label: "GIR %", value: girText, valueUsesAccent: false)
-                Rectangle()
-                    .fill(Color.borderDefault)
-                    .frame(width: 1)
-                GLStatStripCell(label: "Putts / hole", value: puttsText, valueUsesAccent: false)
-            }
-        }
-        .background(Color.borderDefault)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        return GLStatFourUpStripGrid(
+            scoreLabel: "Avg score",
+            scoreValue: scoreText,
+            scoreUsesAccent: avgVsPar != nil,
+            firValue: firText,
+            girValue: girText,
+            puttsValue: puttsText
         )
-    }
-
-    // MARK: - Trend panels
-
-    private func statsTrendCard(
-        title: String,
-        values: [Double],
-        height: CGFloat,
-        seriesColor: Color,
-        showParZeroLine: Bool,
-        valueFormatter: @escaping (Double) -> String
-    ) -> some View {
-        let average = values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
-        return GLStatTrendCard(title: title) {
-            Group {
-                if values.isEmpty {
-                    Text("No data yet")
-                        .font(.glSubhead)
-                        .foregroundColor(.textTertiary)
-                        .frame(maxWidth: .infinity, minHeight: height)
-                } else {
-                    VsParTrendChartView(
-                        values: values,
-                        height: height,
-                        averageVsPar: average,
-                        showZeroLine: showParZeroLine,
-                        showEndpointLabel: true,
-                        introAnimation: .accentSparklineStats,
-                        introReplayToken: statsIntroReplayToken,
-                        sparklineSeriesColor: seriesColor,
-                        sparklineValueFormatter: valueFormatter
-                    )
-                }
-            }
-        }
     }
 
     // MARK: - Avg score by par
@@ -357,7 +315,17 @@ struct StatsView: View {
         }
     }
 
-    /// Per-round GIR% = GIR hits ÷ holes in that round (hole rows when loaded, else round totals + row count).
+    private var firSeries: [Double] {
+        let byRound = holesByRoundId
+        return chronologicalRounds.compactMap { r in
+            guard let cached = byRound[r.id], !cached.isEmpty else { return nil }
+            let eligible = cached.filter { $0.par > 3 }
+            guard !eligible.isEmpty else { return nil }
+            let hits = eligible.filter { $0.fir == true }.count
+            return Double(hits) / Double(eligible.count) * 100
+        }
+    }
+
     private var girSeries: [Double] {
         let byRound = holesByRoundId
         return chronologicalRounds.compactMap { r in
@@ -376,7 +344,6 @@ struct StatsView: View {
         }
     }
 
-    /// Per-round putts per hole = total putts ÷ holes in that round (same denominator rules as GIR%).
     private var puttsPerHoleSeries: [Double] {
         let byRound = holesByRoundId
         return chronologicalRounds.compactMap { r in
@@ -395,8 +362,13 @@ struct StatsView: View {
         }
     }
 
-    private var statsIntroReplayToken: AnyHashable {
-        "\(timeRange)-\(resolvedSeasonYearValue)-\(chronologicalRounds.count)-\(holesForStats.count)-\(chronologicalRounds.first?.id.uuidString ?? "")"
+    private var penaltiesPerRoundSeries: [Double] {
+        let byRound = holesByRoundId
+        return chronologicalRounds.compactMap { r in
+            guard let cached = byRound[r.id], !cached.isEmpty else { return nil }
+            let count = cached.filter { $0.penalty == true }.count
+            return Double(count)
+        }
     }
 
     private var filteredRounds: [Round] {
@@ -434,13 +406,6 @@ struct StatsView: View {
 
     private func normalizeSelectedSeasonYear() {
         selectedSeasonYear = resolvedSeasonYearValue
-    }
-
-    private static func formatVsParEndpoint(_ v: Double) -> String {
-        if abs(v.rounded() - v) < 0.05 {
-            return String(format: "%+.0f", v)
-        }
-        return String(format: "%+.1f", v)
     }
 
     private func averageScoreVsPar(for rounds: [Round]) -> Double? {

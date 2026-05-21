@@ -27,7 +27,7 @@ struct EndRoundView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
 
-                        RoundVsParProgressCardActive(
+                        RoundVsParProgressCard(
                             savedHoles: savedHoles(round),
                             totalHoles: round.setup.totalHoles
                         )
@@ -120,7 +120,7 @@ struct EndRoundView: View {
         )
     }
 
-    // MARK: - Stat grid (`GLStatSummaryTile`, same as Last round)
+    // MARK: - Stat grid
 
     private func endRoundStatGrid(round: ActiveRound) -> some View {
         let saved = savedHoles(round)
@@ -138,36 +138,15 @@ struct EndRoundView: View {
         }()
         let pph: Double = saved.isEmpty ? 0 : Double(totals.putts) / Double(saved.count)
 
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
-            GLStatSummaryTile(
-                label: "Score vs par",
-                value: scoreVsPar.map(formatVsPar) ?? "—",
-                valueUsesAccent: scoreVsPar != nil
-            )
-            GLStatSummaryTile(
-                label: "GIR %",
-                value: saved.isEmpty ? "—" : String(format: "%.0f", girPct),
-                valueUsesAccent: false
-            )
-            GLStatSummaryTile(
-                label: "FIR %",
-                value: saved.isEmpty ? "—" : String(format: "%.0f", firPct),
-                valueUsesAccent: false
-            )
-            GLStatSummaryTile(
-                label: "Putts / hole",
-                value: saved.isEmpty ? "—" : String(format: "%.1f", pph),
-                valueUsesAccent: false
-            )
-        }
-        .background(Color.borderDefault)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        return GLStatFourUpSummaryGrid(
+            scoreLabel: "Score vs par",
+            scoreValue: scoreVsPar.map(formatVsPar) ?? "—",
+            scoreUsesAccent: scoreVsPar != nil,
+            firValue: saved.isEmpty ? "—" : String(format: "%.0f", firPct),
+            girValue: saved.isEmpty ? "—" : String(format: "%.0f", girPct),
+            puttsValue: saved.isEmpty ? "—" : String(format: "%.1f", pph),
+            accessibilityLabel: "Round stats over \(n) saved holes"
         )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Round stats over \(n) saved holes")
     }
 
     private var endRoundCtas: some View {

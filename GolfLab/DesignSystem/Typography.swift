@@ -193,13 +193,37 @@ struct GLTrendCardHeader: View {
     }
 }
 
+struct GLSeasonBestBadge: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "star.fill")
+                .font(.system(size: 10))
+                .foregroundColor(.streakSuccess)
+            Text("Season best")
+                .font(GLFonts.mono(size: 10, weight: .semibold))
+                .foregroundColor(.streakTextActive)
+                .tracking(0.06 * 10)
+                .textCase(.uppercase)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .background(Color.streakSuccessDim)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.borderStreak, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .accessibilityLabel("Season best")
+    }
+}
+
 // MARK: - Stat summary tile (2×2 grids: Last round, End round, Home quick stats)
 
-/// Uppercase micro label + mono value only — matches `LastRoundSummaryView` / `EndRoundView` stat cells (no footnote).
 struct GLStatSummaryTile: View {
     let label: String
     let value: String
     var valueUsesAccent: Bool = false
+    var showsSeasonBest: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -212,22 +236,130 @@ struct GLStatSummaryTile: View {
                 .font(GLFonts.mono(size: 20, weight: .semibold))
                 .foregroundColor(valueUsesAccent ? .accent : .textPrimary)
                 .lineLimit(1)
+            if showsSeasonBest {
+                GLSeasonBestBadge()
+                    .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
         .background(Color.cardBackground)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            showsSeasonBest ? "\(label), \(value), season best" : "\(label), \(value)"
+        )
     }
 }
 
-// MARK: - Stat strip cell (Home / Stats bordered summary grids)
+struct GLStatFourUpSummaryGrid: View {
+    let scoreLabel: String
+    let scoreValue: String
+    var scoreUsesAccent: Bool = false
+    let firValue: String
+    let girValue: String
+    let puttsValue: String
+    var scoreShowsSeasonBest: Bool = false
+    var firShowsSeasonBest: Bool = false
+    var girShowsSeasonBest: Bool = false
+    var puttsShowsSeasonBest: Bool = false
+    var accessibilityLabel: String? = nil
 
-/// Micro label + mono value + optional tertiary footnote (`Stats` four-up).
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
+            GLStatSummaryTile(
+                label: scoreLabel,
+                value: scoreValue,
+                valueUsesAccent: scoreUsesAccent,
+                showsSeasonBest: scoreShowsSeasonBest
+            )
+            GLStatSummaryTile(
+                label: "FIR %",
+                value: firValue,
+                showsSeasonBest: firShowsSeasonBest
+            )
+            GLStatSummaryTile(
+                label: "GIR %",
+                value: girValue,
+                showsSeasonBest: girShowsSeasonBest
+            )
+            GLStatSummaryTile(
+                label: "Putts / hole",
+                value: puttsValue,
+                showsSeasonBest: puttsShowsSeasonBest
+            )
+        }
+        .modifier(GLStatFourUpCardChrome())
+        .modifier(GLStatFourUpAccessibility(label: accessibilityLabel))
+    }
+}
+
+struct GLStatFourUpStripGrid: View {
+    let scoreLabel: String
+    let scoreValue: String
+    var scoreUsesAccent: Bool = false
+    let firValue: String
+    let girValue: String
+    let puttsValue: String
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                GLStatStripCell(
+                    label: scoreLabel,
+                    value: scoreValue,
+                    valueUsesAccent: scoreUsesAccent
+                )
+                Rectangle()
+                    .fill(Color.borderDefault)
+                    .frame(width: 1)
+                GLStatStripCell(label: "FIR %", value: firValue)
+            }
+            Rectangle()
+                .fill(Color.borderDefault)
+                .frame(height: 1)
+            HStack(spacing: 0) {
+                GLStatStripCell(label: "GIR %", value: girValue)
+                Rectangle()
+                    .fill(Color.borderDefault)
+                    .frame(width: 1)
+                GLStatStripCell(label: "Putts / hole", value: puttsValue)
+            }
+        }
+        .modifier(GLStatFourUpCardChrome())
+    }
+}
+
+private struct GLStatFourUpCardChrome: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(Color.borderDefault)
+            .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
+                    .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+            )
+    }
+}
+
+private struct GLStatFourUpAccessibility: ViewModifier {
+    let label: String?
+
+    func body(content: Content) -> some View {
+        if let label {
+            content
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(label)
+        } else {
+            content
+        }
+    }
+}
+
 struct GLStatStripCell: View {
     let label: String
     let value: String
     var valueUsesAccent: Bool = false
-    var footnote: String? = "Vs season avg"
+    var footnote: String? = nil
     var valueMonoSize: CGFloat = 18
 
     var body: some View {

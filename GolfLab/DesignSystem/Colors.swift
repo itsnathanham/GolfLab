@@ -84,6 +84,9 @@ extension Color {
     static let streakOnSuccess = Color(hex: "#FFFBF3")
     /// Active streak footer caption.
     static let streakTextActive = Color(hex: "#8F6420")
+    /// Season-best badge fill (same habit lane as streak).
+    static var streakSuccessDim: Color { streakSuccess.opacity(0.12) }
+    static var borderStreak: Color { streakSuccess.opacity(0.28) }
 
     // MARK: - Legacy palette (kept for gradual migration; prefer tokens above)
 

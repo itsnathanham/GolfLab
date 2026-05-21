@@ -8,19 +8,72 @@ Ideas and follow-ups that are **not** scheduled work—capture here so they are 
 
 Ordered list from field testing. **Do these in sequence** unless a quick win is bundled.
 
-| # | Item | Status |
-|---|------|--------|
-| 1 | **Typography** — larger central type scale (`Font.gl*`), hierarchy preserved; `docs/design.md` + `DESIGN_REFERENCE.md` updated | **Done** |
-| 2 | **Profile in tab bar** — removed; profile only from Home → `NavigationLink` to `ProfileView` | **Done** |
-| 3 | **Watch ↔ iPhone active round** — immediate merge of Watch saves; `WatchRoundState` push for current hole + saved holes; reachability / `onAppear` resync | **Done** |
-| 4 | **Watch hole entry UX** — full-width score/putts steppers (44pt targets), stacked GIR/FIR/**Penalty** rows, “Save hole” CTA | **Done** |
-| 5 | **iPhone tap targets** — hole steppers 62×62 −/+ with full-cell `contentShape`; stat toggles `minHeight` 68 | **Done** |
-| 6 | **New Round** — tee row removed; course `TextField` uses `prompt` with `textSecondary` | **Done** |
-| 7 | **History scorecard** — course name tap → sheet; Supabase `updateRoundCourseName` | **Done** |
-| 8 | **New Round date picker sheet** — custom header + `preferredColorScheme(.light)` + `DatePicker` `tint` (no translucent nav chrome) | **Done** |
-| 9 | **Chart intro animations** — `pauseBeforeLine`, slower line reveal, eased timing curve (`GLChartIntroAnimation` presets + `AccentSparklineIntroHost`) | **Done** |
+
+| #   | Item                                                                                                                                                      | Status   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | **Typography** — larger central type scale (`Font.gl`*), hierarchy preserved; `docs/design.md` + `DESIGN_REFERENCE.md` updated                            | **Done** |
+| 2   | **Profile in tab bar** — removed; profile only from Home → `NavigationLink` to `ProfileView`                                                              | **Done** |
+| 3   | **Watch ↔ iPhone active round** — immediate merge of Watch saves; `WatchRoundState` push for current hole + saved holes; reachability / `onAppear` resync | **Done** |
+| 4   | **Watch hole entry UX** — full-width score/putts steppers (44pt targets), stacked GIR/FIR/**Penalty** rows, “Save hole” CTA                               | **Done** |
+| 5   | **iPhone tap targets** — hole steppers 62×62 −/+ with full-cell `contentShape`; stat toggles `minHeight` 68                                               | **Done** |
+| 6   | **New Round** — tee row removed; course `TextField` uses `prompt` with `textSecondary`                                                                    | **Done** |
+| 7   | **History scorecard** — course name tap → sheet; Supabase `updateRoundCourseName`                                                                         | **Done** |
+| 8   | **New Round date picker sheet** — custom header + `preferredColorScheme(.light)` + `DatePicker` `tint` (no translucent nav chrome)                        | **Done** |
+| 9   | **Chart intro animations** — line reveal on trend charts (legacy sparkline path removed; `VsParLineChartView` cards)                                      | **Done** |
+
 
 **After the backlog:** consider items below in this file (9 vs 18 filter, GIR/FIR guardrails, branded loading, etc.). **Penalties — tracking and stats** is partially satisfied by per-hole penalty on phone + Watch; that section still applies if you want event types, counts in Stats, etc.
+
+---
+
+## Average cumulative score vs par — Last round summary + Stats chart
+
+**Todo:** Add **average cumulative score versus par** functionality on **Last round summary**, and add a matching **chart on the Stats** page.
+
+**Why:** Users already see hole-by-hole vs-par progression on Last round; a cumulative average line (or equivalent) makes it easier to see when a round turned vs when it stayed level. Stats should expose the same metric across rounds for season-level trend review.
+
+**Open decisions:**
+
+- **Last round:** Extend `RoundVsParProgressCard` (or a sibling card) vs a separate visualization; clarify label copy (cumulative vs par vs running average).
+- **Stats:** Placement in chart stack (near scoring trend vs separate card); same `VsParLineChartView` / series rules as other round-based metrics.
+- **Aggregation:** Per-hole cumulative for one round vs per-round cumulative average across the season; axis labels and grid style alignment with existing trend cards.
+- **Incomplete rounds:** Behavior when hole rows are partial (same rules as existing Last round / Stats hole-loading paths).
+
+**Status:** Consider / not implemented.
+
+---
+
+## Average score by par — approach and visual
+
+**Todo:** Design and ship an **average score by par** view (par 3 / 4 / 5): how users compare to their typical performance on each par type, with a clear visual treatment (chart, card, or breakdown).
+
+**Why:** Scoring vs par alone hides where rounds are won or lost; par-type averages help users see whether they leak strokes on par 3s, 4s, or 5s.
+
+**Open decisions:**
+
+- **Visual:** Bar chart, grouped cards, sparkline per par type, or table with trend; alignment with existing Stats chart stack and `VsParLineChartView` patterns.
+- **Scope:** All-time vs season vs last N rounds; minimum sample per par type before showing a value.
+- **Metric:** Raw average score vs average vs par for that par type; label copy and decimal formatting.
+- **Placement:** Stats tab (primary), Home highlight, and/or Last round summary sibling to cumulative vs-par work.
+
+**Status:** Consider / not implemented.
+
+---
+
+## Stats — breakdowns by hole par type
+
+**Todo:** Add **Stats breakdowns segmented by hole par type** (par 3 / 4 / 5): e.g. scoring, GIR%, FIR% (par 4–5 only), putts/hole, penalties—so users can compare habits across par types, not only round-level aggregates.
+
+**Why:** Round-level Stats obscure par-specific strengths and weaknesses; par-type slices support targeted practice and course-management review.
+
+**Open decisions:**
+
+- **Metrics:** Which cards get par-type tabs or filters vs dedicated sub-sections; reuse shared aggregation helpers vs one-off queries.
+- **FIR / GIR rules:** Same eligibility rules as FIR% review (par 3 excluded from FIR opportunities); document denominators per par type.
+- **Filter interaction:** Combine with 9 vs 18 and season/last-10 filters; empty states when a par type has no holes in range.
+- **UX:** Segmented control, picker, or expandable rows; phone layout vs future iPad width.
+
+**Status:** Consider / not implemented.
 
 ---
 
@@ -35,22 +88,6 @@ Ordered list from field testing. **Do these in sequence** unless a quick win is 
 - Add the filter on **Home** (top stat cards + chart), **or** leave Home unchanged and add this filter only on **Stats** for deeper analysis, **or** both with different defaults.
 - Define behavior when a filter excludes all rounds (empty state copy).
 - Align with any future normalization (e.g. per-hole rate) if you revisit how 9 vs 18 are compared.
-
-**Status:** Consider / not implemented.
-
----
-
-## Hole entry guardrails — GIR/FIR/putts/score constraints
-
-**Todo:** Add validation/guardrails in Hole Entry to restrict invalid or inconsistent combinations across **GIR/FIR/putts/score**.
-
-**Open decisions:**
-
-- Rule set: define hard constraints (blocked save) vs soft warnings (allow override) for edge cases.
-- GIR/FIR logic coupling: e.g. FIR unavailable on par 3, GIR implications by score/putts state, and handling partial edits.
-- Putts vs score consistency: minimum/maximum relationships (e.g. putts cannot exceed score in valid saved state).
-- Input bounds: realistic range limits per hole for score and putts, including recovery/penalty-heavy holes.
-- UX behavior: inline helper text vs toast/alert, when to validate (live vs on save), and accessibility messaging.
 
 **Status:** Consider / not implemented.
 
@@ -71,39 +108,6 @@ Ordered list from field testing. **Do these in sequence** unless a quick win is 
 
 ---
 
-## Round summary in History / Round detail
-
-**Idea:** Add a richer **round summary experience** to History/scorecard views so users get more than hole-by-hole entries (e.g. round-level stats, context, and trend comparisons).
-
-**Why:** The scorecard is useful for raw tracking, but users also need quick interpretation of what that round means (strengths, misses, and how it compares to their typical play).
-
-**Open decisions:**
-
-- Scope: what lives on `RoundDetailView` vs a dedicated round-summary subview/sheet (cards for score vs par, GIR%, FIR%, putts/hole, penalties when available).
-- Comparison baseline for historical rounds: for a round played in **2025**, should "Season" mean 2025-only rounds, rolling trailing window, or current-season reference.
-- Time-safety of metrics: ensure averages/trends are computed from rounds available **up to that round date** (avoid future-data leakage in historical comparisons).
-- Trend method: define stable aggregation rules (per-round vs per-hole weighting, minimum sample size, and handling missing/partial hole records).
-- 9 vs 18 handling: decide which summary metrics compare within matching round length and which can be merged.
-
-**Status:** Consider / not implemented.
-
----
-
-## Hole entry — wire "Your par X avg"
-
-**Todo:** Replace the current placeholder (`--`) in Hole Entry with a real average for the current par type (par 3 / 4 / 5), e.g. `Your par 4 avg: 4.6`.
-
-**Proposed logic:**
-
-- Aggregate saved historical holes by user and `par`.
-- For the active hole, compute mean score for matching par only.
-- Define scope (all-time vs season) and minimum sample behavior (e.g. show `--` if sample too small).
-- Keep formatting consistent (`1` decimal place) and document in design/analytics notes.
-
-**Status:** Consider / not implemented.
-
----
-
 ## Yardage (yds) — source of truth and UX
 
 **Review:** Define a clear approach for **yardage (`yds`)** since it is shown on Hole Entry today but not consistently managed across setup, round flow, and history surfaces.
@@ -119,43 +123,9 @@ Ordered list from field testing. **Do these in sequence** unless a quick win is 
 
 ---
 
-## Charts — dashed guides and high–round-count scaling
-
-**Review / fix — dashed lines:** Audit dashed chart guides (e.g. par line, average line, grid) for crispness on 1pt/non-retina scaling, dash phase vs path length, and consistency between semantic vs-par charts and accent sparklines. Decide if any lines should be solid hairlines instead of dashed where dashes look broken or uneven.
+## Charts — high–round-count scaling
 
 **Scaling — many rounds (100+):** Plan how trends behave for **all-time** (or large) datasets: e.g. decimation / bucketing vs drawing every segment, min horizontal spacing per point, horizontal scroll vs fixed width, axis tick density, and performance of `Canvas` + animations. Validate readability on small phone widths when `values.count` is large.
-
-**Status:** Consider / not implemented.
-
----
-
-## Penalties — tracking and stats
-
-**Idea:** Add **penalty functionality** during round play / hole entry (e.g. stroke-and-distance, lateral hazard, unplayable) and surface **penalty-related stats** (counts per round or season, trends, maybe vs expected baselines).
-
-**Why:** Penalties drive a large share of scoring variance; tracking them explicitly improves post-round review and coaching-style insights.
-
-**Open decisions:**
-
-- Data model: per-hole penalty events vs aggregate counts; sync with Supabase / watch.
-- UX: quick-add from hole entry vs dedicated flow; undo/edit.
-- Stats placement: **Stats** tab cards, **Round detail** summary, and/or **Home** highlights.
-
-**Status:** Consider / not implemented.
-
----
-
-## FIR% — correctness and par 3’s
-
-**Review:** Verify **FIR%** (fairways in regulation) is calculated consistently everywhere it appears (Home, Stats, round summaries, any watch paths). Confirm numerator/denominator match the intended definition (e.g. FIR only on holes where a fairway is in play).
-
-**Par 3’s:** There is **no FIR** on par 3’s in the usual sense. Decide explicitly how they affect the rate:
-
-- **Eligible holes only:** `FIR% = fairways_hit / fairway_opportunities` where opportunities exclude par 3’s (and optionally par 4/5 only), **or**
-- **Round holes denominator:** use total holes and treat par 3 as non-opportunity (same as exclude), **or**
-- **Separate reporting:** show “FIR% (par 4–5)” vs raw counts so the metric is never ambiguous.
-
-Document the chosen rule in code comments / design brief so Stats and Home stay aligned.
 
 **Status:** Consider / not implemented.
 
@@ -172,22 +142,9 @@ Document the chosen rule in code comments / design brief so Stats and Home stay 
 - Reorder persistence: in-session only vs saved preference (UserDefaults / profile).
 - Haptics, accessibility, and Reduce Motion when dragging or animating layout changes.
 - Whether reordering applies on **iPad** / large width only, or on phone too (screen real estate).
-- Technical approach: `Grid` + drag API vs custom layout; impact on shared `GLStatTrendCard` / `VsParTrendChartView`.
+- Technical approach: `Grid` + drag API vs custom layout; impact on shared `GLStatTrendCard` / `VsParLineChartView`.
 
 **Status:** Consider / not implemented.
 
 ---
 
-## Layout — heading height and cross-surface alignment
-
-**Idea:** Audit **top-of-screen structure** (wordmark / screen title / nav, first section headings, horizontal inset, vertical rhythm above the first scrollable block) across **Home**, **History**, **Stats**, **Round** flows, **Round detail**, **Hole entry**, and **Profile** so that as users tap through tabs and push onto detail screens, **headings and key elements sit on the same visual plane** (aligned baselines, consistent top padding, no large jumps from large titles vs inline headers).
-
-**Why:** Small inconsistencies in toolbar vs custom chrome vs `NavigationStack` title modes make the app feel fragmented; a single “header lane” contract improves perceived quality.
-
-**Open decisions:**
-
-- Prefer **one pattern** (e.g. always custom top bar + hidden nav title, or always large titles) vs per-screen exceptions documented in `docs/design.md`.
-- Define tokens: **min header height**, **first content offset from safe area**, shared `GLLayout` / modifier if helpful.
-- Snapshot or checklist when adding new surfaces.
-
-**Status:** Consider / not implemented.

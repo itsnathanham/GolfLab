@@ -6,6 +6,8 @@ struct LastRoundSummaryView: View {
     @State private var holes: [Hole] = []
     /// Sum of hole pars per round id (season rounds), for score vs season average matching Home’s season vs-par average.
     @State private var seasonParByRoundId: [UUID: Int] = [:]
+    /// Penalty count per round id (from loaded hole rows).
+    @State private var seasonPenaltiesByRoundId: [UUID: Int] = [:]
     @State private var summaryReadyRoundId: UUID?
 
     private var lastRound: Round? { roundStore.allRounds.first }
@@ -63,6 +65,7 @@ struct LastRoundSummaryView: View {
                 await MainActor.run {
                     holes = []
                     seasonParByRoundId = [:]
+                    seasonPenaltiesByRoundId = [:]
                     summaryReadyRoundId = nil
                 }
                 return
@@ -75,9 +78,10 @@ struct LastRoundSummaryView: View {
                 holes = fetched
                 if !fetched.isEmpty {
                     seasonParByRoundId[round.id] = fetched.totalParFromHoles
+                    seasonPenaltiesByRoundId[round.id] = fetched.aggregatedRoundTotals.penalties
                 }
             }
-            await loadSeasonParSumsExcludingCached()
+            await loadSeasonHoleAggregatesExcludingCached()
             await MainActor.run {
                 summaryReadyRoundId = round.id
             }
@@ -93,17 +97,20 @@ struct LastRoundSummaryView: View {
     }
 
     @MainActor
-    private func loadSeasonParSumsExcludingCached() async {
-        var updates: [UUID: Int] = [:]
+    private func loadSeasonHoleAggregatesExcludingCached() async {
+        var parUpdates: [UUID: Int] = [:]
+        var penaltyUpdates: [UUID: Int] = [:]
         for r in homeSeasonRounds {
-            if seasonParByRoundId[r.id] != nil { continue }
+            if seasonParByRoundId[r.id] != nil, seasonPenaltiesByRoundId[r.id] != nil { continue }
             guard let fetched = try? await SupabaseService.shared.fetchHoles(roundId: r.id),
                   !fetched.isEmpty
             else { continue }
-            updates[r.id] = fetched.totalParFromHoles
+            parUpdates[r.id] = fetched.totalParFromHoles
+            penaltyUpdates[r.id] = fetched.aggregatedRoundTotals.penalties
         }
-        guard !updates.isEmpty else { return }
-        seasonParByRoundId.merge(updates) { _, new in new }
+        guard !parUpdates.isEmpty else { return }
+        seasonParByRoundId.merge(parUpdates) { _, new in new }
+        seasonPenaltiesByRoundId.merge(penaltyUpdates) { _, new in new }
     }
 
     /// Changes when the first round row updates so we refetch holes after `loadRounds` / reconcile; includes season round ids for par cache.
@@ -141,9 +148,6 @@ struct LastRoundSummaryView: View {
                     Text(roundMetaLine(round))
                         .font(.glFootnote)
                         .foregroundColor(.textTertiary)
-                    if isSeasonBestRound(round) {
-                        seasonBestBadge
-                    }
                 }
             }
             Spacer(minLength: 8)
@@ -177,36 +181,19 @@ struct LastRoundSummaryView: View {
         let firPct = roundFirPct(round: round) ?? 0
         let pph = roundPuttsPerHole(round: round) ?? 0
 
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)], spacing: 1) {
-            GLStatSummaryTile(
-                label: "Score vs par",
-                value: scoreVsPar.map(formatVsPar) ?? "—",
-                valueUsesAccent: scoreVsPar != nil
-            )
-            GLStatSummaryTile(
-                label: "GIR %",
-                value: String(format: "%.0f", girPct),
-                valueUsesAccent: false
-            )
-            GLStatSummaryTile(
-                label: "FIR %",
-                value: String(format: "%.0f", firPct),
-                valueUsesAccent: false
-            )
-            GLStatSummaryTile(
-                label: "Putts / hole",
-                value: String(format: "%.1f", pph),
-                valueUsesAccent: false
-            )
-        }
-        .background(Color.borderDefault)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        return GLStatFourUpSummaryGrid(
+            scoreLabel: "Score vs par",
+            scoreValue: scoreVsPar.map(formatVsPar) ?? "—",
+            scoreUsesAccent: scoreVsPar != nil,
+            firValue: String(format: "%.0f", firPct),
+            girValue: String(format: "%.0f", girPct),
+            puttsValue: String(format: "%.1f", pph),
+            scoreShowsSeasonBest: isSeasonBest(.scoreVsPar, round: round),
+            firShowsSeasonBest: isSeasonBest(.fir, round: round),
+            girShowsSeasonBest: isSeasonBest(.gir, round: round),
+            puttsShowsSeasonBest: isSeasonBest(.puttsPerHole, round: round),
+            accessibilityLabel: "Last round stats over \(holesTotal) holes"
         )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Last round stats over \(holesTotal) holes")
     }
 
     private func vsAverageRow(round: Round) -> some View {
@@ -241,6 +228,14 @@ struct LastRoundSummaryView: View {
                 seasonPuttsPerHoleMatchingHome(),
                 { String(format: "%.1f", $0) },
                 { String(format: "%.1f", $0) },
+                false
+            ),
+            (
+                "Penalties / round",
+                roundPenaltiesPerRound(round: round),
+                seasonPenaltiesPerRoundMatchingHome(),
+                { String(format: "%.0f", $0) },
+                { String(format: "%.0f", $0) },
                 false
             )
         ]
@@ -318,18 +313,28 @@ struct LastRoundSummaryView: View {
 
     private func roundGirPct(round: Round) -> Double? {
         guard round.holes > 0 else { return nil }
-        let hits = displayAggregates()?.gir ?? round.totalGir ?? 0
+        let hits: Int
+        if round.id == lastRound?.id, let agg = displayAggregates() {
+            hits = agg.gir
+        } else {
+            hits = round.totalGir ?? 0
+        }
         return Double(hits) / Double(round.holes) * 100
     }
 
     private func roundPuttsPerHole(round: Round) -> Double? {
         guard round.holes > 0 else { return nil }
-        let putts = displayAggregates()?.putts ?? round.totalPutts ?? 0
+        let putts: Int
+        if round.id == lastRound?.id, let agg = displayAggregates() {
+            putts = agg.putts
+        } else {
+            putts = round.totalPutts ?? 0
+        }
         return Double(putts) / Double(round.holes)
     }
-    
+
     private func roundFirPct(round: Round) -> Double? {
-        if !holes.isEmpty {
+        if round.id == lastRound?.id, !holes.isEmpty {
             let eligible = holes.filter { $0.par > 3 }.count
             guard eligible > 0 else { return nil }
             let hits = holes.filter { $0.par > 3 && $0.fir == true }.count
@@ -353,6 +358,21 @@ struct LastRoundSummaryView: View {
         guard holeSum > 0 else { return nil }
         let firSum = homeSeasonRounds.reduce(0) { $0 + ($1.totalFir ?? 0) }
         return Double(firSum) / Double(holeSum) * 100
+    }
+
+    private func roundPenaltiesPerRound(round _: Round) -> Double? {
+        guard !holes.isEmpty else { return nil }
+        return Double(displayAggregates()?.penalties ?? 0)
+    }
+
+    /// Mean penalty count per round over season rounds with loaded hole rows.
+    private func seasonPenaltiesPerRoundMatchingHome() -> Double? {
+        let counts: [Double] = homeSeasonRounds.compactMap { r in
+            guard let n = seasonPenaltiesByRoundId[r.id] else { return nil }
+            return Double(n)
+        }
+        guard !counts.isEmpty else { return nil }
+        return counts.reduce(0, +) / Double(counts.count)
     }
 
     private func aggregateGirPct(over rounds: [Round]) -> Double? {
@@ -457,43 +477,43 @@ struct LastRoundSummaryView: View {
         return "\(round.datePlayedDisplay) · \(round.holes) holes"
     }
     
-    private var seasonBestBadge: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 10))
-                .foregroundColor(.accent)
-            Text("Season best")
-                .font(GLFonts.mono(size: 10, weight: .semibold))
-                .foregroundColor(.accent)
-                .tracking(0.06 * 10)
-                .textCase(.uppercase)
+    private enum SeasonBestStat {
+        case scoreVsPar, fir, gir, puttsPerHole
+    }
+
+    private func isSeasonBest(_ stat: SeasonBestStat, round: Round) -> Bool {
+        switch stat {
+        case .scoreVsPar:
+            let peers = homeSeasonRounds.filter { $0.holes == round.holes }
+            return ranksSeasonBest(
+                roundScoreVsPar(round: round),
+                in: peers.compactMap { roundScoreVsPar(round: $0) },
+                lowerIsBetter: true
+            )
+        case .fir:
+            return ranksSeasonBest(
+                roundFirPct(round: round),
+                in: homeSeasonRounds.compactMap { roundFirPct(round: $0) },
+                lowerIsBetter: false
+            )
+        case .gir:
+            return ranksSeasonBest(
+                roundGirPct(round: round),
+                in: homeSeasonRounds.compactMap { roundGirPct(round: $0) },
+                lowerIsBetter: false
+            )
+        case .puttsPerHole:
+            return ranksSeasonBest(
+                roundPuttsPerHole(round: round),
+                in: homeSeasonRounds.compactMap { roundPuttsPerHole(round: $0) },
+                lowerIsBetter: true
+            )
         }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(Color.accentDim)
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.borderAccent, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
-    private func isSeasonBestRound(_ round: Round) -> Bool {
-        isSeasonBestScoreVsPar(round: round)
-    }
-
-    private func isSeasonBestScoreVsPar(round: Round) -> Bool {
-        guard let current = roundScoreVsPar(round: round) else { return false }
-        let values: [Double] = homeSeasonRounds
-            .filter { $0.holes == round.holes }
-            .compactMap { seasonRound in
-                guard let score = seasonRound.totalScore,
-                      let par = seasonParByRoundId[seasonRound.id]
-                else { return nil }
-                return Double(score - par)
-            }
-        guard let best = values.min() else { return false }
-        return current <= best
+    private func ranksSeasonBest(_ current: Double?, in values: [Double], lowerIsBetter: Bool) -> Bool {
+        guard let current, let best = lowerIsBetter ? values.min() : values.max() else { return false }
+        return lowerIsBetter ? current <= best : current >= best
     }
 
     private func formatVsPar(_ value: Double) -> String {
