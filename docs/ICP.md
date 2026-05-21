@@ -1,12 +1,14 @@
 # Ideal customer profile — Golf Lab
 
-| | |
-|--|--|
-| **Version** | v1.0 |
-| **Date** | May 21, 2026 |
-| **Owner** | Nathan Hamilton |
-| **Next review** | At 100 users (post-launch) |
-| **Status** | Directional — validate with customer interviews before scaling acquisition |
+
+|                 |                                                                            |
+| --------------- | -------------------------------------------------------------------------- |
+| **Version**     | v1.0                                                                       |
+| **Date**        | May 21, 2026                                                               |
+| **Owner**       | Nathan Hamilton                                                            |
+| **Next review** | At 100 users (post-launch)                                                 |
+| **Status**      | Directional — validate with customer interviews before scaling acquisition |
+
 
 This ICP defines **who the product is designed for** and documents PM process (tiers, competition, validation, activation)—as it would be for a product entering market. The shipped app is **owner-operated** and not commercialized; this doc is the **design lens** for tradeoffs in code. See [README § How this repo is documented](../README.md#how-this-repo-is-documented).
 
@@ -34,18 +36,20 @@ This ICP defines **who the product is designed for** and documents PM process (t
 
 ## Consumer profile
 
-| Attribute | Profile |
-|-----------|---------|
-| **Segment** | Committed recreational golfer |
-| **Rounds per month** | 4+ (plays year-round or near year-round) |
-| **Handicap range** | 8–28 (serious amateurs; not beginners, not scratch) |
-| **Age range** | 28–55 (primary); skews 35–50 |
-| **Household income** | $75K–$200K+ (golf is a consistent budget line) |
-| **Geography** | US primary; English-speaking markets (UK, Australia, Canada) secondary |
-| **Device** | iPhone primary; Apple Watch for on-course data entry |
+
+| Attribute             | Profile                                                                      |
+| --------------------- | ---------------------------------------------------------------------------- |
+| **Segment**           | Committed recreational golfer                                                |
+| **Rounds per month**  | 4+ (plays year-round or near year-round)                                     |
+| **Handicap range**    | 8–28 (serious amateurs; not beginners, not scratch)                          |
+| **Age range**         | 28–55 (primary); skews 35–50                                                 |
+| **Household income**  | $75K–$200K+ (golf is a consistent budget line)                               |
+| **Geography**         | US primary; English-speaking markets (UK, Australia, Canada) secondary       |
+| **Device**            | iPhone primary; Apple Watch for on-course data entry                         |
 | **Shopping channels** | App Store discovery, word of mouth at the course, golf subreddits, Instagram |
-| **Price sensitivity** | Willing to pay for quality; resistant to bloated subscription tiers |
-| **Life stage** | Established career, disposable income, golf as a core hobby identity |
+| **Price sensitivity** | Willing to pay for quality; resistant to bloated subscription tiers          |
+| **Life stage**        | Established career, disposable income, golf as a core hobby identity         |
+
 
 ---
 
@@ -69,13 +73,15 @@ This ICP defines **who the product is designed for** and documents PM process (t
 
 ## Behavioral profile
 
-| Dimension | Behavior |
-|-----------|----------|
-| **Research** | App Store search, r/golf and r/golfswing, YouTube golf creators, word of mouth at the club |
-| **Influencers** | Playing partners, golf content creators (YouTube/Instagram), golf subreddit communities |
-| **Success measure** | Visible trend improvement over a season (GIR %, putts per round, scoring average); app feels invisible during play |
-| **Minimum involvement** | ~30 seconds per hole logging 4–5 stats; reviews analytics on phone post-round |
-| **Content lane** | Golf improvement YouTube (Me and My Golf, Rick Shiels), golf subreddits, equipment podcasts; trusts peers over brand ads |
+
+| Dimension               | Behavior                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Research**            | App Store search, r/golf and r/golfswing, YouTube golf creators, word of mouth at the club                               |
+| **Influencers**         | Playing partners, golf content creators (YouTube/Instagram), golf subreddit communities                                  |
+| **Success measure**     | Visible trend improvement over a season (GIR %, putts per round, scoring average); app feels invisible during play       |
+| **Minimum involvement** | ~30 seconds per hole logging 4–5 stats; reviews analytics on phone post-round                                            |
+| **Content lane**        | Golf improvement YouTube (Me and My Golf, Rick Shiels), golf subreddits, equipment podcasts; trusts peers over brand ads |
+
 
 ---
 
@@ -92,13 +98,15 @@ This ICP defines **who the product is designed for** and documents PM process (t
 
 ## Buyer intent signals
 
-| Signal | What it means | Recommended action |
-|--------|---------------|-------------------|
-| Searches "golf stat tracking app" or "simple golf scorecard app" | Actively in-market; frustrated with options | App Store SEO on "simple" and "frictionless" |
-| Posts in r/golf asking for app recommendations | High intent; peer-validation seeking | Authentic community presence; word-of-mouth |
-| Downloads app, completes first round, returns for analytics | Activation—they get it | Retention nudge; prompt next round |
-| Opens app to review historical charts 2+ weeks post-round | Core value prop landing | Referral ask or upgrade prompt |
-| Mentions lessons or working on a specific weakness | Ready to track meaningful data | Highlight GIR, FIR, putt tracking for coaching alignment |
+
+| Signal                                                           | What it means                               | Recommended action                                       |
+| ---------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------- |
+| Searches "golf stat tracking app" or "simple golf scorecard app" | Actively in-market; frustrated with options | App Store SEO on "simple" and "frictionless"             |
+| Posts in r/golf asking for app recommendations                   | High intent; peer-validation seeking        | Authentic community presence; word-of-mouth              |
+| Downloads app, completes first round, returns for analytics      | Activation—they get it                      | Retention nudge; prompt next round                       |
+| Opens app to review historical charts 2+ weeks post-round        | Core value prop landing                     | Referral ask or upgrade prompt                           |
+| Mentions lessons or working on a specific weakness               | Ready to track meaningful data              | Highlight GIR, FIR, putt tracking for coaching alignment |
+
 
 ---
 
@@ -106,11 +114,13 @@ This ICP defines **who the product is designed for** and documents PM process (t
 
 Tiers use **verifiable attributes** (rounds/month, app history, device)—not motivation, which surfaces over time. **Green** is who the product is built for. **Yellow** is experiment. **Red** means don't sell to them.
 
-| Tier | Criteria | Action |
-|------|----------|--------|
-| 🟢 **Green** | 4+ rounds/month, iPhone user, tried and abandoned ≥1 golf app, plays for enjoyment and improvement (not touring pro), age 28–55 | Primary acquisition—App Store, golf communities, word of mouth |
-| 🟡 **Yellow** | 2–3 rounds/month, curious about stats but never tracked, may be Android (future), seasonal bursts only | Engage if inbound; don't prioritize early paid acquisition |
-| 🔴 **Red** | Complete beginner (first season), wants GPS/course mapping primary, wants pro swing/video coaching | Don't sell to them |
+
+| Tier          | Criteria                                                                                                                        | Action                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 🟢 **Green**  | 4+ rounds/month, iPhone user, tried and abandoned ≥1 golf app, plays for enjoyment and improvement (not touring pro), age 28–55 | Primary acquisition—App Store, golf communities, word of mouth |
+| 🟡 **Yellow** | 2–3 rounds/month, curious about stats but never tracked, may be Android (future), seasonal bursts only                          | Engage if inbound; don't prioritize early paid acquisition     |
+| 🔴 **Red**    | Complete beginner (first season), wants GPS/course mapping primary, wants pro swing/video coaching                              | Don't sell to them                                             |
+
 
 ---
 
@@ -127,11 +137,13 @@ Tiers use **verifiable attributes** (rounds/month, app history, device)—not mo
 
 ## Competitive landscape
 
-| Competitor | Who they serve | Golf Lab differentiation |
-|------------|----------------|---------------------------|
-| **18Birdies** | Full platform—GPS, social, swing tips, games | Wins on simplicity; their depth is what our user abandoned |
-| **The Grint** | Handicap-focused, GHIN integration, social leaderboards | Wins on frictionless UX and analytics depth; they're form-first, not insight-first |
-| **Arccos** | Hardware sensors on every club for automatic shot detection | Wins on zero-hardware, zero-setup; Arccos needs ~$200 sensors and active management |
+
+| Competitor    | Who they serve                                              | Golf Lab differentiation                                                            |
+| ------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **18Birdies** | Full platform—GPS, social, swing tips, games                | Wins on simplicity; their depth is what our user abandoned                          |
+| **The Grint** | Handicap-focused, GHIN integration, social leaderboards     | Wins on frictionless UX and analytics depth; they're form-first, not insight-first  |
+| **Arccos**    | Hardware sensors on every club for automatic shot detection | Wins on zero-hardware, zero-setup; Arccos needs ~$200 sensors and active management |
+
 
 **Positioning note:** Arccos nails frictionless capture via hardware automation. Golf Lab's path is **intentional simplicity**—no hardware, no auto-detection (today), clean ~30-second-per-hole UI. The **long-arc analytics layer** is the differentiated payoff competitors don't own clearly.
 
@@ -165,7 +177,7 @@ This ICP is built on **product vision and competitive observation**, not validat
 
 - **App Store:** Own "simple golf stat tracker" and "golf scorecard app"; hero claim **"30 seconds per hole"**
 - **Reddit:** Authentic presence in r/golf and r/golfswing—feedback asks, not ads
-- **Content:** Short video of real round entry (&lt;60s)—the demo is the pitch
+- **Content:** Short video of real round entry (<60s)—the demo is the pitch
 - **Word of mouth:** Referral mechanic early; one evangelist ≈ a foursome
 
 ### Retention
@@ -184,21 +196,25 @@ This ICP is built on **product vision and competitive observation**, not validat
 
 ## Validation schedule
 
-| Frequency | Method | Owner |
-|-----------|--------|-------|
-| At 100 users | Qualitative interviews (8–10); validate Green tier | Founder |
-| Quarterly | Retention cohorts by channel; churn patterns | Product / Founder |
-| Bi-annually | In-app survey on fit, pain, feature value | Product |
-| Annually | Full ICP re-analysis vs retention/engagement data | Founder |
+
+| Frequency    | Method                                             | Owner             |
+| ------------ | -------------------------------------------------- | ----------------- |
+| At 100 users | Qualitative interviews (8–10); validate Green tier | Founder           |
+| Quarterly    | Retention cohorts by channel; churn patterns       | Product / Founder |
+| Bi-annually  | In-app survey on fit, pain, feature value          | Product           |
+| Annually     | Full ICP re-analysis vs retention/engagement data  | Founder           |
+
 
 ---
 
 ## How this fits the doc set
 
-| Doc | Role |
-|-----|------|
-| [PROBLEMS.md](PROBLEMS.md) | What hurts and positioning |
-| **This file** | Who it's for; G/Y/R tiers; competitive and validation **process** |
-| [PRODUCT.md](PRODUCT.md) | Vision, tradeoffs, shipped surface map |
+
+| Doc                        | Role                                                              |
+| -------------------------- | ----------------------------------------------------------------- |
+| [PROBLEMS.md](PROBLEMS.md) | What hurts and positioning                                        |
+| **This file**              | Who it's for; G/Y/R tiers; competitive and validation **process** |
+| [PRODUCT.md](PRODUCT.md)   | Vision, tradeoffs, shipped surface map                            |
+
 
 Shaped product choices for this build: Watch-primary logging, restrained analytics, weekly streak as success metric, AI strategy coach as a later layer.

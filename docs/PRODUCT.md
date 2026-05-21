@@ -1,6 +1,6 @@
 # Product thinking — Golf Lab
 
-This document explains **why** Golf Lab exists and **how** product choices show up in the app. It is written for PM and design partners reviewing portfolio work—not as a commercial PRD.
+This document explains **why** Golf Lab exists and **how** product choices show up in the app. 
 
 Doc set and scope: [README § How this repo is documented](../README.md#how-this-repo-is-documented).
 
@@ -14,12 +14,14 @@ Doc set and scope: [README § How this repo is documented](../README.md#how-this
 
 ## Context
 
-| Dimension | Choice |
-|-----------|--------|
-| **Built for** | Owner-operated daily use; **production-ready** (sync, reliability, field-tested UX) |
-| **Design lens** | [Committed recreational golfer](ICP.md) (ICP v1.0) — persona-driven decisions |
-| **Commercialization** | None |
-| **Horizon** | Near-term: tracking + analytics; next layer: **AI strategy coach** on top of owned data |
+
+| Dimension             | Choice                                                                                  |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| **Built for**         | Owner-operated daily use; **production-ready** (sync, reliability, field-tested UX)     |
+| **Design lens**       | [Committed recreational golfer](ICP.md) (ICP v1.0) — persona-driven decisions           |
+| **Commercialization** | None                                                                                    |
+| **Horizon**           | Near-term: tracking + analytics; next layer: **AI strategy coach** on top of owned data |
+
 
 Detailed problem framing: [Problems & positioning](PROBLEMS.md) (v1.0).
 
@@ -33,6 +35,8 @@ flowchart LR
   B --> C[AI strategy coach]
 ```
 
+
+
 1. **Now — Capture** — Log rounds on Watch (primary) and iPhone with minimal taps; practice logging and weekly targets.
 2. **Now — Understand** — Home and Stats show trends on metrics tied to scoring (vs par, GIR, FIR, putts, penalties where tracked).
 3. **Next — Coach** — AI tab delivers **on-course strategy from the user's stats**, not swing rebuilds (tab is positioned; implementation follows data depth).
@@ -43,17 +47,17 @@ Explicitly **not** in vision: swing analytics, GPS/shot guidance, commercial gro
 
 ## Jobs to be done (priority order)
 
-| Priority | Job | How the app serves it |
-|----------|-----|------------------------|
-| 1 | **Frictionless round logging on-course** | Watch-primary hole entry; large tap targets; auto-advance on save; iPhone for setup and backup |
-| 2 | **See trends that explain long-term scoring** | Home quick stats + charts; Stats tab for deeper season views; restrained metric set |
-| 3 | **Hit weekly goals** | Configurable round + practice targets; streak UI; **streak completion** as primary success metric |
+
+| Priority | Job                                           | How the app serves it                                                                             |
+| -------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1        | **Frictionless round logging on-course**      | Watch-primary hole entry; large tap targets; auto-advance on save; iPhone for setup and backup    |
+| 2        | **See trends that explain long-term scoring** | Home quick stats + charts; Stats tab for deeper season views; restrained metric set               |
+| 3        | **Hit weekly goals**                          | Configurable round + practice targets; streak UI; **streak completion** as primary success metric |
+
 
 ---
 
 ## Product principles
-
-These are inferred from shipped UX and [design.md](design.md)—not a separate manifesto:
 
 - **On-course speed over off-course depth** — Fewest taps/clicks on every surface; validate changes against hole-entry flow first.
 - **Clarity over density** — Fewer metrics that matter; avoid dashboard sprawl (see tension in [future-todos](future-todos.md) for advanced Stats ideas).
@@ -65,13 +69,15 @@ These are inferred from shipped UX and [design.md](design.md)—not a separate m
 
 ## Out of scope (explicit)
 
-| Area | Stance | Possible future exception |
-|------|--------|---------------------------|
-| Swing / video analytics | No | — |
-| GPS / rangefinder / per-shot phone guidance | No | — |
-| Handicap index officialization | No for now | Maybe later |
-| Social, leagues, marketplace | No | — |
-| Commercialization / multi-tenant | No | — |
+
+| Area                                        | Stance     | Possible future exception |
+| ------------------------------------------- | ---------- | ------------------------- |
+| Swing / video analytics                     | No         | —                         |
+| GPS / rangefinder / per-shot phone guidance | No         | —                         |
+| Handicap index officialization              | No for now | Maybe later               |
+| Social, leagues, marketplace                | No         | —                         |
+| Commercialization / multi-tenant            | No         | —                         |
+
 
 ---
 
@@ -81,21 +87,21 @@ These are inferred from shipped UX and [design.md](design.md)—not a separate m
 
 Why this metric for an owner-operated app: it measures whether the product drives **repeatable behavior** (play + practice), not vanity installs or one-off round logs.
 
-Secondary signals (not primary KPIs): rounds logged per week, practice sessions logged, time-to-complete hole entry.
+Secondary signals (not primary KPIs): rounds logged per week, practice sessions logged.
 
 ---
 
 ## Product surface map
 
-High-level map for reviewers; implementation lives under `GolfLab/Views/`.
 
-| Tab / area | Role |
-|------------|------|
-| **Home** | Season snapshot, quick stats, weekly goals & streak, scoring trend, recent rounds; profile entry (not a tab); log practice |
-| **Round** | New round setup, hole entry (iPhone), end round; auto-selected when round active |
-| **Stats** | Season-filtered trends (vs par, GIR, FIR, putts, etc.) |
-| **History** | Round list, calendar, round detail / scorecard, hole edit, practice history |
-| **AI** | Strategy coach positioning ("score better from your stats"); coming soon |
+| Tab / area  | Role                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Home**    | Season snapshot, quick stats, weekly goals & streak, scoring trend, recent rounds; profile entry (not a tab); log practice |
+| **Round**   | New round setup, hole entry (iPhone), end round; auto-selected when round active                                           |
+| **Stats**   | Season-filtered trends (vs par, GIR, FIR, putts, etc.)                                                                     |
+| **History** | Round list, calendar, round detail / scorecard, hole edit, practice history                                                |
+| **AI**      | Strategy coach positioning ("score better from your stats"); coming soon                                                   |
+
 
 **watchOS** — Active round: hole number, score/putts steppers, GIR/FIR/penalty, save hole; syncs with iPhone via Watch Connectivity.
 
@@ -191,10 +197,12 @@ Each entry documents **what we chose**, **what we gave up**, and **what would ch
 
 ## UX priorities (on-course vs off-course)
 
-| Context | Priority |
-|---------|----------|
-| **On-course (Watch, then iPhone)** | Speed of hole entry; largest tap targets; no secondary flows mid-hole |
-| **Off-course** | Scannable trends; fewer metrics; charts that explain direction, not exhaustive exploration |
+
+| Context                            | Priority                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| **On-course (Watch, then iPhone)** | Speed of hole entry; largest tap targets; no secondary flows mid-hole                      |
+| **Off-course**                     | Scannable trends; fewer metrics; charts that explain direction, not exhaustive exploration |
+
 
 Design system authority: [design.md](design.md) (principles and tokens), [DESIGN_REFERENCE.md](DESIGN_REFERENCE.md) (SwiftUI implementation).
 
@@ -207,8 +215,6 @@ Non-committed ideas and open decisions: [future-todos.md](future-todos.md) (publ
 ---
 
 ## What this doc is for in a portfolio
-
-Reviewers looking for PM craft should find:
 
 1. A **real problem** (personal scoring, noise reduction) — expanded in [PROBLEMS.md](PROBLEMS.md).
 2. **Product thinking** — phased vision, prioritized jobs, explicit out-of-scope.

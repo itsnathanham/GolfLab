@@ -26,6 +26,7 @@ All backgrounds use light green-tinted surfaces — not pure white, not neutral 
 The tint is subtle and grounds the app in its context without being literal about it.
 
 ### Background tokens
+
 ```swift
 // Page / screen background
 Color(hex: "#F4F6F4")        // bg-primary
@@ -38,6 +39,7 @@ Color(hex: "#EAEEEA")        // bg-elevated
 ```
 
 ### Border tokens
+
 ```swift
 // Default border (very subtle)
 Color.black.opacity(0.07)    // border-default
@@ -50,6 +52,7 @@ Color(hex: "#C0412D").opacity(0.28)  // border-penalty
 ```
 
 ### Text tokens
+
 ```swift
 Color(hex: "#111A13")        // text-primary   (near-black, slight green warmth)
 Color(hex: "#4A6655")        // text-secondary  (muted green-gray)
@@ -57,6 +60,7 @@ Color(hex: "#8FA898")        // text-tertiary   (very muted, labels and captions
 ```
 
 ### Accent — single brand color
+
 ```swift
 Color(hex: "#19693A")        // accent          (deep forest green — primary)
 Color(hex: "#22874E")        // accent-mid      (slightly lighter, positive deltas)
@@ -69,7 +73,9 @@ lines for improving trends, CTAs, the wordmark. Everything else is muted.
 One accent doing all the work is more powerful than many colors competing.
 
 ### Semantic score colors
+
 Used exclusively for score-vs-par displays. Do not use for general UI.
+
 ```swift
 Color(hex: "#9A7020")        // eagle (−2 or better) — dark gold
 Color(hex: "#19693A")        // birdie (−1) — accent green
@@ -79,12 +85,15 @@ Color(hex: "#C0412D")        // double-bogey or worse (+2 and beyond) — red
 ```
 
 ### Chart line colors
+
 Encode meaning, not identity:
+
 - Improving metrics (lower score, more GIR): accent #19693A
 - Neutral / steady metrics: secondary #4A6655
 - Negative trend indicators: bogey #C05020
 
 ### Weekly goals / streak (habit lane)
+
 A **second, sparing palette** for the Home + History **Weekly goals** card and completion
 celebration only. It signals habit momentum (weeks met), not score-vs-par. Do not use these
 tokens for scorecards, charts, or general CTAs.
@@ -101,11 +110,13 @@ Color(hex: "#8F6420")        // streak-text-active — streak caption when strea
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
-| State | Visual |
-|-------|--------|
-| Met (past or current week) | 28pt circle, `streak-success` fill, `streak-on-success` checkmark |
-| Missed (finished week only) | 28pt circle, `bg-elevated` fill, `streak-on-success` × |
-| In progress (current week, not yet met) | 28pt circle, `bg-elevated` fill, `streak-on-success` `ellipsis` |
+
+| State                                   | Visual                                                            |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| Met (past or current week)              | 28pt circle, `streak-success` fill, `streak-on-success` checkmark |
+| Missed (finished week only)             | 28pt circle, `bg-elevated` fill, `streak-on-success` ×            |
+| In progress (current week, not yet met) | 28pt circle, `bg-elevated` fill, `streak-on-success` `ellipsis`   |
+
 
 Connectors between nodes: 2pt × 10pt `bg-elevated` bars, vertically aligned to circle centers.
 Auto-scroll to the newest week on appear.
@@ -113,13 +124,14 @@ Auto-scroll to the newest week on appear.
 **Streak footer:** `flame.fill` (`streak-success`, full opacity) + footnote caption (`streak-text-active`).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
+
 - Full-screen confetti (gold / deep gold / `accent-mid` / practice-blue particles) — **off**
-  when Reduce Motion is enabled.
+when Reduce Motion is enabled.
 - Top banner: “Weekly goals complete” + short copy that targets were met **this week** (not
-  round score). Optional streak line in `streak-text-active`.
+round score). Optional streak line in `streak-text-active`.
 - Haptics: `.success` notification, then `.medium` impact ~120ms later.
 - Once per calendar week (`UserDefaults`); queued if a sheet (practice log / end round) or
-  background save would hide the overlay until dismiss or foreground.
+background save would hide the overlay until dismiss or foreground.
 
 ---
 
@@ -142,6 +154,7 @@ Sans is the primary reading font. It keeps the app approachable.
 ```
 
 ### Where each font applies
+
 ```
 Mono:  stat values, round scores, averages, yardages, the wordmark,
        score badges (+14, −1), time displays, axis labels on charts
@@ -152,6 +165,7 @@ Sans:  screen titles, section labels, field labels (Score, Putts, GIR),
 ```
 
 ### Type scale
+
 ```
 Display   — Mono, 34pt, weight 600   — large stat values (round score, season avg)
 Title     — Sans, 22pt, weight 600   — screen headings
@@ -168,6 +182,7 @@ Buttons   — Sans, 14pt, weight 600 / 500 — primary vs ghost CTAs
 ```
 
 ### Label convention
+
 Field labels (Score, Putts, Stats): Sans, 12pt, weight 500, uppercase,
 0.10em letter-spacing, text-tertiary color.
 
@@ -204,6 +219,7 @@ No shadows. Cards sit on the slightly tinted page background — the contrast
 is the separation.
 
 **Accent panel variant** — used for highlighted information (e.g. hole header):
+
 ```
 Left border:   3pt, accent color at 60% opacity
 Background:    bg-card
@@ -211,6 +227,7 @@ Border radius: 8pt
 ```
 
 **Data grid variant** — for side-by-side stat displays:
+
 ```
 Cells separated by 1px lines at border-default opacity
 Overall container: 1px border, 8pt radius
@@ -222,6 +239,7 @@ No zebra striping — borders provide the separation
 ## Buttons
 
 **Primary CTA:**
+
 ```
 Background:    accent (#19693A)
 Text:          #F2F8F4 (near-white)
@@ -229,9 +247,11 @@ Font:          Sans, 14pt, weight 600, uppercase, 0.08em tracking
 Border radius: 8pt
 Height:        ~48pt (full-width preferred)
 ```
+
 One primary button per screen. It should be obvious.
 
 **Secondary / ghost:**
+
 ```
 Background:    transparent
 Border:        1px, border-default
@@ -247,6 +267,7 @@ No pill buttons. No gradient buttons.
 ## Steppers (numeric input)
 
 Used for entering scores and counts.
+
 ```
 Container:     bg-card, 1px border, 8pt radius, full width
 − / + buttons: bg-elevated (#EAEEEA), 56pt × 56pt tap target
@@ -262,6 +283,7 @@ Haptic feedback on every increment/decrement (UIImpactFeedbackGenerator, .light)
 ## Toggles (binary stat selection)
 
 Used for per-hole stat entry (GIR, FIR, Penalty).
+
 ```
 Default (off):
   Background:    bg-card (#FFFFFF)
@@ -290,6 +312,7 @@ Sub-label: Sans, 11pt, text-tertiary.
 ## Charts
 
 Chart lines:
+
 ```
 Stroke width:  1.5pt
 Linecap:       round
@@ -298,6 +321,7 @@ Terminal dot:  3pt radius, filled; 6pt radius outer ring at 12% opacity
 ```
 
 Area fill below line:
+
 ```
 Linear gradient, vertical
 Top: line color at 14% opacity
@@ -305,12 +329,14 @@ Bottom: line color at 0% opacity
 ```
 
 Grid lines (use sparingly):
+
 ```
 Horizontal only
 Stroke: black at 4% opacity, 1pt
 ```
 
 Average reference line:
+
 ```
 Stroke: black at 7% opacity, 1pt, dashed (4pt dash, 3pt gap)
 ```
@@ -318,6 +344,7 @@ Stroke: black at 7% opacity, 1pt, dashed (4pt dash, 3pt gap)
 Axis labels: Mono, 9pt, black at 18% opacity. Minimal — only min/max values.
 
 Chart card header row:
+
 ```
 Padding:       11pt × 14pt
 Border-bottom: border-default
@@ -330,6 +357,7 @@ Current value: Mono, 11–12pt, weight 600, accent or text-secondary
 ## Filters / Segment Controls
 
 Pill-style, not native segmented control:
+
 ```
 Active pill:
   Background:    accent at 8% opacity
@@ -373,6 +401,7 @@ Screen transitions:    SwiftUI default push/pop — no custom overrides
 ```
 
 Haptics:
+
 - Stepper increment/decrement: `UIImpactFeedbackGenerator(.light)`
 - Hole save confirm: `UINotificationFeedbackGenerator(.success)`
 - Penalty toggle activation: `UIImpactFeedbackGenerator(.medium)`
@@ -388,12 +417,12 @@ Haptics:
 - **No pill-shaped buttons or cards** — 8pt radius maximum
 - **No gradients** except the chart area fill (functional, not decorative)
 - **No multiple accent colors** — one deep green for product chrome; **exception:** weekly-goals
-  gold tokens (`streak-success` family) on the Weekly goals card and completion overlay only
+gold tokens (`streak-success` family) on the Weekly goals card and completion overlay only
 - **No system blue** anywhere in the UI
 - **No heavy borders** — 1px at low opacity only
 - **No Mono font for labels** — Sans only for field labels, toggle labels, tab
-  labels, section headers, card titles, and navigation. Mono is for numbers
-  and the wordmark only.
+labels, section headers, card titles, and navigation. Mono is for numbers
+and the wordmark only.
 - **No SF Pro** — always use IBM Plex Mono or IBM Plex Sans
 - **No decorative icons** — tab bar icons should be simple stroke-only SVGs
 - **No card shadows or elevation effects** — flat surfaces only
@@ -404,8 +433,8 @@ Haptics:
 
 Canonical copies in this repo:
 
-- **`docs/design.md`** — full design brief (this file).
-- **`docs/DESIGN_REFERENCE.md`** — implementation digest (tokens, spacing, component checklist).
+- `**docs/design.md`** — full design brief (this file).
+- `**docs/DESIGN_REFERENCE.md**` — implementation digest (tokens, spacing, component checklist).
 
 When asking Cursor to build a screen or component:
 
@@ -425,3 +454,4 @@ When Cursor drifts from the spec:
 
 > "This doesn't match `docs/design.md` — you used Mono for the field label.
 >  Labels use IBM Plex Sans. Fix it to match the spec."
+
