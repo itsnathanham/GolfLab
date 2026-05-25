@@ -628,6 +628,15 @@ struct ActiveHole: Codable, Equatable {
     }
 }
 
+extension Array where Element == ActiveHole {
+    var firHitPercentage: Double? {
+        let eligible = filter { $0.par > 3 }
+        guard !eligible.isEmpty else { return nil }
+        let hits = eligible.filter { $0.fir == true }.count
+        return Double(hits) / Double(eligible.count) * 100
+    }
+}
+
 struct RoundTotals {
     let score: Int
     let putts: Int

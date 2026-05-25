@@ -61,6 +61,13 @@ extension Array where Element == Hole {
     var totalParFromHoles: Int {
         reduce(0) { $0 + $1.par }
     }
+
+    var firHitPercentage: Double? {
+        let eligible = filter { $0.par > 3 }
+        guard !eligible.isEmpty else { return nil }
+        let hits = eligible.filter { $0.fir == true }.count
+        return Double(hits) / Double(eligible.count) * 100
+    }
 }
 
 struct HoleInsert: Codable {

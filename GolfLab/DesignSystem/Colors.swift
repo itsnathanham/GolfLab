@@ -48,6 +48,7 @@ extension Color {
     static let chartNegativeStrong = Color(hex: "#C0412D")
     /// Steady / neutral series line.
     static var chartNeutral: Color { textSecondary }
+    static var chartSeasonAverage: Color { accentMid.opacity(0.55) }
 
     static var chartPositiveFill: Color { chartPositive.opacity(0.14) }
     static var chartNegativeFill: Color { chartNegative.opacity(0.14) }

@@ -217,6 +217,29 @@ struct GLSeasonBestBadge: View {
     }
 }
 
+enum GLMetricFormat {
+    static func puttsPerHole(_ value: Double) -> String {
+        String(format: "%.2f", value)
+    }
+
+    static func vsParStrokes(_ value: Double) -> String {
+        if abs(value - value.rounded()) < 0.05 {
+            return String(format: "%+.0f", value)
+        }
+        return String(format: "%+.1f", value)
+    }
+
+    static func vsParRound(_ value: Double) -> String {
+        if value == 0 { return "E" }
+        if abs(value.rounded() - value) < 0.01 {
+            let raw = String(format: "%+.0f", value)
+            return raw.replacingOccurrences(of: "-", with: "\u{2212}")
+        }
+        let raw = String(format: "%+.1f", value)
+        return raw.replacingOccurrences(of: "-", with: "\u{2212}")
+    }
+}
+
 // MARK: - Stat summary tile (2×2 grids: Last round, End round, Home quick stats)
 
 struct GLStatSummaryTile: View {

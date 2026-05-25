@@ -130,21 +130,16 @@ struct EndRoundView: View {
 
         let scoreVsPar: Double? = saved.isEmpty ? nil : Double(totals.score - parSum)
         let girPct: Double = saved.isEmpty ? 0 : Double(totals.gir) / Double(saved.count) * 100
-        let firPct: Double = {
-            guard !saved.isEmpty else { return 0 }
-            let elig = saved.filter { $0.par > 3 }.count
-            guard elig > 0 else { return 0 }
-            return Double(saved.filter { $0.par > 3 && $0.fir == true }.count) / Double(elig) * 100
-        }()
+        let firPct = saved.firHitPercentage ?? 0
         let pph: Double = saved.isEmpty ? 0 : Double(totals.putts) / Double(saved.count)
 
         return GLStatFourUpSummaryGrid(
             scoreLabel: "Score vs par",
-            scoreValue: scoreVsPar.map(formatVsPar) ?? "—",
+            scoreValue: scoreVsPar.map(GLMetricFormat.vsParRound) ?? "—",
             scoreUsesAccent: scoreVsPar != nil,
             firValue: saved.isEmpty ? "—" : String(format: "%.0f", firPct),
             girValue: saved.isEmpty ? "—" : String(format: "%.0f", girPct),
-            puttsValue: saved.isEmpty ? "—" : String(format: "%.1f", pph),
+            puttsValue: saved.isEmpty ? "—" : GLMetricFormat.puttsPerHole(pph),
             accessibilityLabel: "Round stats over \(n) saved holes"
         )
     }
@@ -217,17 +212,7 @@ struct EndRoundView: View {
         let par = saved.reduce(0) { $0 + $1.par }
         guard par > 0 else { return ("--", .textTertiary) }
         let delta = Double(totals.score - par)
-        let text = formatVsPar(delta)
+        let text = GLMetricFormat.vsParRound(delta)
         return (text, Color.accent)
-    }
-
-    private func formatVsPar(_ value: Double) -> String {
-        if value == 0 { return "E" }
-        if abs(value.rounded() - value) < 0.01 {
-            let raw = String(format: "%+.0f", value)
-            return raw.replacingOccurrences(of: "-", with: "\u{2212}")
-        }
-        let raw = String(format: "%+.1f", value)
-        return raw.replacingOccurrences(of: "-", with: "\u{2212}")
     }
 }

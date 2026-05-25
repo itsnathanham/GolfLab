@@ -57,7 +57,7 @@ struct WeeklyGoalsStreakSection: View {
                 HStack {
                     Text(label)
                         .font(.glFootnote)
-                        .foregroundColor(.textTertiary)
+                        .foregroundColor(.textSecondary)
                     Spacer()
                     Text("\(current) / \(target)")
                         .font(GLFonts.mono(size: 13, weight: .semibold))

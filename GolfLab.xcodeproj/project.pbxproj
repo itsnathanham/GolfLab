@@ -66,6 +66,8 @@
 		EFFFDFAB6EF91842B60160FB /* GLChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7C36111E50165737A0D9111 /* GLChrome.swift */; };
 		F5787A8AEE8E90AD00B59BDB /* IBMPlexMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 893C03BF01D3497E4F942204 /* IBMPlexMono-Medium.ttf */; };
 		F8B4C201AF066B312B2326B1 /* GLWeeklyGoalsStreak.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */; };
+		VSPAR01AF066B312B2326C1 /* VsParCumulativeProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = VSPAR01AF066B312B2326C0 /* VsParCumulativeProgression.swift */; };
+		VSPAR02AF066B312B2326C3 /* SeasonHolesFetch.swift in Sources */ = {isa = PBXBuildFile; fileRef = VSPAR02AF066B312B2326C2 /* SeasonHolesFetch.swift */; };
 		A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */; };
 		A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */; };
 		A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */; };
@@ -162,6 +164,8 @@
 		EEDCC95CF164002D554B194D /* GolfLabSecrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = GolfLabSecrets.xcconfig; sourceTree = "<group>"; };
 		F85BEC47BB1FC6F7E802D99D /* WatchHoleEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHoleEntryView.swift; sourceTree = "<group>"; };
 		F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLWeeklyGoalsStreak.swift; sourceTree = "<group>"; };
+		VSPAR01AF066B312B2326C0 /* VsParCumulativeProgression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VsParCumulativeProgression.swift; sourceTree = "<group>"; };
+		VSPAR02AF066B312B2326C2 /* SeasonHolesFetch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonHolesFetch.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebration.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiEmitterView.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebrationOverlay.swift; sourceTree = "<group>"; };
@@ -273,6 +277,8 @@
 				A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */,
 				5E60441036AA2A749FC58294 /* GLCalendarISO.swift */,
 				F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */,
+				VSPAR01AF066B312B2326C0 /* VsParCumulativeProgression.swift */,
+				VSPAR02AF066B312B2326C2 /* SeasonHolesFetch.swift */,
 				A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */,
 			);
 			path = Utilities;
@@ -589,6 +595,8 @@
 				A1B2C3D4E5F60718293A4B5C /* ActiveRoundDraftStore.swift in Sources */,
 				0F85AD028983E20DEF29E6EF /* GLCalendarISO.swift in Sources */,
 				F8B4C201AF066B312B2326B1 /* GLWeeklyGoalsStreak.swift in Sources */,
+				VSPAR01AF066B312B2326C1 /* VsParCumulativeProgression.swift in Sources */,
+				VSPAR02AF066B312B2326C3 /* SeasonHolesFetch.swift in Sources */,
 				A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */,
 				A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */,
 				A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */,

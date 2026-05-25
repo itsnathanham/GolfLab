@@ -33,6 +33,10 @@ struct StatsView: View {
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
 
+                        AvgVsParProgressionCard(averageSeries: avgVsParProgressionSeries)
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.bottom, 12)
+
                         StatsMetricTrendCard(
                             title: "FIR %",
                             values: firSeries,
@@ -59,7 +63,7 @@ struct StatsView: View {
                             yAxisLabel: "Putts / hole",
                             gridStep: 0.25,
                             seriesColor: .textSecondary,
-                            valueFormatter: { String(format: "%.1f", $0) },
+                            valueFormatter: GLMetricFormat.puttsPerHole,
                             yAxisLeadingMargin: GLTrendChartMetrics.wideYAxisLeadingMargin
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
@@ -151,15 +155,15 @@ struct StatsView: View {
         let avgVsPar = averageScoreVsPar(for: rounds)
         let girPct = girPercentage(for: rounds)
         let pph = puttsPerHole(for: rounds)
-        let firPct = firPercentageFromHoles(holesForStats)
+        let firPct = holesForStats.firHitPercentage
 
-        let scoreText = avgVsPar.map { formatAvgVsPar($0) } ?? "—"
+        let scoreText = avgVsPar.map(GLMetricFormat.vsParStrokes) ?? "—"
         let girText: String = {
             guard let v = girPct else { return "—" }
             return String(format: "%.0f", v)
         }()
 
-        let puttsText = pph.map { String(format: "%.1f", $0) } ?? "—"
+        let puttsText = pph.map(GLMetricFormat.puttsPerHole) ?? "—"
 
         let firText: String = {
             if let p = firPct { return String(format: "%.0f", p) }
@@ -183,7 +187,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 0) {
             GLTrendCardHeader(title: "Avg score by par")
 
-            VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 14) {
                 if isLoadingHoles && holesForStats.isEmpty {
                     ProgressView()
                         .tint(.accent)
@@ -195,25 +199,32 @@ struct StatsView: View {
                         .foregroundColor(.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
+                    if let insight = avgScoreByParInsight {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(insight.headline)
+                                .font(.glSubhead)
+                                .foregroundColor(.textPrimary)
+                            Text("\(GLMetricFormat.vsParStrokes(insight.row.avgVsPar)) vs par")
+                                .font(.glFootnote)
+                                .foregroundColor(.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     ForEach(avgScoreByParRows, id: \.par) { row in
                         avgScoreByParRow(row: row)
                     }
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, GLCardMetrics.padding)
+            .padding(.top, 12)
+            .padding(.bottom, GLCardMetrics.padding)
         }
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
+        .glCardChromeFrame(outlined: true)
     }
 
     private struct ParAvgRow: Sendable {
         let par: Int
-        let avgScore: Double
+        let avgVsPar: Double
         let holeCount: Int
     }
 
@@ -221,39 +232,59 @@ struct StatsView: View {
         let grouped = Dictionary(grouping: holesForStats.filter { [3, 4, 5].contains($0.par) }) { $0.par }
         return [3, 4, 5].compactMap { p -> ParAvgRow? in
             guard let hs = grouped[p], !hs.isEmpty else { return nil }
-            let sum = hs.reduce(0) { $0 + $1.score }
-            let avg = Double(sum) / Double(hs.count)
-            return ParAvgRow(par: p, avgScore: avg, holeCount: hs.count)
+            let sumVsPar = hs.reduce(0) { $0 + ($1.score - $1.par) }
+            let avgVsPar = Double(sumVsPar) / Double(hs.count)
+            return ParAvgRow(par: p, avgVsPar: avgVsPar, holeCount: hs.count)
         }
     }
 
+    private struct ParAvgInsight {
+        let row: ParAvgRow
+        let headline: String
+    }
+
+    private var avgScoreByParInsight: ParAvgInsight? {
+        let rows = avgScoreByParRows
+        guard let row = rows.max(by: { $0.avgVsPar < $1.avgVsPar }) else { return nil }
+        let headline = row.avgVsPar > 0.05
+            ? "Par \(row.par)s cost you the most"
+            : "Par \(row.par)s are closest to par"
+        return ParAvgInsight(row: row, headline: headline)
+    }
+
+    private var maxAvgVsParBarMagnitude: Double {
+        max(avgScoreByParRows.map { abs($0.avgVsPar) }.max() ?? 0.01, 0.01)
+    }
+
     private func avgScoreByParRow(row: ParAvgRow) -> some View {
-        let maxAvg = max(avgScoreByParRows.map(\.avgScore).max() ?? 1, 0.01)
-        let widthFrac = min(1, row.avgScore / maxAvg)
-        let barColor: Color = .accent
+        let widthFrac = min(1, abs(row.avgVsPar) / maxAvgVsParBarMagnitude)
+        let progressBarHeight: CGFloat = 5
 
-        return HStack(alignment: .center, spacing: 10) {
-            Text("Par \(row.par)")
-                .font(.glFootnote)
-                .foregroundColor(.textTertiary)
-                .frame(width: 36, alignment: .leading)
-
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Par \(row.par)")
+                    .font(.glFootnote)
+                    .foregroundColor(.textSecondary)
+                Spacer()
+                Text(GLMetricFormat.vsParStrokes(row.avgVsPar))
+                    .font(GLFonts.mono(size: 13, weight: .semibold))
+                    .foregroundColor(.textPrimary)
+            }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.bgElevated)
-                        .frame(height: 5)
+                        .frame(height: progressBarHeight)
                     Capsule()
-                        .fill(barColor.opacity(0.4))
-                        .frame(width: max(4, geo.size.width * widthFrac), height: 5)
+                        .fill(Color.accent.opacity(0.45))
+                        .frame(width: max(4, geo.size.width * widthFrac), height: progressBarHeight)
                 }
             }
-            .frame(height: 5)
+            .frame(height: progressBarHeight)
 
-            Text(String(format: "%.1f", row.avgScore))
-                .font(GLFonts.mono(size: 12, weight: .semibold))
-                .foregroundColor(barColor)
-                .frame(minWidth: 32, alignment: .trailing)
+            Text("\(row.holeCount) hole\(row.holeCount == 1 ? "" : "s")")
+                .font(.glFootnote)
+                .foregroundColor(.textSecondary)
         }
     }
 
@@ -315,14 +346,20 @@ struct StatsView: View {
         }
     }
 
+    private var avgVsParProgressionSeries: VsParLineChartSeries? {
+        VsParCumulativeProgression.averageSeries(
+            holesByRoundId: holesByRoundId,
+            rounds: chronologicalRounds,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
+            slotCount: VsParCumulativeProgression.chartHoleSlots
+        )
+    }
+
     private var firSeries: [Double] {
         let byRound = holesByRoundId
         return chronologicalRounds.compactMap { r in
             guard let cached = byRound[r.id], !cached.isEmpty else { return nil }
-            let eligible = cached.filter { $0.par > 3 }
-            guard !eligible.isEmpty else { return nil }
-            let hits = eligible.filter { $0.fir == true }.count
-            return Double(hits) / Double(eligible.count) * 100
+            return cached.firHitPercentage
         }
     }
 
@@ -431,20 +468,6 @@ struct StatsView: View {
         guard holeCount > 0 else { return nil }
         let putts = rounds.reduce(0) { $0 + ($1.totalPutts ?? 0) }
         return Double(putts) / Double(holeCount)
-    }
-
-    private func firPercentageFromHoles(_ holes: [Hole]) -> Double? {
-        let eligible = holes.filter { $0.par > 3 }
-        guard !eligible.isEmpty else { return nil }
-        let hits = eligible.filter { $0.fir == true }.count
-        return Double(hits) / Double(eligible.count) * 100
-    }
-
-    private func formatAvgVsPar(_ v: Double) -> String {
-        if abs(v - v.rounded()) < 0.05 {
-            return String(format: "%+.0f", v)
-        }
-        return String(format: "%+.1f", v)
     }
 
     private func loadHolesForFilteredRounds() async {

@@ -8,6 +8,7 @@ struct LastRoundSummaryView: View {
     @State private var seasonParByRoundId: [UUID: Int] = [:]
     /// Penalty count per round id (from loaded hole rows).
     @State private var seasonPenaltiesByRoundId: [UUID: Int] = [:]
+    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
     @State private var summaryReadyRoundId: UUID?
 
     private var lastRound: Round? { roundStore.allRounds.first }
@@ -30,7 +31,11 @@ struct LastRoundSummaryView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
 
-                        RoundVsParProgressCard(holes: holes, totalHoles: round.holes)
+                        RoundVsParProgressCard(
+                            holes: holes,
+                            totalHoles: round.holes,
+                            averageOverlay: seasonAverageOverlay
+                        )
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
 
@@ -66,6 +71,7 @@ struct LastRoundSummaryView: View {
                     holes = []
                     seasonParByRoundId = [:]
                     seasonPenaltiesByRoundId = [:]
+                    seasonHolesByRoundId = [:]
                     summaryReadyRoundId = nil
                 }
                 return
@@ -77,17 +83,18 @@ struct LastRoundSummaryView: View {
             await MainActor.run {
                 holes = fetched
                 if !fetched.isEmpty {
+                    seasonHolesByRoundId[round.id] = fetched
                     seasonParByRoundId[round.id] = fetched.totalParFromHoles
                     seasonPenaltiesByRoundId[round.id] = fetched.aggregatedRoundTotals.penalties
                 }
             }
-            await loadSeasonHoleAggregatesExcludingCached()
+            await loadSeasonHoleData()
             await MainActor.run {
                 summaryReadyRoundId = round.id
             }
         }
     }
-    
+
     private var topNav: some View {
         GLScreenTopBar(title: "Last round") {
             Color.clear
@@ -97,20 +104,28 @@ struct LastRoundSummaryView: View {
     }
 
     @MainActor
-    private func loadSeasonHoleAggregatesExcludingCached() async {
-        var parUpdates: [UUID: Int] = [:]
-        var penaltyUpdates: [UUID: Int] = [:]
-        for r in homeSeasonRounds {
-            if seasonParByRoundId[r.id] != nil, seasonPenaltiesByRoundId[r.id] != nil { continue }
-            guard let fetched = try? await SupabaseService.shared.fetchHoles(roundId: r.id),
-                  !fetched.isEmpty
-            else { continue }
-            parUpdates[r.id] = fetched.totalParFromHoles
-            penaltyUpdates[r.id] = fetched.aggregatedRoundTotals.penalties
+    private func loadSeasonHoleData() async {
+        let missing = homeSeasonRounds.filter { seasonHolesByRoundId[$0.id] == nil }
+        guard !missing.isEmpty else { return }
+        let loaded = await SeasonHolesFetch.holesByRoundId(
+            rounds: missing,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        )
+        seasonHolesByRoundId.merge(loaded) { _, new in new }
+        for (id, fetched) in loaded {
+            seasonParByRoundId[id] = fetched.totalParFromHoles
+            seasonPenaltiesByRoundId[id] = fetched.aggregatedRoundTotals.penalties
         }
-        guard !parUpdates.isEmpty else { return }
-        seasonParByRoundId.merge(parUpdates) { _, new in new }
-        seasonPenaltiesByRoundId.merge(penaltyUpdates) { _, new in new }
+    }
+
+    private var seasonAverageOverlay: VsParLineChartSeries? {
+        guard let round = lastRound else { return nil }
+        return VsParCumulativeProgression.seasonAverageOverlaySeries(
+            holesByRoundId: seasonHolesByRoundId,
+            seasonRounds: homeSeasonRounds,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
+            chartHoleCount: round.holes
+        )
     }
 
     /// Changes when the first round row updates so we refetch holes after `loadRounds` / reconcile; includes season round ids for par cache.
@@ -183,11 +198,11 @@ struct LastRoundSummaryView: View {
 
         return GLStatFourUpSummaryGrid(
             scoreLabel: "Score vs par",
-            scoreValue: scoreVsPar.map(formatVsPar) ?? "—",
+            scoreValue: scoreVsPar.map(GLMetricFormat.vsParRound) ?? "—",
             scoreUsesAccent: scoreVsPar != nil,
             firValue: String(format: "%.0f", firPct),
             girValue: String(format: "%.0f", girPct),
-            puttsValue: String(format: "%.1f", pph),
+            puttsValue: GLMetricFormat.puttsPerHole(pph),
             scoreShowsSeasonBest: isSeasonBest(.scoreVsPar, round: round),
             firShowsSeasonBest: isSeasonBest(.fir, round: round),
             girShowsSeasonBest: isSeasonBest(.gir, round: round),
@@ -202,8 +217,8 @@ struct LastRoundSummaryView: View {
                 "Score",
                 roundScoreVsPar(round: round),
                 seasonAverageScoreVsParMatchingHome(),
-                { formatVsPar($0) },
-                { formatVsPar($0) },
+                GLMetricFormat.vsParRound,
+                GLMetricFormat.vsParRound,
                 false
             ),
             (
@@ -226,8 +241,8 @@ struct LastRoundSummaryView: View {
                 "Putts / hole",
                 roundPuttsPerHole(round: round),
                 seasonPuttsPerHoleMatchingHome(),
-                { String(format: "%.1f", $0) },
-                { String(format: "%.1f", $0) },
+                GLMetricFormat.puttsPerHole,
+                GLMetricFormat.puttsPerHole,
                 false
             ),
             (
@@ -305,10 +320,8 @@ struct LastRoundSummaryView: View {
         return deltas.reduce(0, +) / Double(deltas.count)
     }
 
-    /// Same set as **Home → Season**: rounds whose `date_played` falls in the current calendar year (used for GIR% / putts-per-hole aggregates on Home).
     private var homeSeasonRounds: [Round] {
-        let year = Calendar.current.component(.year, from: Date())
-        return roundStore.allRounds.filter { $0.datePlayed.hasPrefix("\(year)") }
+        SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
     }
 
     private func roundGirPct(round: Round) -> Double? {
@@ -335,14 +348,9 @@ struct LastRoundSummaryView: View {
 
     private func roundFirPct(round: Round) -> Double? {
         if round.id == lastRound?.id, !holes.isEmpty {
-            let eligible = holes.filter { $0.par > 3 }.count
-            guard eligible > 0 else { return nil }
-            let hits = holes.filter { $0.par > 3 && $0.fir == true }.count
-            return Double(hits) / Double(eligible) * 100
+            return holes.firHitPercentage
         }
-        guard round.holes > 0 else { return nil }
-        let fir = round.totalFir ?? 0
-        return Double(fir) / Double(round.holes) * 100
+        return seasonHolesByRoundId[round.id]?.firHitPercentage
     }
 
     private func seasonGirPctMatchingHome() -> Double? {
@@ -354,10 +362,11 @@ struct LastRoundSummaryView: View {
     }
     
     private func seasonFirPctMatchingHome() -> Double? {
-        let holeSum = homeSeasonRounds.reduce(0) { $0 + $1.holes }
-        guard holeSum > 0 else { return nil }
-        let firSum = homeSeasonRounds.reduce(0) { $0 + ($1.totalFir ?? 0) }
-        return Double(firSum) / Double(holeSum) * 100
+        SeasonHolesFetch.flattenedCompletedHoles(
+            seasonRounds: homeSeasonRounds,
+            holesByRoundId: seasonHolesByRoundId,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        ).firHitPercentage
     }
 
     private func roundPenaltiesPerRound(round _: Round) -> Double? {
@@ -516,16 +525,6 @@ struct LastRoundSummaryView: View {
         return lowerIsBetter ? current <= best : current >= best
     }
 
-    private func formatVsPar(_ value: Double) -> String {
-        if value == 0 { return "E" }
-        if abs(value.rounded() - value) < 0.01 {
-            let raw = String(format: "%+.0f", value)
-            return raw.replacingOccurrences(of: "-", with: "\u{2212}")
-        }
-        let raw = String(format: "%+.1f", value)
-        return raw.replacingOccurrences(of: "-", with: "\u{2212}")
-    }
-    
     private func ymdDate(_ ymd: String) -> Date? {
         let head = String(ymd.prefix(10))
         let parts = head.split(separator: "-", omittingEmptySubsequences: false).map(String.init)

@@ -29,6 +29,11 @@ struct VsParLineChartSeries {
         dottedTail = nil
     }
 
+    init(solid: [Point], dottedTail: [Point]?) {
+        self.solid = solid
+        self.dottedTail = dottedTail
+    }
+
     private struct ScoredEntry {
         let xIndex: Int
         let value: Int
@@ -72,17 +77,32 @@ enum VsParLineChartGridStyle: Equatable {
     case step(Double)
 }
 
+enum VsParLineStrokeStyle: Equatable {
+    case solid
+    case dashed
+}
+
+struct VsParLineChartOverlay {
+    let series: VsParLineChartSeries
+    var color: Color = .chartSeasonAverage
+    var strokeStyle: VsParLineStrokeStyle = .dashed
+    var lineWidth: CGFloat = 1
+    var showPointMarkers: Bool = false
+}
+
 struct VsParLineChartView: View {
     let series: VsParLineChartSeries
     let totalXSlots: Int
     let xAxisLabel: String
     let yAxisLabel: String
+    var overlaySeries: [VsParLineChartOverlay] = []
     var gridStyle: VsParLineChartGridStyle = .vsParStrokes
     var anchorLineAtEvenPar: Bool = true
     var yAxisLeadingMargin: CGFloat = GLTrendChartMetrics.defaultYAxisLeadingMargin
     var showLastValueLabel: Bool = false
     var lastValueFormatter: ((Double) -> String)? = nil
     var seriesColor: Color = .accent
+    var primaryStrokeStyle: VsParLineStrokeStyle = .solid
 
     private let plotHeight = GLTrendChartMetrics.chartHeight
     private let horizontalPlotTrailing: CGFloat = 12
@@ -100,7 +120,7 @@ struct VsParLineChartView: View {
             let h = plotHeight
             let plotW = max(1, w - yAxisLeadingMargin - plotTrailingInset)
             let plotH = max(1, h - verticalMarginTop - verticalMarginBottom)
-            let domain = yDomain(for: series)
+            let domain = yDomain(for: series, overlays: overlaySeries.map(\.series))
 
             ZStack(alignment: .topLeading) {
                 Canvas { ctx, size in
@@ -145,15 +165,16 @@ struct VsParLineChartView: View {
     }
 
     static func formatVsPar(_ value: Double) -> String {
-        if abs(value.rounded() - value) < 0.05 {
-            return String(format: "%+.0f", value)
-        }
-        return String(format: "%+.1f", value)
+        GLMetricFormat.vsParStrokes(value)
     }
 
-    private func yDomain(for series: VsParLineChartSeries) -> (lo: Double, hi: Double) {
+    private func yDomain(for series: VsParLineChartSeries, overlays: [VsParLineChartSeries] = []) -> (lo: Double, hi: Double) {
         var vals = series.solid.map(\.value)
         if let t = series.dottedTail { vals.append(contentsOf: t.map(\.value)) }
+        for overlay in overlays {
+            vals.append(contentsOf: overlay.solid.map(\.value))
+            if let tail = overlay.dottedTail { vals.append(contentsOf: tail.map(\.value)) }
+        }
         guard let minV = vals.min(), let maxV = vals.max() else { return (-1, 1) }
 
         switch gridStyle {
@@ -245,30 +266,35 @@ struct VsParLineChartView: View {
             }
         }
 
-        let solidPoints = series.solid
-        if !solidPoints.isEmpty {
-            var path = Path()
-            if anchorLineAtEvenPar {
-                let startX = originX + xPos(xIndex: 0, plotW: plotW)
-                let startY = originY + yPos(0, plotH: plotH, domain: domain)
-                path.move(to: CGPoint(x: startX, y: startY))
-            } else if let first = solidPoints.first {
-                path.move(to: plotPoint(for: first, plotW: plotW, plotH: plotH, domain: domain))
-            }
-            let linePoints = anchorLineAtEvenPar ? solidPoints : Array(solidPoints.dropFirst())
-            for p in linePoints {
-                path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
-            }
-            ctx.stroke(path, with: .color(seriesColor), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-
-            for p in solidPoints {
-                Self.drawSeriesPointMarker(
-                    context: ctx,
-                    at: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain),
-                    color: seriesColor
-                )
-            }
+        for overlay in overlaySeries {
+            strokeSeriesLine(
+                context: ctx,
+                series: overlay.series,
+                color: overlay.color,
+                strokeStyle: overlay.strokeStyle,
+                lineWidth: overlay.lineWidth,
+                originX: originX,
+                originY: originY,
+                plotW: plotW,
+                plotH: plotH,
+                domain: domain,
+                drawMarkers: overlay.showPointMarkers
+            )
         }
+
+        strokeSeriesLine(
+            context: ctx,
+            series: series,
+            color: seriesColor,
+            strokeStyle: primaryStrokeStyle,
+            lineWidth: 1.5,
+            originX: originX,
+            originY: originY,
+            plotW: plotW,
+            plotH: plotH,
+            domain: domain,
+            drawMarkers: true
+        )
 
         if let tail = series.dottedTail, !tail.isEmpty, let join = series.solid.last {
             var path = Path()
@@ -281,6 +307,52 @@ struct VsParLineChartView: View {
                 with: .color(Color.textTertiary.opacity(0.55)),
                 style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round, dash: [5, 4])
             )
+        }
+    }
+
+    private func strokeSeriesLine(
+        context ctx: GraphicsContext,
+        series: VsParLineChartSeries,
+        color: Color,
+        strokeStyle: VsParLineStrokeStyle,
+        lineWidth: CGFloat,
+        originX: CGFloat,
+        originY: CGFloat,
+        plotW: CGFloat,
+        plotH: CGFloat,
+        domain: (lo: Double, hi: Double),
+        drawMarkers: Bool
+    ) {
+        let solidPoints = series.solid
+        guard !solidPoints.isEmpty else { return }
+
+        var path = Path()
+        if anchorLineAtEvenPar {
+            let startX = originX + xPos(xIndex: 0, plotW: plotW)
+            let startY = originY + yPos(0, plotH: plotH, domain: domain)
+            path.move(to: CGPoint(x: startX, y: startY))
+        } else if let first = solidPoints.first {
+            path.move(to: plotPoint(for: first, plotW: plotW, plotH: plotH, domain: domain))
+        }
+        let linePoints = anchorLineAtEvenPar ? solidPoints : Array(solidPoints.dropFirst())
+        for p in linePoints {
+            path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
+        }
+
+        var lineStroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+        if strokeStyle == .dashed {
+            lineStroke.dash = [5, 5]
+        }
+        ctx.stroke(path, with: .color(color), style: lineStroke)
+
+        if drawMarkers {
+            for p in solidPoints {
+                Self.drawSeriesPointMarker(
+                    context: ctx,
+                    at: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain),
+                    color: color
+                )
+            }
         }
     }
 
@@ -347,31 +419,138 @@ struct VsParLineChartView: View {
     }
 }
 
+// MARK: - Legend
+
+struct VsParProgressionChartLegend: View {
+    struct Item: Identifiable {
+        let label: String
+        let color: Color
+        let strokeStyle: VsParLineStrokeStyle
+
+        var id: String { label }
+    }
+
+    let items: [Item]
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ForEach(items) { item in
+                HStack(spacing: 6) {
+                    legendSwatch(color: item.color, strokeStyle: item.strokeStyle)
+                    Text(item.label)
+                        .font(.glAxis)
+                        .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func legendSwatch(color: Color, strokeStyle: VsParLineStrokeStyle) -> some View {
+        let swatchWidth: CGFloat = 18
+        if strokeStyle == .dashed {
+            HStack(spacing: 3) {
+                ForEach(0..<3, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(color)
+                        .frame(width: 4, height: 2)
+                }
+            }
+            .frame(width: swatchWidth, alignment: .leading)
+        } else {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(color)
+                .frame(width: swatchWidth, height: 2)
+        }
+    }
+}
+
 // MARK: - Card wrappers
 
 struct RoundVsParProgressCard: View {
     private let series: VsParLineChartSeries?
+    private let averageOverlay: VsParLineChartSeries?
     let totalHoles: Int
 
-    init(holes: [Hole], totalHoles: Int) {
+    init(holes: [Hole], totalHoles: Int, averageOverlay: VsParLineChartSeries? = nil) {
         self.series = VsParLineChartSeries(holes: holes, totalHoles: totalHoles)
+        self.averageOverlay = averageOverlay
         self.totalHoles = totalHoles
     }
 
-    init(savedHoles: [ActiveHole], totalHoles: Int) {
+    init(savedHoles: [ActiveHole], totalHoles: Int, averageOverlay: VsParLineChartSeries? = nil) {
         self.series = VsParLineChartSeries(savedHoles: savedHoles, totalHoles: totalHoles)
+        self.averageOverlay = averageOverlay
         self.totalHoles = totalHoles
     }
 
     var body: some View {
         if let series {
+            let overlays = overlayConfiguration(for: series)
             GLStatTrendCard(title: "Vs par progression") {
-                VsParLineChartView(
-                    series: series,
-                    totalXSlots: totalHoles,
-                    xAxisLabel: "Hole",
-                    yAxisLabel: "Score"
-                )
+                VStack(alignment: .leading, spacing: 8) {
+                    VsParLineChartView(
+                        series: series,
+                        totalXSlots: totalHoles,
+                        xAxisLabel: "Hole",
+                        yAxisLabel: "Score",
+                        overlaySeries: overlays
+                    )
+                    if !overlays.isEmpty {
+                        VsParProgressionChartLegend(items: [
+                            .init(label: "Season avg", color: .chartSeasonAverage, strokeStyle: .dashed),
+                        ])
+                    }
+                }
+            }
+        }
+    }
+
+    private func overlayConfiguration(for roundSeries: VsParLineChartSeries) -> [VsParLineChartOverlay] {
+        guard let averageOverlay else { return [] }
+        let trimmed = trimmedAverageOverlay(for: roundSeries, average: averageOverlay)
+        guard let trimmed else { return [] }
+        return [VsParLineChartOverlay(series: trimmed)]
+    }
+
+    private func trimmedAverageOverlay(
+        for roundSeries: VsParLineChartSeries,
+        average: VsParLineChartSeries
+    ) -> VsParLineChartSeries? {
+        let maxHole = min(totalHoles, roundSeries.solid.last?.xIndex ?? totalHoles)
+        let points = average.solid.filter { $0.xIndex <= maxHole }
+        guard points.count == maxHole else { return nil }
+        return VsParLineChartSeries(solid: points, dottedTail: nil)
+    }
+}
+
+struct AvgVsParProgressionCard: View {
+    let averageSeries: VsParLineChartSeries?
+
+    var body: some View {
+        GLStatTrendCard(title: "Avg vs par progression") {
+            if let averageSeries {
+                VStack(alignment: .leading, spacing: 8) {
+                    VsParLineChartView(
+                        series: averageSeries,
+                        totalXSlots: VsParCumulativeProgression.chartHoleSlots,
+                        xAxisLabel: "Hole",
+                        yAxisLabel: "Score",
+                        anchorLineAtEvenPar: true,
+                        seriesColor: .accentMid,
+                        primaryStrokeStyle: .dashed
+                    )
+                    VsParProgressionChartLegend(items: [
+                        .init(label: "Average", color: .accentMid, strokeStyle: .dashed),
+                    ])
+                }
+            } else {
+                Text("Complete at least 2 full scorecards to see your average progression.")
+                    .font(.glFootnote)
+                    .foregroundColor(.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: GLTrendChartMetrics.chartHeight)
             }
         }
     }

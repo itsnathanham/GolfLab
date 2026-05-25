@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var avatarInitials = ""
     @State private var showLogPractice = false
     @State private var logPracticeSheetUserId: UUID?
+    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
 
     var body: some View {
         NavigationStack {
@@ -64,6 +65,9 @@ struct HomeView: View {
         .task {
             await roundStore.loadRounds()
             await loadAvatarInitials()
+        }
+        .task(id: seasonHolesFetchToken) {
+            await loadSeasonHolesForQuickStats()
         }
         .onChange(of: showLogPractice) { _, open in
             if !open {
@@ -150,7 +154,7 @@ struct HomeView: View {
     }
 
     private func averagingHeadlineText(avg: Double) -> Text {
-        let val = formatAvgVsPar(avg)
+        let val = GLMetricFormat.vsParStrokes(avg)
         return Text("Averaging ")
             .font(GLFonts.sans(size: 22, weight: .light))
             .foregroundColor(.textPrimary)
@@ -171,8 +175,7 @@ struct HomeView: View {
     // MARK: - Stat grid (2×2, same chrome + order as Last round)
 
     private var homeSeasonRounds: [Round] {
-        let y = Calendar.current.component(.year, from: Date())
-        return roundStore.allRounds.filter { $0.datePlayed.hasPrefix("\(y)") }
+        SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
     }
 
     private var homeStatGrid: some View {
@@ -180,9 +183,9 @@ struct HomeView: View {
         let avgVsPar = averageScoreVsPar(for: rounds)
         let girPct = girPercentage(for: rounds)
         let pph = puttsPerHole(for: rounds)
-        let firPct = firPercentageFromRoundTotals(for: rounds)
+        let firPct = homeSeasonHoles.firHitPercentage
 
-        let scoreText = avgVsPar.map { formatAvgVsPar($0) } ?? "—"
+        let scoreText = avgVsPar.map(GLMetricFormat.vsParStrokes) ?? "—"
 
         let girText: String = {
             guard let v = girPct else { return "—" }
@@ -194,7 +197,7 @@ struct HomeView: View {
             return String(format: "%.0f", v)
         }()
 
-        let puttsText = pph.map { String(format: "%.1f", $0) } ?? "—"
+        let puttsText = pph.map(GLMetricFormat.puttsPerHole) ?? "—"
 
         return GLStatFourUpSummaryGrid(
             scoreLabel: "Score vs par",
@@ -297,19 +300,27 @@ struct HomeView: View {
         return Double(putts) / Double(holeCount)
     }
 
-    /// FIR from stored round totals (same weighting as season rollups elsewhere when hole-by-hole isn’t loaded).
-    private func firPercentageFromRoundTotals(for rounds: [Round]) -> Double? {
-        let holeSum = rounds.reduce(0) { $0 + $1.holes }
-        guard holeSum > 0 else { return nil }
-        let firSum = rounds.reduce(0) { $0 + ($1.totalFir ?? 0) }
-        return Double(firSum) / Double(holeSum) * 100
+    private var seasonHolesFetchToken: String {
+        let y = Calendar.current.component(.year, from: Date())
+        return "\(roundStore.roundsListEpoch)|\(y)"
     }
 
-    private func formatAvgVsPar(_ v: Double) -> String {
-        if abs(v - v.rounded()) < 0.05 {
-            return String(format: "%+.0f", v)
+    private var homeSeasonHoles: [Hole] {
+        SeasonHolesFetch.flattenedCompletedHoles(
+            seasonRounds: homeSeasonRounds,
+            holesByRoundId: seasonHolesByRoundId,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        )
+    }
+
+    private func loadSeasonHolesForQuickStats() async {
+        let loaded = await SeasonHolesFetch.holesByRoundId(
+            rounds: homeSeasonRounds,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        )
+        await MainActor.run {
+            seasonHolesByRoundId = loaded
         }
-        return String(format: "%+.1f", v)
     }
 
     private func loadAvatarInitials() async {

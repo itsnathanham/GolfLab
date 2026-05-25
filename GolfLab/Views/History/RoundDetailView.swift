@@ -6,6 +6,7 @@ struct RoundDetailView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @Environment(\.dismiss) private var dismiss
     @State private var holes: [Hole] = []
+    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
     @State private var isLoading = true
     @State private var showDeleteAlert = false
     @State private var displayedCourseName: String
@@ -45,7 +46,11 @@ struct RoundDetailView: View {
                     scorecardTable
                         .padding(.horizontal, GLLayout.horizontalInset)
 
-                    RoundVsParProgressCard(holes: holes, totalHoles: round.holes)
+                    RoundVsParProgressCard(
+                        holes: holes,
+                        totalHoles: round.holes,
+                        averageOverlay: seasonAverageOverlay
+                    )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.top, 16)
                 }
@@ -118,6 +123,7 @@ struct RoundDetailView: View {
             }
         }
         .task { await loadHoles() }
+        .task(id: seasonHolesFetchToken) { await loadSeasonHolesForAverage() }
     }
 
     private var topNav: some View {
@@ -330,12 +336,41 @@ struct RoundDetailView: View {
         .padding(.top, 12)
     }
 
+    private var seasonHolesFetchToken: String {
+        let season = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        return "\(roundStore.roundsListEpoch)|\(round.id.uuidString)|\(season.map(\.id.uuidString).joined())"
+    }
+
+    private var seasonAverageOverlay: VsParLineChartSeries? {
+        var holesByRound = seasonHolesByRoundId
+        if !holes.isEmpty {
+            holesByRound[round.id] = holes
+        }
+        return VsParCumulativeProgression.seasonAverageOverlaySeries(
+            holesByRoundId: holesByRound,
+            seasonRounds: SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds),
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
+            chartHoleCount: round.holes
+        )
+    }
+
     private func loadHoles() async {
         await MainActor.run { isLoading = true }
         let fetched = (try? await SupabaseService.shared.fetchHoles(roundId: round.id)) ?? []
         await MainActor.run {
             holes = fetched
             isLoading = false
+        }
+    }
+
+    private func loadSeasonHolesForAverage() async {
+        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        let loaded = await SeasonHolesFetch.holesByRoundId(
+            rounds: seasonRounds,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        )
+        await MainActor.run {
+            seasonHolesByRoundId.merge(loaded) { _, new in new }
         }
     }
 
