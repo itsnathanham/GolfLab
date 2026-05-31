@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var showLogPractice = false
     @State private var logPracticeSheetUserId: UUID?
     @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
+    @State private var isLoadingSeasonHoles = false
 
     var body: some View {
         NavigationStack {
@@ -187,15 +188,9 @@ struct HomeView: View {
 
         let scoreText = avgVsPar.map(GLMetricFormat.vsParStrokes) ?? "—"
 
-        let girText: String = {
-            guard let v = girPct else { return "—" }
-            return String(format: "%.0f", v)
-        }()
+        let girText = statPercentText(girPct)
 
-        let firText: String = {
-            guard let v = firPct else { return "—" }
-            return String(format: "%.0f", v)
-        }()
+        let firText = statPercentText(firPct, loading: isLoadingSeasonHoles)
 
         let puttsText = pph.map(GLMetricFormat.puttsPerHole) ?? "—"
 
@@ -302,7 +297,11 @@ struct HomeView: View {
 
     private var seasonHolesFetchToken: String {
         let y = Calendar.current.component(.year, from: Date())
-        return "\(roundStore.roundsListEpoch)|\(y)"
+        let rowCountsKey = homeSeasonRounds
+            .map { roundStore.holeRowCountByRoundId[$0.id] ?? 0 }
+            .map(String.init)
+            .joined(separator: ",")
+        return "\(roundStore.roundsListEpoch)|\(y)|\(rowCountsKey)"
     }
 
     private var homeSeasonHoles: [Hole] {
@@ -313,14 +312,27 @@ struct HomeView: View {
         )
     }
 
+    private func statPercentText(_ value: Double?, loading: Bool = false) -> String {
+        if let value { return String(format: "%.0f", value) }
+        if loading { return "…" }
+        return "—"
+    }
+
+    @MainActor
     private func loadSeasonHolesForQuickStats() async {
+        let rounds = homeSeasonRounds
+        guard !rounds.isEmpty else {
+            seasonHolesByRoundId = [:]
+            isLoadingSeasonHoles = false
+            return
+        }
+        isLoadingSeasonHoles = true
         let loaded = await SeasonHolesFetch.holesByRoundId(
-            rounds: homeSeasonRounds,
+            rounds: rounds,
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId
         )
-        await MainActor.run {
-            seasonHolesByRoundId = loaded
-        }
+        seasonHolesByRoundId = loaded
+        isLoadingSeasonHoles = false
     }
 
     private func loadAvatarInitials() async {

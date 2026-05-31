@@ -33,6 +33,10 @@ class WatchSessionService: NSObject, ObservableObject {
         holeEntries.reduce(0) { $0 + ($1.score - $1.par) }
     }
 
+    var displayHoleNumber: Int {
+        currentHole?.holeNumber ?? (currentHoleIndex + 1)
+    }
+
     func requestCompanionSyncFromPhone() {
         guard WCSession.isSupported() else { return }
         let message: [String: Any] = [
@@ -65,6 +69,7 @@ class WatchSessionService: NSObject, ObservableObject {
         holeEntries = state.savedEntries.sorted { $0.holeNumber < $1.holeNumber }
         isRoundActive = true
         syncGeneration += 1
+        syncComplication()
     }
 
     private func applyApplicationContextIfPresent() {
@@ -96,6 +101,7 @@ class WatchSessionService: NSObject, ObservableObject {
         holeEntries = []
         appliedSessionId = nil
         lastAppliedRevision = 0
+        WatchComplicationStore.publish(displayHoleNumber: nil)
     }
 
     func sendHoleEntry(_ entry: WatchHoleEntry) {
@@ -115,11 +121,13 @@ class WatchSessionService: NSObject, ObservableObject {
         } else {
             holeEntries.append(entry)
         }
+        syncComplication()
     }
 
     func advanceHole() {
         guard let setup = roundSetup, currentHoleIndex < setup.holeSetups.count - 1 else { return }
         currentHoleIndex += 1
+        syncComplication()
     }
 
     func endRound() {
@@ -149,6 +157,10 @@ class WatchSessionService: NSObject, ObservableObject {
         case .holeEntry, .endRound, .syncRequest:
             break
         }
+    }
+
+    private func syncComplication() {
+        WatchComplicationStore.publish(displayHoleNumber: displayHoleNumber)
     }
 }
 
