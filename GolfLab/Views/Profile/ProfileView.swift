@@ -72,7 +72,7 @@ struct ProfileView: View {
                             .font(.glCaption)
                             .foregroundColor(.textTertiary)
                         Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
+                        Text(Self.appVersionLabel)
                             .font(GLFonts.mono(size: 12, weight: .medium))
                             .foregroundColor(.textTertiary)
                     }
@@ -178,5 +178,13 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    /// Marketing version + build, e.g. `1.0.1 (2)`, so TestFlight installs are easy to verify.
+    private static var appVersionLabel: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "1.0.1"
+        let build = info?["CFBundleVersion"] as? String ?? "2"
+        return "\(version) (\(build))"
     }
 }
