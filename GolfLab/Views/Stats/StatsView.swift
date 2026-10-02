@@ -16,7 +16,7 @@ struct StatsView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 14)
 
-                    if roundStore.isLoadingRounds {
+                    if roundStore.isLoadingRounds && roundStore.allRounds.isEmpty {
                         statsLoadingState
                     } else if filteredRounds.count < 2 {
                         insufficientDataView
@@ -479,8 +479,7 @@ struct StatsView: View {
             return
         }
         await MainActor.run {
-            isLoadingHoles = true
-            holesForStats = []
+            isLoadingHoles = holesForStats.isEmpty
         }
         var collected: [Hole] = []
         await withTaskGroup(of: [Hole].self) { group in

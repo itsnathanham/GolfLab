@@ -12,8 +12,14 @@ struct RoundTabView: View {
                     ActiveRoundResumeBanner()
                     HoleEntryView()
                 }
-            } else if roundStore.preferNewRoundSetup || roundStore.allRounds.isEmpty {
+            } else if roundStore.preferNewRoundSetup {
                 RoundSetupView()
+            } else if roundStore.allRounds.isEmpty {
+                if roundStore.isLoadingRounds {
+                    Color.appBackground
+                } else {
+                    RoundSetupView()
+                }
             } else {
                 LastRoundSummaryView(selectedTab: $selectedTab)
             }

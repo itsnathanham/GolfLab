@@ -360,7 +360,7 @@ struct RoundSetupView: View {
     }
 
     private func loadProfile() async {
-        guard let userId = await AuthService.shared.currentUserId else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
         userProfile = try? await GolfLabData.store.fetchProfile(userId: userId)
         if let profile = userProfile {
             await MainActor.run {
@@ -381,7 +381,7 @@ struct RoundSetupView: View {
             holeSetups: holeSetups
         )
         Task {
-            if let uid = await AuthService.shared.currentUserId {
+            if let uid = AccountService.shared.currentUserId {
                 await MainActor.run {
                     if roundStore.isRoundActive {
                         pendingSetup = setup

@@ -51,9 +51,5 @@
 		<string>IBMPlexMono-Medium.ttf</string>
 		<string>IBMPlexMono-SemiBold.ttf</string>
 	</array>
-	<key>GLSupabaseURL</key>
-	<string>$(SUPABASE_URL)</string>
-	<key>GLSupabaseAnonKey</key>
-	<string>$(SUPABASE_ANON_KEY)</string>
 </dict>
 </plist>

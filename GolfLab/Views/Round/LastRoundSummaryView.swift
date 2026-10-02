@@ -9,14 +9,12 @@ struct LastRoundSummaryView: View {
     /// Penalty count per round id (from loaded hole rows).
     @State private var seasonPenaltiesByRoundId: [UUID: Int] = [:]
     @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
-    @State private var summaryReadyRoundId: UUID?
 
     private var lastRound: Round? { roundStore.allRounds.first }
 
     var body: some View {
         ScrollView {
             if let round = lastRound {
-                if summaryReadyRoundId == round.id {
                     VStack(spacing: 0) {
                         topNav
                             .padding(.horizontal, GLLayout.horizontalInset)
@@ -55,11 +53,6 @@ struct LastRoundSummaryView: View {
                         ctaButtons
                             .padding(.horizontal, GLLayout.horizontalInset)
                     }
-                } else {
-                    loadingState
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.top, 24)
-                }
             }
         }
         .background(Color.appBackground)
@@ -67,20 +60,14 @@ struct LastRoundSummaryView: View {
         .task(id: lastRoundSyncToken) {
             await roundStore.loadRounds()
             guard let round = roundStore.allRounds.first else {
-                await MainActor.run {
-                    holes = []
-                    seasonParByRoundId = [:]
-                    seasonPenaltiesByRoundId = [:]
-                    seasonHolesByRoundId = [:]
-                    summaryReadyRoundId = nil
-                }
+                holes = []
+                seasonParByRoundId = [:]
+                seasonPenaltiesByRoundId = [:]
+                seasonHolesByRoundId = [:]
                 return
             }
-            await MainActor.run {
-                summaryReadyRoundId = nil
-            }
             let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
-            await MainActor.run {
+            if !fetched.isEmpty || holes.first?.roundId != round.id {
                 holes = fetched
                 if !fetched.isEmpty {
                     seasonHolesByRoundId[round.id] = fetched
@@ -89,9 +76,6 @@ struct LastRoundSummaryView: View {
                 }
             }
             await loadSeasonHoleData()
-            await MainActor.run {
-                summaryReadyRoundId = round.id
-            }
         }
     }
 
@@ -461,17 +445,6 @@ struct LastRoundSummaryView: View {
         }
     }
 
-    private var loadingState: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .tint(.accent)
-            Text("Loading round summary...")
-                .font(.glSubhead)
-                .foregroundColor(.textTertiary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
-    }
-    
     private func roundMetaLine(_ round: Round) -> String {
         if let date = ymdDate(round.datePlayed), Calendar.current.isDateInToday(date) {
             return "Today · \(round.holes) holes"

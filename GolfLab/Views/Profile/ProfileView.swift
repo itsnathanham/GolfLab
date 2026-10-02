@@ -3,7 +3,6 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var authService: AuthService
     @EnvironmentObject private var roundStore: RoundStore
     @State private var profile: UserProfile?
     @State private var displayName = ""
@@ -122,7 +121,7 @@ struct ProfileView: View {
     }
 
     private func loadProfile() async {
-        guard let userId = await authService.currentUserId else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
         if let p = try? await GolfLabData.store.fetchProfile(userId: userId) {
             await MainActor.run {
                 profile = p
@@ -137,7 +136,7 @@ struct ProfileView: View {
     private func saveProfile() {
         isSaving = true
         Task {
-            guard let userId = await authService.currentUserId else {
+            guard let userId = AccountService.shared.currentUserId else {
                 await MainActor.run { isSaving = false }
                 return
             }
@@ -192,7 +191,7 @@ struct ProfileView: View {
         isExporting = true
         Task {
             defer { Task { @MainActor in isExporting = false } }
-            guard let userId = await authService.currentUserId else {
+            guard let userId = AccountService.shared.currentUserId else {
                 await MainActor.run { showExportError = true }
                 return
             }

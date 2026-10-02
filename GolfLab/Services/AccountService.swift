@@ -26,6 +26,7 @@ enum GolfLabUserID {
 }
 
 enum MigrationState {
+    /// Kept for installs that already completed the Supabase → iCloud copy.
     private static let localKey = "golflab.didMigrateFromSupabase"
     private static let ubiquityKey = "golflab.didMigrateFromSupabase"
 
@@ -89,14 +90,13 @@ final class GolfLabSession: ObservableObject {
     enum Phase: Equatable {
         case loading
         case needsICloud
-        case needsAppleSignIn
         case migrating
         case ready
         case failed(String)
     }
 
     @Published var phase: Phase = .loading
-    @Published var migrationDetail = "Copying your rounds from the old servers…"
+    @Published var migrationDetail = "Checking iCloud for existing Golf Lab data…"
 
     func start() async {
         NSUbiquitousKeyValueStore.default.synchronize()
@@ -106,7 +106,14 @@ final class GolfLabSession: ObservableObject {
             return
         }
 
-        if MigrationState.isComplete || GolfLabData.store.hasLocalData {
+        if let userId = AccountService.shared.currentUserId, MigrationState.isComplete {
+            GolfLabUserID.save(userId)
+            _ = try? GolfLabData.store.ensureProfile(userId: userId)
+            phase = .ready
+            return
+        }
+
+        if GolfLabData.store.hasLocalData {
             adoptExistingStore()
             phase = .ready
             return
@@ -120,17 +127,7 @@ final class GolfLabSession: ObservableObject {
             return
         }
 
-        await AuthService.shared.checkSession()
-        if AuthService.shared.isAuthenticated {
-            await runMigration()
-        } else {
-            phase = .needsAppleSignIn
-        }
-    }
-
-    func handleSignedIn() async {
-        guard phase == .needsAppleSignIn || isFailed else { return }
-        await runMigration()
+        phase = .failed("Golf Lab didn’t find rounds in iCloud yet. Wait a moment and try again, or import a JSON backup.")
     }
 
     func retry() async {
@@ -162,14 +159,10 @@ final class GolfLabSession: ObservableObject {
         }
     }
 
-    private var isFailed: Bool {
-        if case .failed = phase { return true }
-        return false
-    }
-
     private func adoptExistingStore() {
         if let id = AccountService.shared.currentUserId {
             GolfLabUserID.save(id)
+            _ = try? GolfLabData.store.ensureProfile(userId: id)
         }
         MigrationState.markComplete()
     }
@@ -180,16 +173,5 @@ final class GolfLabSession: ObservableObject {
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
         return GolfLabData.store.hasLocalData
-    }
-
-    private func runMigration() async {
-        phase = .migrating
-        migrationDetail = "Copying your rounds from the old servers…"
-        do {
-            try await SupabaseMigrator.migrate()
-            phase = .ready
-        } catch {
-            phase = .failed(error.localizedDescription)
-        }
     }
 }

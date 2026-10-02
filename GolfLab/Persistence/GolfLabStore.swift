@@ -35,6 +35,38 @@ protocol GolfLabStore: AnyObject {
     var storedProfileUserId: UUID? { get }
 }
 
+struct GolfLabDataExport: Codable {
+    var profile: UserProfile?
+    var rounds: [Round]
+    var holes: [Hole]
+    var practiceSessions: [PracticeSession]
+}
+
+enum DatabaseError: LocalizedError {
+    case insertFailed(String)
+    case notFound
+
+    var errorDescription: String? {
+        switch self {
+        case .insertFailed(let msg): return "Insert failed: \(msg)"
+        case .notFound: return "Record not found."
+        }
+    }
+}
+
+struct HoleAggregates {
+    let rowCountByRound: [UUID: Int]
+    let parSumByRound: [UUID: Int]
+    /// One entry per persisted hole row (used for season-scoped par averages on Hole Entry).
+    let holeParScoreSamples: [HoleParScoreSample]
+}
+
+struct HoleParScoreSample: Equatable, Sendable {
+    let roundId: UUID
+    let par: Int
+    let score: Int
+}
+
 enum GolfLabData {
     @MainActor
     static var store: SwiftDataGolfLabStore { .shared }
@@ -65,7 +97,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
     }
 
     var storedProfileUserId: UUID? {
-        firstModel(SDProfile.self)?.id
+        firstModel(SDProfile.self)?.id ?? firstModel(SDRound.self)?.userId
     }
 
     func fetchProfile(userId: UUID) async throws -> UserProfile? {

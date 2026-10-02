@@ -384,8 +384,11 @@ class RoundStore: ObservableObject {
     }
 
     private func performLoadRoundsBody() async {
-        guard let userId = await AuthService.shared.currentUserId else { return }
-        isLoadingRounds = true
+        guard let userId = AccountService.shared.currentUserId else { return }
+        let showLoading = allRounds.isEmpty
+        if showLoading {
+            isLoadingRounds = true
+        }
         defer { isLoadingRounds = false }
 
         async let fetchedPractice = GolfLabData.store.fetchAllPracticeSessions(userId: userId)
@@ -432,7 +435,7 @@ class RoundStore: ObservableObject {
 
     /// Refreshes weekly goal state from the profile (e.g. after `loadRounds`).
     func syncWeeklyTargetsFromProfile() async {
-        guard let userId = await AuthService.shared.currentUserId else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
         guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
         applyWeeklyGoalState(from: profile)
     }
@@ -462,7 +465,7 @@ class RoundStore: ObservableObject {
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
     func savePracticeSessionsFromWatch(_ entries: [WatchPracticeEntry]) async {
         guard !entries.isEmpty else { return }
-        guard let userId = await AuthService.shared.currentUserId else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
 
         for entry in entries {
             let insert = PracticeSessionInsert(

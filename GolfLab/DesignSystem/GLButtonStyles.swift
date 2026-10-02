@@ -43,7 +43,7 @@ struct GLPrimaryCTAButton: View {
     }
 }
 
-/// Primary CTA with a custom label (e.g. Sign in with Apple icon row).
+/// Primary CTA with a custom label.
 struct GLPrimaryCTACustomButton<Label: View>: View {
     var isEnabled: Bool = true
     var isBusy: Bool = false
