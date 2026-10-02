@@ -132,12 +132,12 @@ struct LogPracticeSheet: View {
             rangeBallsHit: practicedRange ? rangeBalls : nil
         )
         do {
-            let inserted = try await SupabaseService.shared.insertPracticeSession(insert)
+            let inserted = try await GolfLabData.store.insertPracticeSession(insert)
             roundStore.upsertPracticeSession(inserted)
             onLogged()
             dismiss()
         } catch {
-            saveError = "Couldn’t save. Check your connection, or verify the Supabase migration is installed."
+            saveError = "Couldn’t save. Check iCloud, then try again."
         }
     }
 }

@@ -65,7 +65,7 @@ struct SignInView: View {
                     )
                     .padding(.horizontal, GLLayout.horizontalInset)
 
-                    Text("Your data is private and stored securely.")
+                    Text("One-time sign-in copies your rounds off the old servers onto iCloud.")
                         .font(.glCaption)
                         .foregroundColor(.textTertiary)
                         .multilineTextAlignment(.center)

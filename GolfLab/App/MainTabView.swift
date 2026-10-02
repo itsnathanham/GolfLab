@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 private struct GLTabSpec: Identifiable {
@@ -41,6 +42,9 @@ struct MainTabView: View {
         .onChange(of: watchConnectivity.receivedHoleEntriesRevision) { _, _ in
             roundStore.mergePendingWatchHoleEntries()
         }
+        .onChange(of: watchConnectivity.receivedPracticeEntriesRevision) { _, _ in
+            flushWatchPracticeEntries()
+        }
         .onChange(of: watchConnectivity.isWatchReachable) { _, reachable in
             if reachable && roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
@@ -58,6 +62,7 @@ struct MainTabView: View {
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
             }
+            flushWatchPracticeEntries()
         }
         .onReceive(NotificationCenter.default.publisher(for: .watchRequestedEndRound)) { _ in
             Task {
@@ -69,6 +74,9 @@ struct MainTabView: View {
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+            Task { await roundStore.loadRounds() }
         }
         .overlay {
             if let celebration = roundStore.weeklyGoalCelebration {
@@ -86,6 +94,15 @@ struct MainTabView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentMargins(.bottom, GLLayout.tabRootScrollBottomMargin, for: .scrollContent)
+    }
+
+    private func flushWatchPracticeEntries() {
+        Task {
+            let entries = watchConnectivity.drainPendingPracticeEntries()
+            guard !entries.isEmpty else { return }
+            await roundStore.savePracticeSessionsFromWatch(entries)
+            roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+        }
     }
 
     private var customTabBar: some View {

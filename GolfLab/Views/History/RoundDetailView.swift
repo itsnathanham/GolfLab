@@ -61,7 +61,7 @@ struct RoundDetailView: View {
         .alert("Delete Round?", isPresented: $showDeleteAlert) {
             Button("Delete", role: .destructive) {
                 Task {
-                    try? await SupabaseService.shared.deleteRound(id: round.id)
+                    try? await GolfLabData.store.deleteRound(id: round.id)
                     await roundStore.loadRounds()
                     dismiss()
                 }
@@ -356,7 +356,7 @@ struct RoundDetailView: View {
 
     private func loadHoles() async {
         await MainActor.run { isLoading = true }
-        let fetched = (try? await SupabaseService.shared.fetchHoles(roundId: round.id)) ?? []
+        let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
         await MainActor.run {
             holes = fetched
             isLoading = false
@@ -382,7 +382,7 @@ struct RoundDetailView: View {
             courseNameSaveError = nil
         }
         do {
-            try await SupabaseService.shared.updateRoundCourseName(roundId: round.id, courseName: trimmed)
+            try await GolfLabData.store.updateRoundCourseName(roundId: round.id, courseName: trimmed)
             await MainActor.run {
                 displayedCourseName = trimmed
                 isSavingCourseName = false

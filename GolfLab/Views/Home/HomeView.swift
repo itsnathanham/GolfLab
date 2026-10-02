@@ -337,7 +337,7 @@ struct HomeView: View {
 
     private func loadAvatarInitials() async {
         guard let userId = await authService.currentUserId else { return }
-        guard let profile = try? await SupabaseService.shared.fetchProfile(userId: userId) else { return }
+        guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
         let initials = Self.initials(from: profile.displayName)
         await MainActor.run {
             avatarInitials = initials

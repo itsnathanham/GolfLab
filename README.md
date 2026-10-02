@@ -48,7 +48,7 @@ The app is **owner-operated** (built for daily use, not commercialized). ICP and
 | Layer | Stack |
 |-------|--------|
 | **Client** | Swift, SwiftUI (iOS + watchOS), Watch Connectivity |
-| **Backend** | [Supabase](https://supabase.com) — auth, Postgres, row sync (`supabase-swift`) |
+| **Backend** | SwiftData + iCloud CloudKit (private database). One-shot copy from [Supabase](https://supabase.com) on first launch. |
 | **Design** | Custom design system — IBM Plex Sans / Mono ([brief](docs/design.md)) |
 | **Tooling** | Xcode; [Cursor](https://cursor.com) for AI-assisted design and implementation |
 

@@ -81,12 +81,12 @@ struct HoleEditView: View {
                     fir: activeHole.fir,
                     penalty: activeHole.penalty
                 )
-                try await SupabaseService.shared.updateHole(holeId: hole.id, update: update)
+                try await GolfLabData.store.updateHole(holeId: hole.id, update: update)
 
                 // Recalculate round totals from all holes
-                let allHoles = try await SupabaseService.shared.fetchHoles(roundId: roundId)
+                let allHoles = try await GolfLabData.store.fetchHoles(roundId: roundId)
                 let firHoles = allHoles.filter { $0.par > 3 }
-                try await SupabaseService.shared.updateRoundTotals(
+                try await GolfLabData.store.updateRoundTotals(
                     roundId: roundId,
                     totalScore: allHoles.reduce(0) { $0 + $1.score },
                     totalPutts: allHoles.reduce(0) { $0 + $1.putts },

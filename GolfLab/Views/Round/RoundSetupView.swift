@@ -361,7 +361,7 @@ struct RoundSetupView: View {
 
     private func loadProfile() async {
         guard let userId = await AuthService.shared.currentUserId else { return }
-        userProfile = try? await SupabaseService.shared.fetchProfile(userId: userId)
+        userProfile = try? await GolfLabData.store.fetchProfile(userId: userId)
         if let profile = userProfile {
             await MainActor.run {
                 if courseName.isEmpty, let name = profile.homeCourseName { courseName = name }

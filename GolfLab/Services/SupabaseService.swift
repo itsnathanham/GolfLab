@@ -38,36 +38,43 @@ private struct UsersTableProfileUpdate: Encodable {
 
 class SupabaseService {
     static let shared = SupabaseService()
+    static var configured: SupabaseService? { shared.client == nil ? nil : shared }
 
-    let client: SupabaseClient
+    let client: SupabaseClient?
 
     private init() {
-        let rawURL = Config.supabaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsedURL = URL(string: rawURL), parsedURL.host != nil else {
-            fatalError(
-                """
-                Invalid SUPABASE_URL: '\(rawURL)'.
-                Set SUPABASE_URL in GolfLab/Config/Secrets.local.xcconfig (copy from Secrets.local.example.xcconfig).
-                """
-            )
+        guard let rawURL = Config.supabaseURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let parsedURL = URL(string: rawURL),
+              parsedURL.host != nil,
+              let anonKey = Config.supabaseAnonKey
+        else {
+            client = nil
+            return
         }
         client = SupabaseClient(
             supabaseURL: parsedURL,
-            supabaseKey: Config.supabaseAnonKey
+            supabaseKey: anonKey
         )
+    }
+
+    private func requireClient() throws -> SupabaseClient {
+        guard let client else {
+            throw DatabaseError.insertFailed("The old database isn’t configured on this install.")
+        }
+        return client
     }
 
     // MARK: - User Profile
 
     func upsertProfile(_ profile: UserProfile) async throws {
-        try await client
+        try await requireClient()
             .from("users")
             .upsert(profile)
             .execute()
     }
 
     func fetchProfile(userId: UUID) async throws -> UserProfile? {
-        let response: [UserProfile] = try await client
+        let response: [UserProfile] = try await requireClient()
             .from("users")
             .select()
             .eq("id", value: userId)
@@ -154,7 +161,7 @@ class SupabaseService {
             weeklyPracticeTarget: weeklyPracticeTarget,
             weeklyGoalTargetRevisions: weeklyGoalTargetRevisions
         )
-        let rows: [UserProfile] = try await client
+        let rows: [UserProfile] = try await requireClient()
             .from("users")
             .update(update)
             .eq("id", value: userId)
@@ -170,7 +177,7 @@ class SupabaseService {
     // MARK: - Rounds
 
     func insertRound(_ round: RoundInsert) async throws -> Round {
-        let response: [Round] = try await client
+        let response: [Round] = try await requireClient()
             .from("rounds")
             .insert(round)
             .select()
@@ -183,7 +190,7 @@ class SupabaseService {
     }
 
     func fetchRounds(userId: UUID) async throws -> [Round] {
-        let response: [Round] = try await client
+        let response: [Round] = try await requireClient()
             .from("rounds")
             .select()
             .eq("user_id", value: userId)
@@ -203,7 +210,7 @@ class SupabaseService {
     }
 
     func fetchRound(id: UUID) async throws -> Round? {
-        let response: [Round] = try await client
+        let response: [Round] = try await requireClient()
             .from("rounds")
             .select()
             .eq("id", value: id)
@@ -221,7 +228,7 @@ class SupabaseService {
             }
         }
         let trimmed = courseName.trimmingCharacters(in: .whitespacesAndNewlines)
-        try await client
+        try await requireClient()
             .from("rounds")
             .update(CourseNameUpdate(courseName: trimmed))
             .eq("id", value: roundId)
@@ -247,7 +254,7 @@ class SupabaseService {
             totalGir: totalGir,
             totalFir: totalFir
         )
-        try await client
+        try await requireClient()
             .from("rounds")
             .update(update)
             .eq("id", value: roundId)
@@ -255,7 +262,7 @@ class SupabaseService {
     }
 
     func deleteRound(id: UUID) async throws {
-        try await client
+        try await requireClient()
             .from("rounds")
             .delete()
             .eq("id", value: id)
@@ -266,7 +273,7 @@ class SupabaseService {
 
     /// All logged practice for the user (same scope idea as `fetchRounds` — History filters by month in memory).
     func fetchAllPracticeSessions(userId: UUID) async throws -> [PracticeSession] {
-        let rows: [PracticeSession] = try await client
+        let rows: [PracticeSession] = try await requireClient()
             .from("practice_sessions")
             .select()
             .eq("user_id", value: userId)
@@ -277,7 +284,7 @@ class SupabaseService {
     }
 
     func insertPracticeSession(_ insert: PracticeSessionInsert) async throws -> PracticeSession {
-        let rows: [PracticeSession] = try await client
+        let rows: [PracticeSession] = try await requireClient()
             .from("practice_sessions")
             .insert(insert)
             .select()
@@ -292,7 +299,7 @@ class SupabaseService {
     // MARK: - Holes
 
     func insertHoles(_ holes: [HoleInsert]) async throws -> [Hole] {
-        let response: [Hole] = try await client
+        let response: [Hole] = try await requireClient()
             .from("holes")
             .insert(holes)
             .select()
@@ -302,7 +309,7 @@ class SupabaseService {
     }
 
     func fetchHoles(roundId: UUID) async throws -> [Hole] {
-        let response: [Hole] = try await client
+        let response: [Hole] = try await requireClient()
             .from("holes")
             .select()
             .eq("round_id", value: roundId)
@@ -314,7 +321,7 @@ class SupabaseService {
 
     /// One query: `round_id`, `par`, and `score` for every hole row, aggregated client-side (counts, par sums, vs-par, par-type scoring).
     func fetchHoleAggregatesByUser(userId: UUID) async throws -> HoleAggregates {
-        let rows: [HoleRoundParRow] = try await client
+        let rows: [HoleRoundParRow] = try await requireClient()
             .from("holes")
             .select("round_id, par, score")
             .eq("user_id", value: userId)
@@ -337,7 +344,7 @@ class SupabaseService {
     }
 
     func updateHole(holeId: UUID, update: HoleUpdate) async throws {
-        try await client
+        try await requireClient()
             .from("holes")
             .update(update)
             .eq("id", value: holeId)

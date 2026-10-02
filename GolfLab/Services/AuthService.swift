@@ -15,13 +15,17 @@ class AuthService: NSObject, ObservableObject {
     }
 
     func checkSession() async {
+        defer { isLoading = false }
+        guard let client = SupabaseService.configured?.client else {
+            isAuthenticated = false
+            return
+        }
         do {
-            _ = try await SupabaseService.shared.client.auth.session
+            _ = try await client.auth.session
             isAuthenticated = true
         } catch {
             isAuthenticated = false
         }
-        isLoading = false
     }
 
     func signInWithApple() async {
@@ -51,7 +55,11 @@ class AuthService: NSObject, ObservableObject {
                 fullName?.familyName = lastName
             }
 
-            try await SupabaseService.shared.client.auth.signInWithIdToken(
+            guard let client = SupabaseService.configured?.client else {
+                errorMessage = "The old database isn’t available. Restore the Supabase project or import a JSON export."
+                return
+            }
+            try await client.auth.signInWithIdToken(
                 credentials: .init(
                     provider: .apple,
                     idToken: tokenString,
@@ -66,7 +74,7 @@ class AuthService: NSObject, ObservableObject {
 
     func signOut() async {
         do {
-            try await SupabaseService.shared.client.auth.signOut()
+            try await SupabaseService.configured?.client?.auth.signOut()
             isAuthenticated = false
         } catch {
             errorMessage = error.localizedDescription
@@ -75,7 +83,8 @@ class AuthService: NSObject, ObservableObject {
 
     var currentUserId: UUID? {
         get async {
-            try? await SupabaseService.shared.client.auth.session.user.id
+            if let stored = GolfLabUserID.load() { return stored }
+            return try? await SupabaseService.configured?.client?.auth.session.user.id
         }
     }
 }
