@@ -27,6 +27,8 @@ protocol GolfLabStore: AnyObject {
 
     func insertHoles(_ holes: [HoleInsert]) async throws -> [Hole]
     func fetchHoles(roundId: UUID) async throws -> [Hole]
+    /// All hole rows for a user, grouped by round id (sorted by hole number within each round).
+    func fetchAllHolesByUser(userId: UUID) async throws -> [UUID: [Hole]]
     func fetchHoleAggregatesByUser(userId: UUID) async throws -> HoleAggregates
     func updateHole(holeId: UUID, update: HoleUpdate) async throws
 
@@ -277,6 +279,17 @@ final class SwiftDataGolfLabStore: GolfLabStore {
             sortBy: [SortDescriptor(\.holeNumber, order: .forward)]
         )
         return try context.fetch(descriptor).map { $0.asHole() }
+    }
+
+    func fetchAllHolesByUser(userId: UUID) async throws -> [UUID: [Hole]] {
+        let context = try requireContext()
+        let uid = userId
+        let descriptor = FetchDescriptor<SDHole>(
+            predicate: #Predicate { $0.userId == uid },
+            sortBy: [SortDescriptor(\.holeNumber, order: .forward)]
+        )
+        let rows = try context.fetch(descriptor).map { $0.asHole() }
+        return Dictionary(grouping: rows, by: \.roundId)
     }
 
     func fetchHoleAggregatesByUser(userId: UUID) async throws -> HoleAggregates {

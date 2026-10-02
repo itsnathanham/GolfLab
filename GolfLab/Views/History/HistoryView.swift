@@ -89,14 +89,12 @@ struct HistoryView: View {
                         .padding(.bottom, 20)
 
                     if listFilteredRounds.isEmpty {
-                        if !(roundStore.isLoadingRounds && roundStore.allRounds.isEmpty) {
-                            Text(emptyMessage)
-                                .font(GLFonts.sans(size: 14, weight: .regular))
-                                .foregroundColor(.textTertiary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 28)
-                                .padding(.horizontal, GLLayout.horizontalInset)
-                        }
+                        Text(emptyMessage)
+                            .font(GLFonts.sans(size: 14, weight: .regular))
+                            .foregroundColor(.textTertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 28)
+                            .padding(.horizontal, GLLayout.horizontalInset)
                     } else {
                         roundCountRow
                             .padding(.horizontal, GLLayout.horizontalInset)
@@ -113,8 +111,7 @@ struct HistoryView: View {
             .background(Color.appBackground)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .task {
-            await roundStore.loadRounds()
+        .onAppear {
             normalizeSelectedSeasonYear()
         }
         .onChange(of: roundStore.roundsListEpoch) { _, _ in

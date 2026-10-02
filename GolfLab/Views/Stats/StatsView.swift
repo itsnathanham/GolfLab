@@ -4,8 +4,6 @@ struct StatsView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @State private var timeRange: TimeRange = .season
     @State private var selectedSeasonYear = Calendar.current.component(.year, from: Date())
-    @State private var holesForStats: [Hole] = []
-    @State private var isLoadingHoles = false
 
     var body: some View {
         NavigationStack {
@@ -16,9 +14,7 @@ struct StatsView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 14)
 
-                    if roundStore.isLoadingRounds && roundStore.allRounds.isEmpty {
-                        statsLoadingState
-                    } else if filteredRounds.count < 2 {
+                    if filteredRounds.count < 2 {
                         insufficientDataView
                     } else {
                         timeRangePicker
@@ -88,13 +84,9 @@ struct StatsView: View {
             .background(Color.appBackground)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .task {
-            await roundStore.loadRounds()
+        .onAppear {
             normalizeSelectedSeasonYear()
             StatsSeasonFilter.persistStatsSeasonPickerYear(selectedSeasonYear)
-        }
-        .task(id: holesFetchTaskID) {
-            await loadHolesForFilteredRounds()
         }
         .onChange(of: roundStore.roundsListEpoch) { _, _ in
             normalizeSelectedSeasonYear()
@@ -167,7 +159,6 @@ struct StatsView: View {
 
         let firText: String = {
             if let p = firPct { return String(format: "%.0f", p) }
-            if isLoadingHoles { return "…" }
             return "—"
         }()
 
@@ -188,12 +179,7 @@ struct StatsView: View {
             GLTrendCardHeader(title: "Avg score by par")
 
             VStack(alignment: .leading, spacing: 14) {
-                if isLoadingHoles && holesForStats.isEmpty {
-                    ProgressView()
-                        .tint(.accent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                } else if avgScoreByParRows.isEmpty {
+                if avgScoreByParRows.isEmpty {
                     Text("Save hole-by-hole scorecards to see averages by par.")
                         .font(.glFootnote)
                         .foregroundColor(.textTertiary)
@@ -288,7 +274,7 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - Empty / loading
+    // MARK: - Empty
 
     private var insufficientDataView: some View {
         VStack(spacing: 12) {
@@ -305,24 +291,18 @@ struct StatsView: View {
         .padding(.horizontal, GLLayout.horizontalInset)
     }
 
-    private var statsLoadingState: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .tint(.accent)
-            Text("Loading stats...")
-                .font(.glSubhead)
-                .foregroundColor(.textTertiary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
-        .padding(.horizontal, GLLayout.horizontalInset)
-        .padding(.top, 12)
-    }
-
     // MARK: - Series (chronological)
 
-    /// Cached hole rows grouped by round (used so GIR% and putts/hole match scorecard denominators).
+    /// Hole rows for the current filter, from the shared launch cache.
+    private var holesForStats: [Hole] {
+        filteredRounds.flatMap { roundStore.holesByRoundId[$0.id] ?? [] }
+    }
+
     private var holesByRoundId: [UUID: [Hole]] {
-        Dictionary(grouping: holesForStats, by: \.roundId)
+        Dictionary(uniqueKeysWithValues: filteredRounds.compactMap { round in
+            guard let holes = roundStore.holesByRoundId[round.id], !holes.isEmpty else { return nil }
+            return (round.id, holes)
+        })
     }
 
     private var chronologicalRounds: [Round] {
@@ -419,16 +399,6 @@ struct StatsView: View {
         }
     }
 
-    /// Reloads when the server-backed round list changes (`roundsListEpoch`) or filters change.
-    /// Uses newest/oldest round ids (not a full id join) so `.task` stays cheap to evaluate.
-    private var holesFetchTaskID: String {
-        let rounds = filteredRounds
-        let sorted = rounds.sortedByDatePlayedDescending()
-        let newest = sorted.first?.id.uuidString ?? "none"
-        let oldest = sorted.last?.id.uuidString ?? "none"
-        return "\(roundStore.roundsListEpoch)|\(timeRange)|\(resolvedSeasonYearValue)|\(rounds.count)|\(newest)|\(oldest)"
-    }
-
     private var availableSeasonYears: [Int] {
         StatsSeasonFilter.availableSeasonYears(from: roundStore.allRounds)
     }
@@ -468,33 +438,5 @@ struct StatsView: View {
         guard holeCount > 0 else { return nil }
         let putts = rounds.reduce(0) { $0 + ($1.totalPutts ?? 0) }
         return Double(putts) / Double(holeCount)
-    }
-
-    private func loadHolesForFilteredRounds() async {
-        guard !filteredRounds.isEmpty else {
-            await MainActor.run {
-                holesForStats = []
-                isLoadingHoles = false
-            }
-            return
-        }
-        await MainActor.run {
-            isLoadingHoles = holesForStats.isEmpty
-        }
-        var collected: [Hole] = []
-        await withTaskGroup(of: [Hole].self) { group in
-            for id in filteredRounds.map(\.id) {
-                group.addTask { @MainActor in
-                    (try? await GolfLabData.store.fetchHoles(roundId: id)) ?? []
-                }
-            }
-            for await chunk in group {
-                collected.append(contentsOf: chunk)
-            }
-        }
-        await MainActor.run {
-            holesForStats = collected
-            isLoadingHoles = false
-        }
     }
 }

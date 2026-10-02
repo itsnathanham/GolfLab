@@ -8,7 +8,7 @@ private struct GLTabSpec: Identifiable {
 }
 
 struct MainTabView: View {
-    @StateObject private var roundStore = RoundStore()
+    @EnvironmentObject private var roundStore: RoundStore
     @EnvironmentObject private var watchConnectivity: WatchConnectivityService
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
@@ -41,7 +41,6 @@ struct MainTabView: View {
             }
         }
         .transaction { $0.animation = nil }
-        .environmentObject(roundStore)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             customTabBar
         }

@@ -24,10 +24,10 @@ class RoundStore: ObservableObject {
     @Published var activeRound: ActiveRound?
     @Published var isRoundActive = false
 
-    // MARK: - Historical data (loaded on app launch / tab focus)
+    // MARK: - Historical data (hydrated at launch; tabs observe this store)
 
     @Published var allRounds: [Round] = []
-    /// Logged practice sessions for the signed-in user (loaded with `loadRounds`, same network pass as rounds).
+    /// Logged practice sessions for the signed-in user (loaded with `loadRounds`).
     @Published var allPracticeSessions: [PracticeSession] = []
     /// Increments when `loadRounds` replaces `allRounds` — use for `onChange` instead of mapping all ids.
     @Published private(set) var roundsListEpoch: UInt64 = 0
@@ -37,12 +37,25 @@ class RoundStore: ObservableObject {
     @Published var totalParSumByRoundId: [UUID: Int] = [:]
     /// Persisted `(roundId, par, score)` rows from `fetchHoleAggregatesByUser` (same query as round/par sums).
     @Published private(set) var holeParScoreSamples: [HoleParScoreSample] = []
+    /// Full hole rows by round — warmed at launch so tabs do not flash local fetches on first open.
+    @Published private(set) var holesByRoundId: [UUID: [Hole]] = [:]
+    /// Increments when `holesByRoundId` is replaced or patched.
+    @Published private(set) var holesCacheEpoch: UInt64 = 0
+    /// True after the first successful launch hydrate (or quiet load) completes.
+    @Published private(set) var hasCompletedInitialHydrate = false
+    /// Display name from profile (Home avatar); set during hydrate / profile save.
+    @Published private(set) var profileDisplayName: String?
+    /// Kept for rare empty-account edge cases; launch hydrate no longer drives full-page spinners.
     @Published var isLoadingRounds = false
     /// From `users` profile (`weekly_round_target` / `weekly_practice_target`); defaults used until loaded.
     @Published var weeklyRoundTarget: Int = 1
     @Published var weeklyPracticeTarget: Int = 2
     /// Goal history for streak math (past weeks use targets that were active then).
     @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
+
+    var avatarInitials: String {
+        Self.initials(from: profileDisplayName)
+    }
 
     /// Active weekly-goals celebration overlay (set on `MainTabView`).
     @Published var weeklyGoalCelebration: WeeklyGoalCelebrationPresentation?
@@ -58,11 +71,18 @@ class RoundStore: ObservableObject {
     /// Set after restoring an in-progress scorecard from local storage (process kill / relaunch).
     @Published private(set) var didRestoreActiveRoundFromDraft = false
 
-    /// Coalesces overlapping `loadRounds()` calls (Home + History `.task`, pull-to-refresh) so `syncWeeklyTargetsFromProfile` does not race.
+    /// Coalesces overlapping hydrate / refresh / pull-to-refresh so profile sync does not race.
     private var loadRoundsInflight: Task<Void, Never>?
 
     private var companionSessionId = UUID()
     private var companionRevision: UInt64 = 0
+
+    private enum HistoricalLoadMode {
+        /// Awaited under splash before MainTabView — never flips loading UI.
+        case hydrateLaunch
+        /// Pull-to-refresh, CloudKit remote change, post-save — keep existing content on screen.
+        case quietRefresh
+    }
 
     init() {
         restoreActiveRoundFromDraftIfNeeded()
@@ -370,28 +390,44 @@ class RoundStore: ObservableObject {
 
     // MARK: - Load all rounds
 
+    /// Full launch hydrate: rounds, practice, aggregates, profile goals, and hole rows.
+    func hydrateForLaunch() async {
+        await loadHistoricalData(mode: .hydrateLaunch)
+    }
+
+    /// Quiet refresh used by pull-to-refresh, CloudKit merges, and post-save reloads.
     func loadRounds() async {
+        await loadHistoricalData(mode: .quietRefresh)
+    }
+
+    private func loadHistoricalData(mode: HistoricalLoadMode) async {
         if let existing = loadRoundsInflight {
             await existing.value
             return
         }
         let task = Task { @MainActor in
-            await self.performLoadRoundsBody()
+            await self.performLoadRoundsBody(mode: mode)
         }
         loadRoundsInflight = task
         await task.value
         loadRoundsInflight = nil
     }
 
-    private func performLoadRoundsBody() async {
-        guard let userId = AccountService.shared.currentUserId else { return }
-        let showLoading = allRounds.isEmpty
+    private func performLoadRoundsBody(mode: HistoricalLoadMode) async {
+        guard let userId = AccountService.shared.currentUserId else {
+            hasCompletedInitialHydrate = true
+            return
+        }
+
+        // Launch hydrate never shows a spinner; quiet refresh only does if we still have no rounds.
+        let showLoading = mode == .quietRefresh && allRounds.isEmpty && !hasCompletedInitialHydrate
         if showLoading {
             isLoadingRounds = true
         }
         defer { isLoadingRounds = false }
 
         async let fetchedPractice = GolfLabData.store.fetchAllPracticeSessions(userId: userId)
+        async let fetchedHolesByRound = GolfLabData.store.fetchAllHolesByUser(userId: userId)
 
         do {
             var rounds = try await GolfLabData.store.fetchRounds(userId: userId)
@@ -424,13 +460,64 @@ class RoundStore: ObservableObject {
             }
 
             allPracticeSessions = (try? await fetchedPractice) ?? []
+            let holesMap = (try? await fetchedHolesByRound) ?? [:]
+            replaceHolesCache(holesMap)
         } catch {
             roundStoreLogger.error("Error loading rounds: \(error.localizedDescription)")
             allPracticeSessions = []
             _ = try? await fetchedPractice
+            _ = try? await fetchedHolesByRound
         }
 
         await syncWeeklyTargetsFromProfile()
+        hasCompletedInitialHydrate = true
+    }
+
+    /// Replaces the shared hole cache (launch hydrate / full refresh).
+    func replaceHolesCache(_ map: [UUID: [Hole]]) {
+        holesByRoundId = map.mapValues { holes in
+            holes.sorted { $0.holeNumber < $1.holeNumber }
+        }
+        holesCacheEpoch += 1
+    }
+
+    /// Patches one round’s holes after edit / detail fetch.
+    func cacheHoles(_ holes: [Hole], for roundId: UUID) {
+        holesByRoundId[roundId] = holes.sorted { $0.holeNumber < $1.holeNumber }
+        holesCacheEpoch += 1
+    }
+
+    func holes(for roundId: UUID) -> [Hole] {
+        holesByRoundId[roundId] ?? []
+    }
+
+    /// Ensures hole rows for `roundId` are in the shared cache; fetches only on miss/mismatch.
+    @discardableResult
+    func ensureHolesCached(roundId: UUID) async -> [Hole] {
+        let expected = holeRowCountByRoundId[roundId] ?? 0
+        if let cached = holesByRoundId[roundId], expected == 0 || cached.count == expected {
+            return cached
+        }
+        let fetched = (try? await GolfLabData.store.fetchHoles(roundId: roundId)) ?? []
+        cacheHoles(fetched, for: roundId)
+        return fetched
+    }
+
+    func applyProfileDisplayName(_ name: String?) {
+        profileDisplayName = name
+    }
+
+    private static func initials(from displayName: String?) -> String {
+        guard let name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return ""
+        }
+        let parts = name.split(separator: " ").map(String.init)
+        if parts.count >= 2 {
+            let a = parts[0].prefix(1)
+            let b = parts[1].prefix(1)
+            return "\(a)\(b)".uppercased()
+        }
+        return String(name.prefix(2)).uppercased()
     }
 
     /// Refreshes weekly goal state from the profile (e.g. after `loadRounds`).
@@ -438,6 +525,7 @@ class RoundStore: ObservableObject {
         guard let userId = AccountService.shared.currentUserId else { return }
         guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
         applyWeeklyGoalState(from: profile)
+        profileDisplayName = profile.displayName
     }
 
     /// Applies profile weekly targets + revision history (Home / History streak UI).
@@ -451,8 +539,8 @@ class RoundStore: ObservableObject {
             flatRound: r,
             flatPractice: p
         )
+        profileDisplayName = profile.displayName
     }
-
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
     func upsertPracticeSession(_ session: PracticeSession) {
         let goalsBefore = weeklyGoalsSnapshot()

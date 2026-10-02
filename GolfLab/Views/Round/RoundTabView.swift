@@ -15,11 +15,7 @@ struct RoundTabView: View {
             } else if roundStore.preferNewRoundSetup {
                 RoundSetupView()
             } else if roundStore.allRounds.isEmpty {
-                if roundStore.isLoadingRounds {
-                    Color.appBackground
-                } else {
-                    RoundSetupView()
-                }
+                RoundSetupView()
             } else {
                 LastRoundSummaryView(selectedTab: $selectedTab)
             }

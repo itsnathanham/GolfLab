@@ -5,6 +5,7 @@ import SwiftUI
 struct GolfLabApp: App {
     @StateObject private var watchService = WatchConnectivityService.shared
     @StateObject private var session = GolfLabSession()
+    @StateObject private var roundStore = RoundStore()
 
     private let container: ModelContainer
 
@@ -22,7 +23,7 @@ struct GolfLabApp: App {
                     SplashView()
                 case .needsICloud:
                     ICloudRequiredView(message: AccountService.shared.iCloudStatusMessage) {
-                        await session.retry()
+                        await session.retry(roundStore: roundStore)
                     }
                 case .migrating:
                     MigrationProgressView(detail: session.migrationDetail)
@@ -31,19 +32,20 @@ struct GolfLabApp: App {
                 case .failed(let message):
                     MigrationFailedView(
                         message: message,
-                        onRetry: { await session.retry() },
+                        onRetry: { await session.retry(roundStore: roundStore) },
                         onImport: { data in
-                            Task { await session.importFromFile(data) }
+                            Task { await session.importFromFile(data, roundStore: roundStore) }
                         },
-                        onContinueEmpty: { await session.continueWithoutImport() }
+                        onContinueEmpty: { await session.continueWithoutImport(roundStore: roundStore) }
                     )
                 }
             }
             .environmentObject(watchService)
+            .environmentObject(roundStore)
             .environment(\.modelContext, container.mainContext)
             .dynamicTypeSize(.medium ... .xxLarge)
             .task {
-                await session.start()
+                await session.start(roundStore: roundStore)
             }
         }
         .modelContainer(container)

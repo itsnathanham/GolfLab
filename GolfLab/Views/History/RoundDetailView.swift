@@ -6,8 +6,6 @@ struct RoundDetailView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @Environment(\.dismiss) private var dismiss
     @State private var holes: [Hole] = []
-    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
-    @State private var isLoading = true
     @State private var showDeleteAlert = false
     @State private var displayedCourseName: String
     @State private var showCourseNameEditor = false
@@ -39,15 +37,15 @@ struct RoundDetailView: View {
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.bottom, 20)
 
-                if holes.isEmpty && isLoading {
-                    detailLoadingState
+                if displayHoles.isEmpty {
+                    detailReservedScorecardShell
                         .padding(.horizontal, GLLayout.horizontalInset)
                 } else {
                     scorecardTable
                         .padding(.horizontal, GLLayout.horizontalInset)
 
                     RoundVsParProgressCard(
-                        holes: holes,
+                        holes: displayHoles,
                         totalHoles: round.holes,
                         averageOverlay: seasonAverageOverlay
                     )
@@ -122,8 +120,18 @@ struct RoundDetailView: View {
                 }
             }
         }
-        .task { await loadHoles() }
-        .task(id: seasonHolesFetchToken) { await loadSeasonHolesForAverage() }
+        .task {
+            if holes.isEmpty {
+                holes = roundStore.holes(for: round.id)
+            }
+            await loadHoles()
+        }
+    }
+
+    /// Prefer local state, then shared launch cache — avoids blank detail on first open.
+    private var displayHoles: [Hole] {
+        if !holes.isEmpty { return holes }
+        return roundStore.holes(for: round.id)
     }
 
     private var topNav: some View {
@@ -154,7 +162,7 @@ struct RoundDetailView: View {
     }
 
     private var tableTotals: HoleAggregatedTotals {
-        guard !holes.isEmpty else {
+        guard !displayHoles.isEmpty else {
             return HoleAggregatedTotals(
                 score: round.totalScore ?? 0,
                 putts: round.totalPutts ?? 0,
@@ -163,16 +171,16 @@ struct RoundDetailView: View {
                 penalties: 0
             )
         }
-        return holes.aggregatedRoundTotals
+        return displayHoles.aggregatedRoundTotals
     }
 
     private var headerTotalScore: Int? {
-        if !holes.isEmpty { return tableTotals.score }
+        if !displayHoles.isEmpty { return tableTotals.score }
         return round.totalScore
     }
 
     private var headerParTotal: Int? {
-        if !holes.isEmpty { return holes.totalParFromHoles }
+        if !displayHoles.isEmpty { return displayHoles.totalParFromHoles }
         return roundStore.totalParSumByRoundId[round.id]
     }
 
@@ -270,7 +278,7 @@ struct RoundDetailView: View {
                     .frame(height: 1)
             }
 
-            ForEach(holes.sorted { $0.holeNumber < $1.holeNumber }) { hole in
+            ForEach(displayHoles.sorted { $0.holeNumber < $1.holeNumber }) { hole in
                 NavigationLink {
                     HoleEditView(hole: hole, roundId: round.id)
                 } label: {
@@ -324,27 +332,19 @@ struct RoundDetailView: View {
             .frame(width: width)
     }
 
-    private var detailLoadingState: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .tint(.accent)
-            Text("Loading round details...")
-                .font(.glSubhead)
-                .foregroundColor(.textTertiary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
-        .padding(.top, 12)
-    }
-
-    private var seasonHolesFetchToken: String {
-        let season = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
-        return "\(roundStore.roundsListEpoch)|\(round.id.uuidString)|\(season.map(\.id.uuidString).joined())"
+    private var detailReservedScorecardShell: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, minHeight: 220)
     }
 
     private var seasonAverageOverlay: VsParLineChartSeries? {
-        var holesByRound = seasonHolesByRoundId
-        if !holes.isEmpty {
-            holesByRound[round.id] = holes
+        var holesByRound = Dictionary(uniqueKeysWithValues: SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds).compactMap { seasonRound -> (UUID, [Hole])? in
+            let cached = roundStore.holes(for: seasonRound.id)
+            guard !cached.isEmpty else { return nil }
+            return (seasonRound.id, cached)
+        })
+        if !displayHoles.isEmpty {
+            holesByRound[round.id] = displayHoles
         }
         return VsParCumulativeProgression.seasonAverageOverlaySeries(
             holesByRoundId: holesByRound,
@@ -356,23 +356,8 @@ struct RoundDetailView: View {
 
     @MainActor
     private func loadHoles() async {
-        if holes.isEmpty {
-            isLoading = true
-        }
-        let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
+        let fetched = await roundStore.ensureHolesCached(roundId: round.id)
         holes = fetched
-        isLoading = false
-    }
-
-    private func loadSeasonHolesForAverage() async {
-        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
-        let loaded = await SeasonHolesFetch.holesByRoundId(
-            rounds: seasonRounds,
-            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
-        )
-        await MainActor.run {
-            seasonHolesByRoundId.merge(loaded) { _, new in new }
-        }
     }
 
     private func saveCourseNameEdit() async {

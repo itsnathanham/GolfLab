@@ -98,7 +98,7 @@ final class GolfLabSession: ObservableObject {
     @Published var phase: Phase = .loading
     @Published var migrationDetail = "Checking iCloud for existing Golf Lab data…"
 
-    func start() async {
+    func start(roundStore: RoundStore) async {
         NSUbiquitousKeyValueStore.default.synchronize()
         await AccountService.shared.refreshICloudStatus()
         guard AccountService.shared.iCloudAvailable else {
@@ -109,13 +109,13 @@ final class GolfLabSession: ObservableObject {
         if let userId = AccountService.shared.currentUserId, MigrationState.isComplete {
             GolfLabUserID.save(userId)
             _ = try? GolfLabData.store.ensureProfile(userId: userId)
-            phase = .ready
+            await finishReady(roundStore: roundStore)
             return
         }
 
         if GolfLabData.store.hasLocalData {
             adoptExistingStore()
-            phase = .ready
+            await finishReady(roundStore: roundStore)
             return
         }
 
@@ -123,26 +123,27 @@ final class GolfLabSession: ObservableObject {
         phase = .migrating
         if await waitForCloudKitData() {
             adoptExistingStore()
-            phase = .ready
+            await finishReady(roundStore: roundStore)
             return
         }
 
         phase = .failed("Golf Lab didn’t find rounds in iCloud yet. Wait a moment and try again, or import a JSON backup.")
     }
 
-    func retry() async {
-        await start()
+    func retry(roundStore: RoundStore) async {
+        phase = .loading
+        await start(roundStore: roundStore)
     }
 
-    func continueWithoutImport() async {
+    func continueWithoutImport(roundStore: RoundStore) async {
         let userId = GolfLabUserID.load() ?? UUID()
         GolfLabUserID.save(userId)
         _ = try? GolfLabData.store.ensureProfile(userId: userId)
         MigrationState.markComplete()
-        phase = .ready
+        await finishReady(roundStore: roundStore)
     }
 
-    func importFromFile(_ data: Data) async {
+    func importFromFile(_ data: Data, roundStore: RoundStore) async {
         phase = .migrating
         migrationDetail = "Importing your exported Golf Lab data…"
         do {
@@ -153,10 +154,15 @@ final class GolfLabSession: ObservableObject {
                 _ = try GolfLabData.store.ensureProfile(userId: id)
             }
             MigrationState.markComplete()
-            phase = .ready
+            await finishReady(roundStore: roundStore)
         } catch {
             phase = .failed(error.localizedDescription)
         }
+    }
+
+    private func finishReady(roundStore: RoundStore) async {
+        await roundStore.hydrateForLaunch()
+        phase = .ready
     }
 
     private func adoptExistingStore() {

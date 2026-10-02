@@ -3,14 +3,40 @@ import SwiftUI
 struct LastRoundSummaryView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject private var roundStore: RoundStore
-    @State private var holes: [Hole] = []
-    /// Sum of hole pars per round id (season rounds), for score vs season average matching Home’s season vs-par average.
-    @State private var seasonParByRoundId: [UUID: Int] = [:]
-    /// Penalty count per round id (from loaded hole rows).
-    @State private var seasonPenaltiesByRoundId: [UUID: Int] = [:]
-    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
 
     private var lastRound: Round? { roundStore.allRounds.first }
+
+    private var holes: [Hole] {
+        guard let id = lastRound?.id else { return [] }
+        return roundStore.holes(for: id)
+    }
+
+    private var seasonHolesByRoundId: [UUID: [Hole]] {
+        Dictionary(uniqueKeysWithValues: homeSeasonRounds.compactMap { round in
+            let holes = roundStore.holes(for: round.id)
+            guard !holes.isEmpty else { return nil }
+            return (round.id, holes)
+        })
+    }
+
+    private var seasonParByRoundId: [UUID: Int] {
+        var result: [UUID: Int] = [:]
+        for (id, holes) in seasonHolesByRoundId {
+            result[id] = holes.totalParFromHoles
+        }
+        for round in homeSeasonRounds where result[round.id] == nil {
+            if let par = roundStore.totalParSumByRoundId[round.id] {
+                result[round.id] = par
+            }
+        }
+        return result
+    }
+
+    private var seasonPenaltiesByRoundId: [UUID: Int] {
+        Dictionary(uniqueKeysWithValues: seasonHolesByRoundId.map { id, holes in
+            (id, holes.aggregatedRoundTotals.penalties)
+        })
+    }
 
     var body: some View {
         ScrollView {
@@ -57,26 +83,6 @@ struct LastRoundSummaryView: View {
         }
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: lastRoundSyncToken) {
-            await roundStore.loadRounds()
-            guard let round = roundStore.allRounds.first else {
-                holes = []
-                seasonParByRoundId = [:]
-                seasonPenaltiesByRoundId = [:]
-                seasonHolesByRoundId = [:]
-                return
-            }
-            let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
-            if !fetched.isEmpty || holes.first?.roundId != round.id {
-                holes = fetched
-                if !fetched.isEmpty {
-                    seasonHolesByRoundId[round.id] = fetched
-                    seasonParByRoundId[round.id] = fetched.totalParFromHoles
-                    seasonPenaltiesByRoundId[round.id] = fetched.aggregatedRoundTotals.penalties
-                }
-            }
-            await loadSeasonHoleData()
-        }
     }
 
     private var topNav: some View {
@@ -84,21 +90,6 @@ struct LastRoundSummaryView: View {
             Color.clear
         } trailing: {
             Color.clear
-        }
-    }
-
-    @MainActor
-    private func loadSeasonHoleData() async {
-        let missing = homeSeasonRounds.filter { seasonHolesByRoundId[$0.id] == nil }
-        guard !missing.isEmpty else { return }
-        let loaded = await SeasonHolesFetch.holesByRoundId(
-            rounds: missing,
-            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
-        )
-        seasonHolesByRoundId.merge(loaded) { _, new in new }
-        for (id, fetched) in loaded {
-            seasonParByRoundId[id] = fetched.totalParFromHoles
-            seasonPenaltiesByRoundId[id] = fetched.aggregatedRoundTotals.penalties
         }
     }
 
@@ -110,18 +101,6 @@ struct LastRoundSummaryView: View {
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
             chartHoleCount: round.holes
         )
-    }
-
-    /// Changes when the first round row updates so we refetch holes after `loadRounds` / reconcile; includes season round ids for par cache.
-    private var lastRoundSyncToken: String {
-        guard let r = roundStore.allRounds.first else { return "none" }
-        let y = Calendar.current.component(.year, from: Date())
-        let seasonIds = roundStore.allRounds
-            .filter { $0.datePlayed.hasPrefix("\(y)") }
-            .map(\.id.uuidString)
-            .sorted()
-            .joined(separator: ",")
-        return "\(r.id.uuidString)-\(r.totalScore.map(String.init) ?? "x")-\(r.totalPutts.map(String.init) ?? "x")-\(r.totalGir.map(String.init) ?? "x")-\(r.totalFir.map(String.init) ?? "x")-\(y)-\(seasonIds)"
     }
 
     /// Prefer sums from loaded hole rows whenever we have any; avoids trusting `rounds` summary columns when they disagree or `round.holes` does not match row count.

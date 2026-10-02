@@ -3,11 +3,8 @@ import SwiftUI
 struct HomeView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject private var roundStore: RoundStore
-    @State private var avatarInitials = ""
     @State private var showLogPractice = false
     @State private var logPracticeSheetUserId: UUID?
-    @State private var seasonHolesByRoundId: [UUID: [Hole]] = [:]
-    @State private var isLoadingSeasonHoles = false
 
     var body: some View {
         NavigationStack {
@@ -18,11 +15,7 @@ struct HomeView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 18)
 
-                    if roundStore.isLoadingRounds && roundStore.allRounds.isEmpty {
-                        homeLoadingState
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.top, 8)
-                    } else if roundStore.allRounds.isEmpty {
+                    if roundStore.allRounds.isEmpty {
                         EmptyHomeView(selectedTab: $selectedTab, showLogPractice: $showLogPractice)
                             .padding(.top, 8)
                     } else {
@@ -62,13 +55,6 @@ struct HomeView: View {
             .background(Color.appBackground)
             .toolbar(.hidden, for: .navigationBar)
         }
-        .task {
-            await roundStore.loadRounds()
-            await loadAvatarInitials()
-        }
-        .task(id: seasonHolesFetchToken) {
-            await loadSeasonHolesForQuickStats()
-        }
         .onChange(of: showLogPractice) { _, open in
             if !open {
                 logPracticeSheetUserId = nil
@@ -91,17 +77,6 @@ struct HomeView: View {
         }
     }
 
-    private var homeLoadingState: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .tint(.accent)
-            Text("Loading your rounds...")
-                .font(.glSubhead)
-                .foregroundColor(.textTertiary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
-    }
-
     // MARK: - Top bar
 
     private var homeTopBar: some View {
@@ -110,7 +85,7 @@ struct HomeView: View {
                 ProfileView()
                     .environmentObject(roundStore)
             } label: {
-                Text(avatarInitials.isEmpty ? "?" : avatarInitials)
+                Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
                     .font(.glMicro)
                     .foregroundColor(.textSecondary)
                     .frame(width: 30, height: 30)
@@ -189,7 +164,7 @@ struct HomeView: View {
 
         let girText = statPercentText(girPct)
 
-        let firText = statPercentText(firPct, loading: isLoadingSeasonHoles)
+        let firText = statPercentText(firPct)
 
         let puttsText = pph.map(GLMetricFormat.puttsPerHole) ?? "—"
 
@@ -294,68 +269,17 @@ struct HomeView: View {
         return Double(putts) / Double(holeCount)
     }
 
-    private var seasonHolesFetchToken: String {
-        let y = Calendar.current.component(.year, from: Date())
-        let rowCountsKey = homeSeasonRounds
-            .map { roundStore.holeRowCountByRoundId[$0.id] ?? 0 }
-            .map(String.init)
-            .joined(separator: ",")
-        return "\(roundStore.roundsListEpoch)|\(y)|\(rowCountsKey)"
-    }
-
     private var homeSeasonHoles: [Hole] {
         SeasonHolesFetch.flattenedCompletedHoles(
             seasonRounds: homeSeasonRounds,
-            holesByRoundId: seasonHolesByRoundId,
+            holesByRoundId: roundStore.holesByRoundId,
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId
         )
     }
 
-    private func statPercentText(_ value: Double?, loading: Bool = false) -> String {
+    private func statPercentText(_ value: Double?) -> String {
         if let value { return String(format: "%.0f", value) }
-        if loading { return "…" }
         return "—"
-    }
-
-    @MainActor
-    private func loadSeasonHolesForQuickStats() async {
-        let rounds = homeSeasonRounds
-        guard !rounds.isEmpty else {
-            seasonHolesByRoundId = [:]
-            isLoadingSeasonHoles = false
-            return
-        }
-        if seasonHolesByRoundId.isEmpty {
-            isLoadingSeasonHoles = true
-        }
-        let loaded = await SeasonHolesFetch.holesByRoundId(
-            rounds: rounds,
-            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
-        )
-        seasonHolesByRoundId = loaded
-        isLoadingSeasonHoles = false
-    }
-
-    private func loadAvatarInitials() async {
-        guard let userId = AccountService.shared.currentUserId else { return }
-        guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
-        let initials = Self.initials(from: profile.displayName)
-        await MainActor.run {
-            avatarInitials = initials
-        }
-    }
-
-    private static func initials(from displayName: String?) -> String {
-        guard let name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
-            return ""
-        }
-        let parts = name.split(separator: " ").map(String.init)
-        if parts.count >= 2 {
-            let a = parts[0].prefix(1)
-            let b = parts[1].prefix(1)
-            return "\(a)\(b)".uppercased()
-        }
-        return String(name.prefix(2)).uppercased()
     }
 }
 
