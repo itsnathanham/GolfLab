@@ -37,7 +37,7 @@ The public docs describe a **shipped product** and the **product discipline** be
 |-------|----------------|
 | **Product** | [Problems](docs/PROBLEMS.md) → [Product thinking](docs/PRODUCT.md) (incl. tradeoffs) → [ICP](docs/ICP.md) → [Design](docs/design.md) |
 | **Process** | Persona, positioning, validation plans, and acquisition tiers as **design lens** artifacts—not a statement of live go-to-market |
-| **Engineering** | Production-ready choices: Supabase sync, Watch ↔ iPhone round state, field-tested on-course UX ([backlog](docs/future-todos.md)) |
+| **Engineering** | Production-ready choices: SwiftData + iCloud CloudKit, Watch ↔ iPhone round state, field-tested on-course UX ([backlog](docs/future-todos.md)) |
 
 The app is **owner-operated** (built for daily use, not commercialized). ICP and positioning language read market-facing on purpose: that is how product decisions are stress-tested before they ship in code.
 
@@ -48,7 +48,7 @@ The app is **owner-operated** (built for daily use, not commercialized). ICP and
 | Layer | Stack |
 |-------|--------|
 | **Client** | Swift, SwiftUI (iOS + watchOS), Watch Connectivity |
-| **Backend** | SwiftData + iCloud CloudKit (private database). One-shot copy from [Supabase](https://supabase.com) on first launch. |
+| **Backend** | SwiftData + iCloud CloudKit (private database). Identity is the signed-in iCloud account. |
 | **Design** | Custom design system — IBM Plex Sans / Mono ([brief](docs/design.md)) |
 | **Tooling** | Xcode; [Cursor](https://cursor.com) for AI-assisted design and implementation |
 
@@ -62,4 +62,4 @@ Evaluate **why**, not only **how**: [Problems](docs/PROBLEMS.md) → [Product th
 
 ## Development
 
-Xcode project: `GolfLab.xcodeproj`. Local secrets: copy `GolfLab/Config/Secrets.local.example.xcconfig` to `Secrets.local.xcconfig` (not committed).
+Xcode project: `GolfLab.xcodeproj`. Persistence is SwiftData with CloudKit (`iCloud.com.nathanhamilton.golflab`). Sign in to iCloud on the device; no API keys.

@@ -3,7 +3,6 @@ import SwiftUI
 struct HomeView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject private var roundStore: RoundStore
-    @EnvironmentObject private var authService: AuthService
     @State private var avatarInitials = ""
     @State private var showLogPractice = false
     @State private var logPracticeSheetUserId: UUID?
@@ -19,7 +18,7 @@ struct HomeView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 18)
 
-                    if roundStore.isLoadingRounds {
+                    if roundStore.isLoadingRounds && roundStore.allRounds.isEmpty {
                         homeLoadingState
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.top, 8)
@@ -87,7 +86,7 @@ struct HomeView: View {
             }
             .presentationDragIndicator(.visible)
             .task {
-                logPracticeSheetUserId = await authService.currentUserId
+                logPracticeSheetUserId = AccountService.shared.currentUserId
             }
         }
     }
@@ -326,7 +325,9 @@ struct HomeView: View {
             isLoadingSeasonHoles = false
             return
         }
-        isLoadingSeasonHoles = true
+        if seasonHolesByRoundId.isEmpty {
+            isLoadingSeasonHoles = true
+        }
         let loaded = await SeasonHolesFetch.holesByRoundId(
             rounds: rounds,
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId
@@ -336,7 +337,7 @@ struct HomeView: View {
     }
 
     private func loadAvatarInitials() async {
-        guard let userId = await authService.currentUserId else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
         guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
         let initials = Self.initials(from: profile.displayName)
         await MainActor.run {

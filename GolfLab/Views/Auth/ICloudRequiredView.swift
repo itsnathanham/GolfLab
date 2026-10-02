@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 struct ICloudRequiredView: View {
@@ -58,7 +59,7 @@ struct MigrationProgressView: View {
             VStack(spacing: 16) {
                 ProgressView()
                     .tint(.accent)
-                Text("Moving your data")
+                Text("Checking iCloud")
                     .font(.glNavTitle)
                     .foregroundColor(.textPrimary)
                 Text(detail)
@@ -88,7 +89,7 @@ struct MigrationFailedView: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 48, weight: .semibold))
                     .foregroundColor(.chartNegativeStrong)
-                Text("Couldn’t copy rounds")
+                Text("Couldn’t load rounds")
                     .font(.glDisplay)
                     .foregroundColor(.textPrimary)
                 Text(message)
@@ -96,7 +97,7 @@ struct MigrationFailedView: View {
                     .foregroundColor(.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, GLLayout.horizontalInset)
-                Text("If the old project is paused, restore it in the Supabase dashboard, then retry. You can also import a JSON export.")
+                Text("If you just installed, wait a few seconds for iCloud. You can also import a JSON backup from Profile.")
                     .font(.glCaption)
                     .foregroundColor(.textTertiary)
                     .multilineTextAlignment(.center)
@@ -145,7 +146,7 @@ struct MigrationFailedView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your existing rounds will not be copied. You can still import a JSON file later from Profile.")
+            Text("This phone will start with empty history. Existing iCloud data may still arrive later. You can import a JSON backup from Profile.")
         }
     }
 }

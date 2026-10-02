@@ -175,7 +175,7 @@ Each entry documents **what we chose**, **what we gave up**, and **what would ch
 
 **Because:** Goal is scoring improvement for daily use, not market validation; scope guardrails prevent feature creep into GPS/social/swing categories.
 
-**Cost:** Architecture may be "heavier than needed" for one operator (auth, Supabase); docs and onboarding don't target strangers.
+**Cost:** Docs and onboarding don't target strangers.
 
 **Revisit if:** Intent changes to ship for others (would force ICP, onboarding, privacy, and support model rewrite).
 
@@ -183,15 +183,15 @@ Each entry documents **what we chose**, **what we gave up**, and **what would ch
 
 ### Supporting tradeoff — Auth & data sync
 
-**Chose:** **Supabase-backed** persistence and auth; **minimal profile** (initials/avatar on Home only, no Profile tab).
+**Chose:** **SwiftData + iCloud CloudKit** (private database) persistence; identity is the signed-in iCloud account; **minimal profile** (initials/avatar on Home only, no Profile tab).
 
-**Over:** Local-only storage or rich profile product.
+**Over:** A third-party backend or a rich profile product.
 
 **Because:** Production-ready means data survives device loss and enables future coach features; profile is not a job-to-be-done for a solo user.
 
-**Cost:** Operational dependency on Supabase; auth is necessary plumbing, not the emotional core of the product.
+**Cost:** The phone must be signed in to iCloud; sync is Apple’s private database, not a custom server.
 
-**Revisit if:** Offline-first solo use becomes sufficient or profile expands (handicap, goals history export, etc.).
+**Revisit if:** Offline-only solo use becomes sufficient or profile expands (handicap, goals history export, etc.).
 
 ---
 

@@ -3,7 +3,6 @@ import SwiftUI
 
 @main
 struct GolfLabApp: App {
-    @StateObject private var authService = AuthService.shared
     @StateObject private var watchService = WatchConnectivityService.shared
     @StateObject private var session = GolfLabSession()
 
@@ -25,8 +24,6 @@ struct GolfLabApp: App {
                     ICloudRequiredView(message: AccountService.shared.iCloudStatusMessage) {
                         await session.retry()
                     }
-                case .needsAppleSignIn:
-                    SignInView()
                 case .migrating:
                     MigrationProgressView(detail: session.migrationDetail)
                 case .ready:
@@ -42,16 +39,11 @@ struct GolfLabApp: App {
                     )
                 }
             }
-            .environmentObject(authService)
             .environmentObject(watchService)
             .environment(\.modelContext, container.mainContext)
             .dynamicTypeSize(.medium ... .xxLarge)
             .task {
                 await session.start()
-            }
-            .onChange(of: authService.isAuthenticated) { _, signedIn in
-                guard signedIn else { return }
-                Task { await session.handleSignedIn() }
             }
         }
         .modelContainer(container)

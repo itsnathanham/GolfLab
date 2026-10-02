@@ -9,11 +9,6 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
-packages:
-  Supabase:
-    url: https://github.com/supabase/supabase-swift
-    from: "2.0.0"
-
 targets:
   GolfLab:
     type: application
@@ -21,8 +16,6 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: GolfLab
-        excludes:
-          - Config/Secrets.local.xcconfig
       - path: Shared
     resources:
       - path: GolfLab/Assets.xcassets
@@ -30,27 +23,20 @@ targets:
       - path: GolfLab/Resources/Fonts/IBMPlexMono-Medium.ttf
       - path: GolfLab/Resources/Fonts/IBMPlexMono-SemiBold.ttf
     dependencies:
-      - package: Supabase
-        product: Supabase
       - target: "GolfLab Watch App"
         embed: true
-    configFiles:
-      Debug: GolfLab/Config/GolfLabSecrets.xcconfig
-      Release: GolfLab/Config/GolfLabSecrets.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nathanhamilton.golflab
         SWIFT_VERSION: "5.9"
         DEVELOPMENT_TEAM: ""
         MARKETING_VERSION: "1.0.1"
-        CURRENT_PROJECT_VERSION: "2"
+        CURRENT_PROJECT_VERSION: "3"
         INFOPLIST_FILE: GolfLab/App/Info.plist
     entitlements:
       path: GolfLab/GolfLab.entitlements
       properties:
         aps-environment: development
-        com.apple.developer.applesignin:
-          - Default
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.nathanhamilton.golflab
         com.apple.developer.icloud-services:
@@ -72,5 +58,5 @@ targets:
         SWIFT_VERSION: "5.9"
         DEVELOPMENT_TEAM: ""
         MARKETING_VERSION: "1.0.1"
-        CURRENT_PROJECT_VERSION: "2"
+        CURRENT_PROJECT_VERSION: "3"
         INFOPLIST_FILE: GolfLabWatch/App/Info.plist

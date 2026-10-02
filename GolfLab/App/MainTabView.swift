@@ -12,6 +12,7 @@ struct MainTabView: View {
     @EnvironmentObject private var watchConnectivity: WatchConnectivityService
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
+    @State private var loadedTabs: Set<Int> = [0]
 
     private let tabs: [GLTabSpec] = [
         GLTabSpec(id: 0, title: "Home", icon: "house"),
@@ -22,22 +23,36 @@ struct MainTabView: View {
     ]
 
     var body: some View {
-        Group {
-            switch selectedTab {
-            case 0: tabRoot(HomeView(selectedTab: $selectedTab))
-            case 1: tabRoot(RoundTabView(selectedTab: $selectedTab))
-            case 2: tabRoot(StatsView())
-            case 3: tabRoot(HistoryView())
-            case 4: tabRoot(CoachView())
-            default: tabRoot(HomeView(selectedTab: $selectedTab))
+        ZStack {
+            if loadedTabs.contains(0) {
+                persistedTab(0, HomeView(selectedTab: $selectedTab))
+            }
+            if loadedTabs.contains(1) {
+                persistedTab(1, RoundTabView(selectedTab: $selectedTab))
+            }
+            if loadedTabs.contains(2) {
+                persistedTab(2, StatsView())
+            }
+            if loadedTabs.contains(3) {
+                persistedTab(3, HistoryView())
+            }
+            if loadedTabs.contains(4) {
+                persistedTab(4, CoachView())
             }
         }
+        .transaction { $0.animation = nil }
         .environmentObject(roundStore)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             customTabBar
         }
+        .onChange(of: selectedTab) { _, tab in
+            loadedTabs.insert(tab)
+        }
         .onChange(of: roundStore.isRoundActive) { _, isActive in
-            if isActive { selectedTab = 1 }
+            if isActive {
+                loadedTabs.insert(1)
+                selectedTab = 1
+            }
         }
         .onChange(of: watchConnectivity.receivedHoleEntriesRevision) { _, _ in
             roundStore.mergePendingWatchHoleEntries()
@@ -90,6 +105,15 @@ struct MainTabView: View {
     }
 
     @ViewBuilder
+    private func persistedTab<Content: View>(_ id: Int, _ content: Content) -> some View {
+        tabRoot(content)
+            .opacity(selectedTab == id ? 1 : 0)
+            .allowsHitTesting(selectedTab == id)
+            .accessibilityHidden(selectedTab != id)
+            .zIndex(selectedTab == id ? 1 : 0)
+    }
+
+    @ViewBuilder
     private func tabRoot<Content: View>(_ content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -128,6 +152,7 @@ struct MainTabView: View {
     private func tabButton(tab: GLTabSpec) -> some View {
         let selected = selectedTab == tab.id
         return Button {
+            loadedTabs.insert(tab.id)
             selectedTab = tab.id
         } label: {
             VStack(spacing: GLLayout.TabBar.itemSpacing) {

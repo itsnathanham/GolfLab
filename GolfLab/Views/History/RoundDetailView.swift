@@ -35,14 +35,14 @@ struct RoundDetailView: View {
                     .padding(.top, 4)
                     .padding(.bottom, 16)
 
-                if isLoading {
+                roundSummaryHeader
+                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .padding(.bottom, 20)
+
+                if holes.isEmpty && isLoading {
                     detailLoadingState
                         .padding(.horizontal, GLLayout.horizontalInset)
                 } else {
-                    roundSummaryHeader
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.bottom, 20)
-
                     scorecardTable
                         .padding(.horizontal, GLLayout.horizontalInset)
 
@@ -354,13 +354,14 @@ struct RoundDetailView: View {
         )
     }
 
+    @MainActor
     private func loadHoles() async {
-        await MainActor.run { isLoading = true }
-        let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
-        await MainActor.run {
-            holes = fetched
-            isLoading = false
+        if holes.isEmpty {
+            isLoading = true
         }
+        let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
+        holes = fetched
+        isLoading = false
     }
 
     private func loadSeasonHolesForAverage() async {

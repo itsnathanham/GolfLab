@@ -156,7 +156,7 @@ These are real product calls driven by the problems above—not a roadmap wish l
 | Sunlight + gloves + pace                   | **Bigger typography**, 62×62 hole steppers on phone, 44pt Watch targets      |
 | Translucent sheets unreadable outdoors     | **Light-forced** date picker sheet; custom chrome                            |
 | Analytics without delight still feels dead | Chart intro animation—in service of **review moment**, not on-course         |
-| Data must survive device loss              | Supabase sync—even for single-user, **production-ready** persistence         |
+| Data must survive device loss              | SwiftData + iCloud CloudKit (private DB)—**production-ready** persistence |
 | Streak is the behavior we want             | **Streak completion** = primary success metric, not DAU vanity               |
 
 
