@@ -1,6 +1,7 @@
 import Foundation
 
 enum SeasonHolesFetch {
+    @MainActor
     static func holesByRoundId(
         rounds: [Round],
         holeRowCountByRoundId: [UUID: Int]
@@ -10,8 +11,8 @@ enum SeasonHolesFetch {
             for round in rounds {
                 let rowCount = holeRowCountByRoundId[round.id] ?? 0
                 guard VsParCumulativeProgression.isRoundComplete(round, holeRowCount: rowCount) else { continue }
-                group.addTask {
-                    let holes = (try? await SupabaseService.shared.fetchHoles(roundId: round.id)) ?? []
+                group.addTask { @MainActor in
+                    let holes = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
                     guard holes.count >= round.holes else { return nil }
                     return (round.id, holes)
                 }

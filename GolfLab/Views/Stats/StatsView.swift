@@ -485,8 +485,8 @@ struct StatsView: View {
         var collected: [Hole] = []
         await withTaskGroup(of: [Hole].self) { group in
             for id in filteredRounds.map(\.id) {
-                group.addTask {
-                    (try? await SupabaseService.shared.fetchHoles(roundId: id)) ?? []
+                group.addTask { @MainActor in
+                    (try? await GolfLabData.store.fetchHoles(roundId: id)) ?? []
                 }
             }
             for await chunk in group {

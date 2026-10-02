@@ -1,9 +1,26 @@
 import Foundation
 
+private enum WatchCodablePayload {
+    static func dictionary<T: Encodable>(_ value: T) -> [String: Any] {
+        guard let data = try? JSONEncoder().encode(value),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return [:] }
+        return dict
+    }
+
+    static func decode<T: Decodable>(_ type: T.Type, from dictionary: [String: Any]) -> T? {
+        guard let data = try? JSONSerialization.data(withJSONObject: dictionary),
+              let value = try? JSONDecoder().decode(type, from: data)
+        else { return nil }
+        return value
+    }
+}
+
 enum WatchMessageKey {
     static let type              = "type"
     static let companionSnapshot = "companionSnapshot"
     static let holeData          = "holeData"
+    static let practiceData      = "practiceData"
     static let syncRequest       = "syncRequest"
     static let sessionId         = "sessionId"
     static let revision          = "revision"
@@ -12,6 +29,7 @@ enum WatchMessageKey {
 enum WatchMessageType: String {
     case companionSnapshot = "companionSnapshot"
     case holeEntry          = "holeEntry"
+    case practiceEntry      = "practiceEntry"
     case endRound           = "endRound"
     case companionEnded     = "companionEnded"
     case syncRequest        = "syncRequest"
@@ -71,16 +89,37 @@ struct WatchHoleEntry: Codable {
 
 extension WatchHoleEntry {
     func toDictionary() -> [String: Any] {
-        guard let data = try? JSONEncoder().encode(self),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
-        return dict
+        WatchCodablePayload.dictionary(self)
     }
 
     static func from(dictionary: [String: Any]) -> WatchHoleEntry? {
-        guard let data = try? JSONSerialization.data(withJSONObject: dictionary),
-              let entry = try? JSONDecoder().decode(WatchHoleEntry.self, from: data)
-        else { return nil }
-        return entry
+        WatchCodablePayload.decode(WatchHoleEntry.self, from: dictionary)
+    }
+}
+
+/// Watch → iPhone practice log payload (today's session by default on Watch).
+struct WatchPracticeEntry: Codable, Equatable {
+    let sessionDate: String
+    let practicedRange: Bool
+    let practicedChipping: Bool
+    let practicedPutting: Bool
+    let rangeBallsHit: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case sessionDate = "session_date"
+        case practicedRange = "practiced_range"
+        case practicedChipping = "practiced_chipping"
+        case practicedPutting = "practiced_putting"
+        case rangeBallsHit = "range_balls_hit"
+    }
+}
+
+extension WatchPracticeEntry {
+    func toDictionary() -> [String: Any] {
+        WatchCodablePayload.dictionary(self)
+    }
+
+    static func from(dictionary: [String: Any]) -> WatchPracticeEntry? {
+        WatchCodablePayload.decode(WatchPracticeEntry.self, from: dictionary)
     }
 }

@@ -1,24 +1,24 @@
 import Foundation
 
 enum Config {
-    static let supabaseURL: String = {
-        string(forInfoKey: "GLSupabaseURL", hint: "Set SUPABASE_URL in GolfLab/Config/Secrets.local.xcconfig (see Secrets.local.example.xcconfig).")
-    }()
+    static var supabaseURL: String? {
+        optionalString(forInfoKey: "GLSupabaseURL")
+    }
 
-    static let supabaseAnonKey: String = {
-        string(forInfoKey: "GLSupabaseAnonKey", hint: "Set SUPABASE_ANON_KEY in GolfLab/Config/Secrets.local.xcconfig (see Secrets.local.example.xcconfig).")
-    }()
+    static var supabaseAnonKey: String? {
+        optionalString(forInfoKey: "GLSupabaseAnonKey")
+    }
 
-    private static func string(forInfoKey key: String, hint: String) -> String {
-        guard let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String else {
-            fatalError("Missing \(key). \(hint)")
-        }
+    static var hasSupabaseCredentials: Bool {
+        supabaseURL != nil && supabaseAnonKey != nil
+    }
+
+    private static func optionalString(forInfoKey key: String) -> String? {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String else { return nil }
         var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
         let hasUnresolvedBuildSetting = value.contains("$(") || value.contains("${")
-        guard !value.isEmpty, !value.contains("YOUR_"), !hasUnresolvedBuildSetting else {
-            fatalError("Invalid or placeholder \(key). \(hint)")
-        }
+        guard !value.isEmpty, !value.contains("YOUR_"), !hasUnresolvedBuildSetting else { return nil }
         return value
     }
 }

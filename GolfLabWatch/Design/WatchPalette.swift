@@ -12,4 +12,6 @@ enum WatchPalette {
     static let chartNegative = Color(red: 192 / 255, green: 80 / 255, blue: 32 / 255)
     /// Double-bogey+ / strong negative emphasis (`#C0412D` — matches iOS `chartNegativeStrong`).
     static let chartNegativeStrong = Color(red: 192 / 255, green: 65 / 255, blue: 45 / 255)
+    /// History practice dot (`#4268AE` — matches iOS `calendarPracticeDot`).
+    static let practice = Color(red: 66 / 255, green: 104 / 255, blue: 174 / 255)
 }

@@ -287,7 +287,7 @@ struct HistoryView: View {
             primaryButton: .destructive(Text("Delete")) {
                 guard let round = roundToDelete else { return }
                 Task {
-                    try? await SupabaseService.shared.deleteRound(id: round.id)
+                    try? await GolfLabData.store.deleteRound(id: round.id)
                     await roundStore.loadRounds()
                 }
             },

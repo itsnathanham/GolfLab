@@ -79,7 +79,7 @@ struct LastRoundSummaryView: View {
             await MainActor.run {
                 summaryReadyRoundId = nil
             }
-            let fetched = (try? await SupabaseService.shared.fetchHoles(roundId: round.id)) ?? []
+            let fetched = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
             await MainActor.run {
                 holes = fetched
                 if !fetched.isEmpty {

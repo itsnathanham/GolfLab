@@ -5,11 +5,13 @@ struct WatchRootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        Group {
-            if session.isRoundActive {
-                WatchHoleEntryView()
-            } else {
-                WatchIdleView()
+        NavigationStack {
+            Group {
+                if session.isRoundActive {
+                    WatchHoleEntryView()
+                } else {
+                    WatchIdleView()
+                }
             }
         }
         .onAppear {
@@ -25,7 +27,7 @@ struct WatchRootView: View {
 
 struct WatchIdleView: View {
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 14) {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 28))
                 .foregroundColor(WatchPalette.accent)
@@ -36,7 +38,20 @@ struct WatchIdleView: View {
                 .font(.footnote)
                 .foregroundColor(WatchPalette.textSecondary)
                 .multilineTextAlignment(.center)
+
+            NavigationLink {
+                WatchPracticeLogView()
+            } label: {
+                Text("Log practice")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(WatchPalette.practice)
+            .padding(.top, 4)
         }
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(WatchPalette.bg)
     }

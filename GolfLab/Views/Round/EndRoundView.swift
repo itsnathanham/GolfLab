@@ -160,7 +160,7 @@ struct EndRoundView: View {
         errorMessage = nil
         Task {
             do {
-                _ = try await roundStore.saveRoundToSupabase()
+                _ = try await roundStore.saveActiveRound()
                 await MainActor.run {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     dismiss()

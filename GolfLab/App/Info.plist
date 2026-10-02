@@ -39,6 +39,10 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Golf Lab uses the camera to photograph scorecards for automatic data extraction.</string>
 	<key>UIAppFonts</key>

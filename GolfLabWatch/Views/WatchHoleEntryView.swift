@@ -11,32 +11,50 @@ struct WatchHoleEntryView: View {
     @State private var penalty: Bool = false
     @State private var showEndRound = false
 
+    private enum ScrollAnchor: Hashable {
+        case top
+    }
+
     private var currentHole: WatchHoleSetup? { session.currentHole }
     private var par: Int { currentHole?.par ?? 4 }
     private var displayHoleOrdinal: Int { currentHole?.holeNumber ?? session.currentHoleIndex + 1 }
 
-    /// Drives slide transition when advancing to the next hole after save.
     private var holeSlideIdentity: Int { session.currentHoleIndex }
 
+    private static let holeAdvanceAnimation = Animation.easeInOut(duration: 0.28)
     private static let holeAdvanceTransition: AnyTransition = .asymmetric(
         insertion: .move(edge: .trailing).combined(with: .opacity),
         removal: .move(edge: .leading).combined(with: .opacity)
     )
 
     var body: some View {
-        ScrollView {
-            holeEntryColumn
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Color.clear
+                        .frame(height: 0)
+                        .id(ScrollAnchor.top)
+
+                    holeEntryColumn
+                }
                 .id(holeSlideIdentity)
                 .transition(Self.holeAdvanceTransition)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
-        }
-        .background(WatchPalette.bg)
-        .navigationTitle("Hole \(displayHoleOrdinal)")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear { resetToDefaults() }
-        .onChange(of: session.syncGeneration) { _, _ in
-            resetToDefaults()
+            }
+            .background(WatchPalette.bg)
+            .navigationTitle("Hole \(displayHoleOrdinal)")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                resetToDefaults()
+            }
+            .onChange(of: session.currentHoleIndex) { _, _ in
+                resetToDefaults()
+                scrollToTop(using: proxy)
+            }
+            .onChange(of: session.syncGeneration) { _, _ in
+                resetToDefaults()
+            }
         }
         .sheet(isPresented: $showEndRound) {
             WatchEndRoundView()
@@ -59,19 +77,20 @@ struct WatchHoleEntryView: View {
         VStack(alignment: .leading, spacing: 14) {
             holeHeader
 
-            Group {
-                WatchMetricStepper(
-                    title: "Score",
-                    value: $score,
-                    min: 1,
-                    max: 12,
-                    valuePointSize: 30,
-                    buttonSize: 44
-                )
-            }
+            WatchMetricStepper(
+                title: "Score",
+                value: $score,
+                min: 1,
+                max: 12,
+                valuePointSize: 30,
+                buttonSize: 44
+            )
             .digitalCrownRotation($crownValue, from: 1.0, through: 12.0, by: 1.0, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true)
             .onChange(of: crownValue) { _, newValue in
                 score = Int(newValue.rounded())
+            }
+            .onChange(of: score) { _, newValue in
+                crownValue = Double(newValue)
             }
 
             WatchMetricStepper(
@@ -151,6 +170,12 @@ struct WatchHoleEntryView: View {
         penalty = false
     }
 
+    private func scrollToTop(using proxy: ScrollViewProxy) {
+        withAnimation(Self.holeAdvanceAnimation) {
+            proxy.scrollTo(ScrollAnchor.top, anchor: .top)
+        }
+    }
+
     private func saveHole() {
         guard let setupHole = currentHole else { return }
         WKInterfaceDevice.current().play(.success)
@@ -168,10 +193,9 @@ struct WatchHoleEntryView: View {
         session.sendHoleEntry(entry)
 
         if session.currentHoleIndex < session.totalHoles - 1 {
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(Self.holeAdvanceAnimation) {
                 session.advanceHole()
             }
-            resetToDefaults()
         } else {
             resetToDefaults()
             showEndRound = true
@@ -186,6 +210,7 @@ struct WatchMetricStepper: View {
     @Binding var value: Int
     let min: Int
     let max: Int
+    var step: Int = 1
     var valuePointSize: CGFloat = 28
     var buttonSize: CGFloat = 42
 
@@ -211,10 +236,11 @@ struct WatchMetricStepper: View {
     }
 
     private func stepButton(delta: Int) -> some View {
+        let stepDelta = delta * step
         let canStep = delta < 0 ? value > min : value < max
         return Button {
             guard canStep else { return }
-            value += delta
+            value = Swift.min(max, Swift.max(min, value + stepDelta))
             WKInterfaceDevice.current().play(.click)
         } label: {
             Image(systemName: delta < 0 ? "minus" : "plus")
@@ -237,6 +263,7 @@ struct WatchToggle: View {
     enum Kind {
         case stat
         case penalty
+        case practice
     }
 
     let label: String
@@ -254,9 +281,9 @@ struct WatchToggle: View {
                 Spacer(minLength: 0)
                 Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(iconColor)
+                    .foregroundColor(emphasisColor)
             }
-            .foregroundColor(labelColor)
+            .foregroundColor(emphasisColor)
             .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 46)
@@ -267,18 +294,13 @@ struct WatchToggle: View {
         .animation(.easeInOut(duration: 0.15), value: isOn)
     }
 
-    private var labelColor: Color {
-        isOn ? onLabelColor : WatchPalette.textSecondary
-    }
-
-    private var iconColor: Color {
-        if isOn {
-            switch kind {
-            case .stat: return WatchPalette.accent
-            case .penalty: return WatchPalette.chartNegativeStrong
-            }
+    private var emphasisColor: Color {
+        guard isOn else { return WatchPalette.textSecondary }
+        switch kind {
+        case .stat: return WatchPalette.accent
+        case .penalty: return WatchPalette.chartNegativeStrong
+        case .practice: return WatchPalette.practice
         }
-        return WatchPalette.textSecondary
     }
 
     private var backgroundColor: Color {
@@ -289,15 +311,9 @@ struct WatchToggle: View {
         case .penalty:
             if isOn { return WatchPalette.chartNegativeStrong.opacity(0.16) }
             return WatchPalette.elevated
-        }
-    }
-
-    private var onLabelColor: Color {
-        switch kind {
-        case .stat:
-            return WatchPalette.accent
-        case .penalty:
-            return WatchPalette.chartNegativeStrong
+        case .practice:
+            if isOn { return WatchPalette.practice.opacity(0.14) }
+            return WatchPalette.elevated
         }
     }
 }

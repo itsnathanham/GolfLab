@@ -190,7 +190,7 @@ struct VsParLineChartView: View {
 
         case .step(let step):
             guard step > 0 else { return (minV - 1, maxV + 1) }
-            var lo = floor(minV / step) * step
+            let lo = floor(minV / step) * step
             var hi = ceil(maxV / step) * step
             if hi - lo < step { hi = lo + step }
             let pad = step * 0.5

@@ -11,9 +11,12 @@ struct ProfileView: View {
     @State private var weeklyPracticeGoal = 2
     @State private var isSaving = false
     @State private var saveConfirmed = false
-    @State private var showSignOutAlert = false
     @State private var showSaveErrorAlert = false
     @State private var saveErrorMessage = ""
+    @State private var exportURL: URL?
+    @State private var showExporter = false
+    @State private var isExporting = false
+    @State private var showExportError = false
 
     var body: some View {
         ScrollView {
@@ -63,9 +66,14 @@ struct ProfileView: View {
                         action: { saveProfile() }
                     )
 
-                    GLSecondaryGhostButton(title: "Sign out") {
-                        showSignOutAlert = true
+                    GLSecondaryGhostButton(title: isExporting ? "Exporting…" : "Export data backup") {
+                        exportData()
                     }
+
+                    Text("Rounds sync with iCloud on this Apple ID.")
+                        .font(.glCaption)
+                        .foregroundColor(.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     HStack {
                         Text("Version")
@@ -84,18 +92,18 @@ struct ProfileView: View {
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .tint(.accent)
-        .alert("Sign Out", isPresented: $showSignOutAlert) {
-            Button("Sign Out", role: .destructive) {
-                Task { await authService.signOut() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You'll need to sign in again to access your data.")
-        }
         .alert("Couldn’t save profile", isPresented: $showSaveErrorAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
+        }
+        .alert("Couldn’t export data", isPresented: $showExportError) {
+            Button("OK", role: .cancel) {}
+        }
+        .sheet(isPresented: $showExporter) {
+            if let exportURL {
+                ActivityView(items: [exportURL])
+            }
         }
         .task { await loadProfile() }
     }
@@ -115,7 +123,7 @@ struct ProfileView: View {
 
     private func loadProfile() async {
         guard let userId = await authService.currentUserId else { return }
-        if let p = try? await SupabaseService.shared.fetchProfile(userId: userId) {
+        if let p = try? await GolfLabData.store.fetchProfile(userId: userId) {
             await MainActor.run {
                 profile = p
                 displayName = p.displayName ?? ""
@@ -148,7 +156,7 @@ struct ProfileView: View {
                     )
                     : nil
 
-                let updated = try await SupabaseService.shared.updateProfile(
+                let updated = try await GolfLabData.store.updateProfile(
                     userId: userId,
                     displayName: displayName.isEmpty ? nil : displayName,
                     homeCourseName: profile?.homeCourseName,
@@ -179,4 +187,37 @@ struct ProfileView: View {
             }
         }
     }
+
+    private func exportData() {
+        isExporting = true
+        Task {
+            defer { Task { @MainActor in isExporting = false } }
+            guard let userId = await authService.currentUserId else {
+                await MainActor.run { showExportError = true }
+                return
+            }
+            do {
+                let snapshot = try await GolfLabData.store.exportSnapshot(userId: userId)
+                let data = try JSONEncoder().encode(snapshot)
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent("GolfLab-export.json")
+                try data.write(to: url, options: .atomic)
+                await MainActor.run {
+                    exportURL = url
+                    showExporter = true
+                }
+            } catch {
+                await MainActor.run { showExportError = true }
+            }
+        }
+    }
+}
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

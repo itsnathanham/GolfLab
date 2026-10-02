@@ -80,7 +80,7 @@ class RoundStore: ObservableObject {
         didRestoreActiveRoundFromDraft = false
     }
 
-    /// Abandons the in-progress scorecard without saving to Supabase.
+    /// Abandons the in-progress scorecard without saving.
     func discardActiveRound() {
         activeRound = nil
         isRoundActive = false
@@ -288,7 +288,7 @@ class RoundStore: ObservableObject {
     func saveActiveRoundFromWatchEndRequest() async {
         guard isRoundActive, activeRound != nil else { return }
         do {
-            _ = try await saveRoundToSupabase()
+        _ = try await saveActiveRound()
         } catch RoundError.noActiveRound {
             // Already finished (e.g. duplicate end message).
         } catch {
@@ -309,9 +309,9 @@ class RoundStore: ObservableObject {
         pushCompanionSnapshotToWatch()
     }
 
-    // MARK: - Save round to Supabase
+    // MARK: - Save round
 
-    func saveRoundToSupabase() async throws -> UUID {
+    func saveActiveRound() async throws -> UUID {
         let goalsBeforeSave = weeklyGoalsSnapshot()
         mergePendingWatchHoleEntries()
         persistUnsavedCurrentHoleIfEligible()
@@ -334,7 +334,7 @@ class RoundStore: ObservableObject {
             totalFir: totals.fir
         )
 
-        let savedRound = try await SupabaseService.shared.insertRound(roundInsert)
+        let savedRound = try await GolfLabData.store.insertRound(roundInsert)
 
         let holeInserts: [HoleInsert] = round.holes.filter { $0.isSaved }.map { h in
             HoleInsert(
@@ -352,7 +352,7 @@ class RoundStore: ObservableObject {
             )
         }
 
-        _ = try await SupabaseService.shared.insertHoles(holeInserts)
+        _ = try await GolfLabData.store.insertHoles(holeInserts)
 
         WatchConnectivityService.shared.clearEntries()
         WatchConnectivityService.shared.notifyCompanionEnded()
@@ -388,15 +388,15 @@ class RoundStore: ObservableObject {
         isLoadingRounds = true
         defer { isLoadingRounds = false }
 
-        async let fetchedPractice = SupabaseService.shared.fetchAllPracticeSessions(userId: userId)
+        async let fetchedPractice = GolfLabData.store.fetchAllPracticeSessions(userId: userId)
 
         do {
-            var rounds = try await SupabaseService.shared.fetchRounds(userId: userId)
+            var rounds = try await GolfLabData.store.fetchRounds(userId: userId)
             rounds = await reconcileStoredRoundTotals(rounds: rounds)
             allRounds = rounds
             roundsListEpoch += 1
 
-            async let fetchedAggregates = SupabaseService.shared.fetchHoleAggregatesByUser(userId: userId)
+            async let fetchedAggregates = GolfLabData.store.fetchHoleAggregatesByUser(userId: userId)
 
             do {
                 let aggregates = try await fetchedAggregates
@@ -430,10 +430,10 @@ class RoundStore: ObservableObject {
         await syncWeeklyTargetsFromProfile()
     }
 
-    /// Refreshes weekly goal state from Supabase (e.g. after `loadRounds`).
+    /// Refreshes weekly goal state from the profile (e.g. after `loadRounds`).
     func syncWeeklyTargetsFromProfile() async {
         guard let userId = await AuthService.shared.currentUserId else { return }
-        guard let profile = try? await SupabaseService.shared.fetchProfile(userId: userId) else { return }
+        guard let profile = try? await GolfLabData.store.fetchProfile(userId: userId) else { return }
         applyWeeklyGoalState(from: profile)
     }
 
@@ -457,6 +457,29 @@ class RoundStore: ObservableObject {
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
         queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore)
+    }
+
+    /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
+    func savePracticeSessionsFromWatch(_ entries: [WatchPracticeEntry]) async {
+        guard !entries.isEmpty else { return }
+        guard let userId = await AuthService.shared.currentUserId else { return }
+
+        for entry in entries {
+            let insert = PracticeSessionInsert(
+                userId: userId,
+                sessionDate: entry.sessionDate,
+                practicedRange: entry.practicedRange,
+                practicedChipping: entry.practicedChipping,
+                practicedPutting: entry.practicedPutting,
+                rangeBallsHit: entry.rangeBallsHit
+            )
+            do {
+                let inserted = try await GolfLabData.store.insertPracticeSession(insert)
+                upsertPracticeSession(inserted)
+            } catch {
+                continue
+            }
+        }
     }
 
     // MARK: - Weekly goal celebration
@@ -523,13 +546,13 @@ class RoundStore: ObservableObject {
         return Double(sum) / Double(count)
     }
 
-    /// When the `rounds` summary columns disagree with summed `holes`, update Supabase and the in-memory model.
+    /// When the `rounds` summary columns disagree with summed `holes`, update the store and the in-memory model.
     /// Uses whatever hole rows exist (even when count is below `round.holes`) so list totals match the scorecard table.
     private func reconcileStoredRoundTotals(rounds: [Round]) async -> [Round] {
         var updated = rounds
         for i in updated.indices {
             let round = updated[i]
-            guard let holes = try? await SupabaseService.shared.fetchHoles(roundId: round.id),
+            guard let holes = try? await GolfLabData.store.fetchHoles(roundId: round.id),
                   !holes.isEmpty
             else { continue }
 
@@ -541,7 +564,7 @@ class RoundStore: ObservableObject {
             if matches { continue }
 
             do {
-                try await SupabaseService.shared.updateRoundTotals(
+                try await GolfLabData.store.updateRoundTotals(
                     roundId: round.id,
                     totalScore: agg.score,
                     totalPutts: agg.putts,

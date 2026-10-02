@@ -7,7 +7,10 @@ class WatchConnectivityService: NSObject, ObservableObject {
 
     @Published var receivedHoleEntries: [WatchHoleEntry] = []
     @Published private(set) var receivedHoleEntriesRevision: UInt64 = 0
+    @Published private(set) var receivedPracticeEntriesRevision: UInt64 = 0
     @Published var isWatchReachable = false
+
+    private var pendingPracticeEntries: [WatchPracticeEntry] = []
 
     private override init() {
         super.init()
@@ -64,6 +67,12 @@ class WatchConnectivityService: NSObject, ObservableObject {
         receivedHoleEntries = []
     }
 
+    func drainPendingPracticeEntries() -> [WatchPracticeEntry] {
+        let entries = pendingPracticeEntries
+        pendingPracticeEntries = []
+        return entries
+    }
+
     private func handleHoleEntry(from dict: [String: Any]) {
         guard let entry = WatchHoleEntry.from(dictionary: dict) else { return }
         if let index = receivedHoleEntries.firstIndex(where: { $0.holeNumber == entry.holeNumber }) {
@@ -75,6 +84,12 @@ class WatchConnectivityService: NSObject, ObservableObject {
         receivedHoleEntriesRevision += 1
     }
 
+    private func handlePracticeEntry(from dict: [String: Any]) {
+        guard let entry = WatchPracticeEntry.from(dictionary: dict) else { return }
+        pendingPracticeEntries.append(entry)
+        receivedPracticeEntriesRevision += 1
+    }
+
     private func handleIncomingFromWatch(_ payload: [String: Any]) {
         guard let typeRaw = payload[WatchMessageKey.type] as? String,
               let type = WatchMessageType(rawValue: typeRaw)
@@ -84,6 +99,10 @@ class WatchConnectivityService: NSObject, ObservableObject {
         case .holeEntry:
             if let holeDict = payload[WatchMessageKey.holeData] as? [String: Any] {
                 handleHoleEntry(from: holeDict)
+            }
+        case .practiceEntry:
+            if let practiceDict = payload[WatchMessageKey.practiceData] as? [String: Any] {
+                handlePracticeEntry(from: practiceDict)
             }
         case .endRound:
             NotificationCenter.default.post(name: .watchRequestedEndRound, object: nil)

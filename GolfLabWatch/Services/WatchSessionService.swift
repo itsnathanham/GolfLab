@@ -39,14 +39,7 @@ class WatchSessionService: NSObject, ObservableObject {
 
     func requestCompanionSyncFromPhone() {
         guard WCSession.isSupported() else { return }
-        let message: [String: Any] = [
-            WatchMessageKey.type: WatchMessageType.syncRequest.rawValue
-        ]
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: nil)
-        } else {
-            WCSession.default.transferUserInfo(message)
-        }
+        sendToPhone([WatchMessageKey.type: WatchMessageType.syncRequest.rawValue])
         applyApplicationContextIfPresent()
     }
 
@@ -89,8 +82,16 @@ class WatchSessionService: NSObject, ObservableObject {
             }
         case .companionEnded:
             clearCompanionSession()
-        default:
+        case .holeEntry, .endRound, .syncRequest, .practiceEntry:
             break
+        }
+    }
+
+    private func sendToPhone(_ message: [String: Any]) {
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(message, replyHandler: nil)
+        } else {
+            WCSession.default.transferUserInfo(message)
         }
     }
 
@@ -105,16 +106,10 @@ class WatchSessionService: NSObject, ObservableObject {
     }
 
     func sendHoleEntry(_ entry: WatchHoleEntry) {
-        let message: [String: Any] = [
+        sendToPhone([
             WatchMessageKey.type: WatchMessageType.holeEntry.rawValue,
             WatchMessageKey.holeData: entry.toDictionary()
-        ]
-
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: nil)
-        } else {
-            WCSession.default.transferUserInfo(message)
-        }
+        ])
 
         if let index = holeEntries.firstIndex(where: { $0.holeNumber == entry.holeNumber }) {
             holeEntries[index] = entry
@@ -124,6 +119,13 @@ class WatchSessionService: NSObject, ObservableObject {
         syncComplication()
     }
 
+    func sendPracticeEntry(_ entry: WatchPracticeEntry) {
+        sendToPhone([
+            WatchMessageKey.type: WatchMessageType.practiceEntry.rawValue,
+            WatchMessageKey.practiceData: entry.toDictionary()
+        ])
+    }
+
     func advanceHole() {
         guard let setup = roundSetup, currentHoleIndex < setup.holeSetups.count - 1 else { return }
         currentHoleIndex += 1
@@ -131,14 +133,7 @@ class WatchSessionService: NSObject, ObservableObject {
     }
 
     func endRound() {
-        let message: [String: Any] = [
-            WatchMessageKey.type: WatchMessageType.endRound.rawValue
-        ]
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: nil)
-        } else {
-            WCSession.default.transferUserInfo(message)
-        }
+        sendToPhone([WatchMessageKey.type: WatchMessageType.endRound.rawValue])
         clearCompanionSession()
     }
 
@@ -154,7 +149,7 @@ class WatchSessionService: NSObject, ObservableObject {
             }
         case .companionEnded:
             clearCompanionSession()
-        case .holeEntry, .endRound, .syncRequest:
+        case .holeEntry, .endRound, .syncRequest, .practiceEntry:
             break
         }
     }
