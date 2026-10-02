@@ -278,7 +278,7 @@ struct RoundDetailView: View {
                     .frame(height: 1)
             }
 
-            ForEach(displayHoles.sorted { $0.holeNumber < $1.holeNumber }) { hole in
+            ForEach(displayHoles) { hole in
                 NavigationLink {
                     HoleEditView(hole: hole, roundId: round.id)
                 } label: {

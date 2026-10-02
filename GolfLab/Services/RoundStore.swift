@@ -379,7 +379,7 @@ class RoundStore: ObservableObject {
 
     /// Full launch hydrate: rounds, practice, aggregates, profile goals, and hole rows.
     func hydrateForLaunch() async {
-        await loadHistoricalData()
+        await loadRounds()
     }
 
     /// Quiet refresh used by pull-to-refresh, CloudKit merges, and post-save reloads.
@@ -408,7 +408,8 @@ class RoundStore: ObservableObject {
 
         do {
             var rounds = try await GolfLabData.store.fetchRounds(userId: userId)
-            rounds = await reconcileStoredRoundTotals(rounds: rounds)
+            let holesByRound = (try? await fetchedHolesByRound) ?? [:]
+            rounds = await reconcileStoredRoundTotals(rounds: rounds, holesByRoundId: holesByRound)
             allRounds = rounds
             roundsListEpoch += 1
 
@@ -437,7 +438,7 @@ class RoundStore: ObservableObject {
             }
 
             allPracticeSessions = (try? await fetchedPractice) ?? []
-            replaceHolesCache((try? await fetchedHolesByRound) ?? [:])
+            replaceHolesCache(holesByRound)
         } catch {
             roundStoreLogger.error("Error loading rounds: \(error.localizedDescription)")
             allPracticeSessions = []
@@ -608,13 +609,14 @@ class RoundStore: ObservableObject {
 
     /// When the `rounds` summary columns disagree with summed `holes`, update the store and the in-memory model.
     /// Uses whatever hole rows exist (even when count is below `round.holes`) so list totals match the scorecard table.
-    private func reconcileStoredRoundTotals(rounds: [Round]) async -> [Round] {
+    private func reconcileStoredRoundTotals(
+        rounds: [Round],
+        holesByRoundId: [UUID: [Hole]]
+    ) async -> [Round] {
         var updated = rounds
         for i in updated.indices {
             let round = updated[i]
-            guard let holes = try? await GolfLabData.store.fetchHoles(roundId: round.id),
-                  !holes.isEmpty
-            else { continue }
+            guard let holes = holesByRoundId[round.id], !holes.isEmpty else { continue }
 
             let agg = holes.aggregatedRoundTotals
             let matches = round.totalScore == agg.score
