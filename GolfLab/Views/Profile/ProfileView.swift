@@ -18,6 +18,7 @@ struct ProfileView: View {
     @State private var isExporting = false
     @State private var showExportError = false
     @State private var stockAutosaveTask: Task<Void, Never>?
+    @State private var stockYardagesDirty = false
 
     var body: some View {
         ScrollView {
@@ -113,6 +114,9 @@ struct ProfileView: View {
         .task { await loadProfile() }
         .onDisappear {
             stockAutosaveTask?.cancel()
+            stockAutosaveTask = nil
+            guard stockYardagesDirty else { return }
+            Task { await persistStockClubYardages() }
         }
     }
 
@@ -148,6 +152,7 @@ struct ProfileView: View {
     }
 
     private func scheduleStockYardagesAutosave() {
+        stockYardagesDirty = true
         stockAutosaveTask?.cancel()
         stockAutosaveTask = Task {
             try? await Task.sleep(nanoseconds: 350_000_000)
@@ -158,6 +163,7 @@ struct ProfileView: View {
 
     @MainActor
     private func persistStockClubYardages() async {
+        guard stockYardagesDirty else { return }
         guard let userId = AccountService.shared.currentUserId else { return }
         let toSave = GLStockClubYardages.sorted(stockClubRows)
         do {
@@ -173,6 +179,7 @@ struct ProfileView: View {
                 stockClubYardages: toSave
             )
             profile = updated
+            stockYardagesDirty = false
         } catch {
             saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             showSaveErrorAlert = true
@@ -181,6 +188,8 @@ struct ProfileView: View {
 
     private func saveProfile() {
         isSaving = true
+        stockAutosaveTask?.cancel()
+        stockAutosaveTask = nil
         Task {
             guard let userId = AccountService.shared.currentUserId else {
                 await MainActor.run { isSaving = false }
@@ -222,6 +231,7 @@ struct ProfileView: View {
                     if let saved = updated.stockClubYardages {
                         stockClubRows = GLStockClubYardages.sorted(saved)
                     }
+                    stockYardagesDirty = false
                     roundStore.applyWeeklyGoalState(from: updated)
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     isSaving = false

@@ -416,34 +416,45 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         return try context.fetch(descriptor).first
     }
 
-    /// Replaces all stock-yardage rows for a profile (CloudKit-synced relationship).
+    /// Upserts stock-yardage rows for a profile (CloudKit-synced relationship).
     private func replaceStockClubYardages(
         on profile: SDProfile,
         userId: UUID,
         rows: [StockClubYardage]
     ) throws {
         let context = try requireContext()
-        let existing = profile.stockClubYardages ?? []
-        for row in existing {
-            context.delete(row)
+        let desired = GLStockClubYardages.sorted(rows)
+        var existingById = Dictionary(
+            (profile.stockClubYardages ?? []).map { ($0.id, $0) },
+            uniquingKeysWith: { _, last in last }
+        )
+        var kept: [SDStockClubYardage] = []
+        kept.reserveCapacity(desired.count)
+
+        for row in desired {
+            if let model = existingById.removeValue(forKey: row.id) {
+                model.userId = userId
+                model.clubRaw = row.club.rawValue
+                model.yardage = row.yardage
+                model.profile = profile
+                kept.append(model)
+            } else {
+                let model = SDStockClubYardage(
+                    id: row.id,
+                    userId: userId,
+                    clubRaw: row.club.rawValue,
+                    yardage: row.yardage,
+                    profile: profile
+                )
+                context.insert(model)
+                kept.append(model)
+            }
         }
-        profile.stockClubYardages = []
-        var inserted: [SDStockClubYardage] = []
-        inserted.reserveCapacity(rows.count)
-        for row in GLStockClubYardages.sorted(rows) {
-            let model = SDStockClubYardage(
-                id: row.id,
-                userId: userId,
-                clubRaw: row.club.rawValue,
-                yardage: row.yardage,
-                profile: profile
-            )
-            context.insert(model)
-            inserted.append(model)
+        for orphan in existingById.values {
+            context.delete(orphan)
         }
-        profile.stockClubYardages = inserted
+        profile.stockClubYardages = kept
         profile.hasConfiguredStockClubYardages = true
-        // Clear legacy blob once relationship rows are the source of truth.
         profile.stockClubYardagesData = nil
     }
 }
@@ -474,10 +485,7 @@ private extension SDProfile {
             guard let club = StockClub(rawValue: row.clubRaw) else { return nil }
             return StockClubYardage(id: row.id, club: club, yardage: row.yardage)
         }
-        if hasConfiguredStockClubYardages {
-            return GLStockClubYardages.sorted(related)
-        }
-        if !related.isEmpty {
+        if hasConfiguredStockClubYardages || !related.isEmpty {
             return GLStockClubYardages.sorted(related)
         }
         guard let stockClubYardagesData,

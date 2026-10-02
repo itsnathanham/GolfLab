@@ -23,7 +23,6 @@ enum StockClub: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// Menu / row label.
     var displayName: String {
         switch self {
         case .driver: return "Driver"
@@ -82,28 +81,16 @@ enum StockClub: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// One club + stock carry distance (yards).
 struct StockClubYardage: Codable, Equatable, Identifiable, Sendable {
     var id: UUID
     var club: StockClub
-    /// Yards; required once the row is committed. Template rows may be nil until set.
+    /// Yards; template rows may be nil until the user sets a value.
     var yardage: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case club
-        case yardage
-    }
 
     init(id: UUID = UUID(), club: StockClub, yardage: Int? = nil) {
         self.id = id
         self.club = club
         self.yardage = yardage
-    }
-
-    var hasRequiredYardage: Bool {
-        guard let yardage else { return false }
-        return yardage >= GLStockClubYardages.minYards
     }
 }
 
@@ -111,7 +98,6 @@ enum GLStockClubYardages {
     static let minYards = 1
     static let maxYards = 400
     static let step = 5
-    /// First + tap on an unset row lands here (same spirit as range-ball defaults).
     static let defaultYardsWhenSetting = 100
 
     static func defaultBagRows() -> [StockClubYardage] {
@@ -125,5 +111,9 @@ enum GLStockClubYardages {
             }
             return lhs.id.uuidString < rhs.id.uuidString
         }
+    }
+
+    static func clampYards(_ value: Int) -> Int {
+        min(maxYards, max(minYards, value))
     }
 }
