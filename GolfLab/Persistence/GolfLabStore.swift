@@ -145,7 +145,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
             profile.weeklyGoalTargetRevisionsData = try JSONEncoder().encode(weeklyGoalTargetRevisions)
         }
         if let stockClubYardages {
-            profile.stockClubYardagesData = try JSONEncoder().encode(stockClubYardages)
+            try replaceStockClubYardages(on: profile, userId: userId, rows: stockClubYardages)
         }
         try context.save()
         return profile.asUserProfile()
@@ -325,7 +325,11 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         let context = try requireContext()
         if let profile = snapshot.profile {
             if try findProfile(userId: profile.id) == nil {
-                context.insert(SDProfile.from(profile))
+                let model = SDProfile.from(profile)
+                context.insert(model)
+                if let rows = profile.stockClubYardages {
+                    try replaceStockClubYardages(on: model, userId: profile.id, rows: rows)
+                }
             }
             GolfLabUserID.save(profile.id)
         }
@@ -411,6 +415,37 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
     }
+
+    /// Replaces all stock-yardage rows for a profile (CloudKit-synced relationship).
+    private func replaceStockClubYardages(
+        on profile: SDProfile,
+        userId: UUID,
+        rows: [StockClubYardage]
+    ) throws {
+        let context = try requireContext()
+        let existing = profile.stockClubYardages ?? []
+        for row in existing {
+            context.delete(row)
+        }
+        profile.stockClubYardages = []
+        var inserted: [SDStockClubYardage] = []
+        inserted.reserveCapacity(rows.count)
+        for row in GLStockClubYardages.sorted(rows) {
+            let model = SDStockClubYardage(
+                id: row.id,
+                userId: userId,
+                clubRaw: row.club.rawValue,
+                yardage: row.yardage,
+                profile: profile
+            )
+            context.insert(model)
+            inserted.append(model)
+        }
+        profile.stockClubYardages = inserted
+        profile.hasConfiguredStockClubYardages = true
+        // Clear legacy blob once relationship rows are the source of truth.
+        profile.stockClubYardagesData = nil
+    }
 }
 
 private extension SDProfile {
@@ -419,10 +454,7 @@ private extension SDProfile {
             guard let weeklyGoalTargetRevisionsData else { return nil }
             return try? JSONDecoder().decode([WeeklyGoalTargetRevision].self, from: weeklyGoalTargetRevisionsData)
         }()
-        let stockYardages: [StockClubYardage]? = {
-            guard let stockClubYardagesData else { return nil }
-            return try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
-        }()
+        let stockYardages: [StockClubYardage]? = resolvedStockClubYardages()
         return UserProfile(
             id: id,
             displayName: displayName,
@@ -436,15 +468,39 @@ private extension SDProfile {
         )
     }
 
+    /// Prefer relationship rows; fall back to legacy JSON once, then leave migration to the next save.
+    func resolvedStockClubYardages() -> [StockClubYardage]? {
+        let related = (stockClubYardages ?? []).compactMap { row -> StockClubYardage? in
+            guard let club = StockClub(rawValue: row.clubRaw) else { return nil }
+            return StockClubYardage(id: row.id, club: club, yardage: row.yardage)
+        }
+        if !related.isEmpty {
+            return GLStockClubYardages.sorted(related)
+        }
+        // Empty relationship can mean "user cleared bag" OR "never configured".
+        // Legacy blob distinguishes never-configured (nil) from configured.
+        if stockClubYardagesData == nil {
+            // No legacy blob: empty relationship → treat as never configured only when relationship is nil/absent.
+            // After explicit save of [], relationship exists as empty array and blob is cleared → return [].
+            if stockClubYardages != nil {
+                return []
+            }
+            return nil
+        }
+        guard let stockClubYardagesData,
+              let decoded = try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
+        else {
+            return nil
+        }
+        return GLStockClubYardages.sorted(decoded)
+    }
+
     static func from(_ profile: UserProfile) -> SDProfile {
         let revisionsData: Data? = {
             guard let weeklyGoalTargetRevisions = profile.weeklyGoalTargetRevisions else { return nil }
             return try? JSONEncoder().encode(weeklyGoalTargetRevisions)
         }()
-        let stockData: Data? = {
-            guard let stockClubYardages = profile.stockClubYardages else { return nil }
-            return try? JSONEncoder().encode(stockClubYardages)
-        }()
+        // Relationship rows are attached by `replaceStockClubYardages` after insert.
         return SDProfile(
             id: profile.id,
             displayName: profile.displayName,
@@ -454,7 +510,7 @@ private extension SDProfile {
             weeklyRoundTarget: profile.weeklyRoundTarget,
             weeklyPracticeTarget: profile.weeklyPracticeTarget,
             weeklyGoalTargetRevisionsData: revisionsData,
-            stockClubYardagesData: stockData
+            stockClubYardagesData: nil
         )
     }
 }
@@ -567,6 +623,7 @@ enum GolfLabPersistence {
     static func makeContainer() -> ModelContainer {
         let schema = Schema([
             SDProfile.self,
+            SDStockClubYardage.self,
             SDRound.self,
             SDHole.self,
             SDPracticeSession.self
