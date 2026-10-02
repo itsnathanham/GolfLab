@@ -130,11 +130,19 @@ struct HoleEntryView: View {
     
     private func holeHeader(hole: ActiveHole) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                Text("\(hole.holeNumber)")
-                    .font(GLFonts.mono(size: 28, weight: .semibold))
-                    .foregroundColor(.textPrimary)
-                Spacer()
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("HOLE")
+                        .font(.glCaption)
+                        .foregroundColor(.textTertiary)
+                        .tracking(0.10 * 12)
+                        .textCase(.uppercase)
+                    Text("\(hole.holeNumber)")
+                        .font(GLFonts.mono(size: 28, weight: .semibold))
+                        .foregroundColor(.textPrimary)
+                        .contentTransition(.numericText())
+                }
+                Spacer(minLength: 0)
                 Text("Par \(hole.par)")
                     .font(GLFonts.sans(size: 12, weight: .semibold))
                     .foregroundColor(.accent)
