@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 /// Profile bag setup: default clubs, add/delete, autosave, ordered by family.
+/// Uses existing form chrome (`GLFormCard`, field labels), `StepperField`, and `GLCircleTrashButton`.
 struct StockClubYardagesSection: View {
     @Binding var rows: [StockClubYardage]
     var onChange: () -> Void
@@ -32,14 +33,9 @@ struct StockClubYardagesSection: View {
                         .font(.glSubhead)
                         .foregroundColor(.textTertiary)
                 } else {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 16) {
                         ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                             clubRow(row: row, index: index)
-                            if index < rows.count - 1 {
-                                Rectangle()
-                                    .fill(Color.borderDefault)
-                                    .frame(height: 1)
-                            }
                         }
                     }
                 }
@@ -62,25 +58,23 @@ struct StockClubYardagesSection: View {
                     updateClub(at: index, club: club)
                 }
 
-                Spacer(minLength: 0)
-
-                Button {
+                GLCircleTrashButton(accessibilityLabel: "Delete \(row.club.displayName)") {
                     deleteRow(at: index)
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.chartNegative)
-                        .frame(width: 32, height: 32)
-                        .background(Color.chartNegativeFill)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.borderPenalty, lineWidth: 1))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Delete \(row.club.displayName)")
             }
 
-            yardageStepper(yardage: row.yardage) { next in
-                updateYardage(at: index, yardage: next)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Yards")
+                    .font(GLFonts.sans(size: 12, weight: .medium))
+                    .foregroundColor(.textSecondary)
+
+                StepperField(
+                    label: "yards",
+                    value: yardageBinding(for: index, current: row.yardage),
+                    min: GLStockClubYardages.minYards,
+                    max: GLStockClubYardages.maxYards,
+                    step: GLStockClubYardages.step
+                )
             }
         }
     }
@@ -106,16 +100,25 @@ struct StockClubYardagesSection: View {
                     tryCommitDraft()
                 }
 
-                yardageStepper(yardage: draftHasYardage ? draftYardage : nil) { next in
-                    draftYardage = next
-                    draftHasYardage = true
-                    tryCommitDraft()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Yards")
+                        .font(GLFonts.sans(size: 12, weight: .medium))
+                        .foregroundColor(.textSecondary)
+
+                    StepperField(
+                        label: "yards",
+                        value: draftYardageBinding,
+                        min: GLStockClubYardages.minYards,
+                        max: GLStockClubYardages.maxYards,
+                        step: GLStockClubYardages.step
+                    )
                 }
             }
         }
         .padding(.top, rows.isEmpty ? 0 : 4)
     }
 
+    /// Matches `GLFormTextField` elevated field chrome for dropdown entry.
     private func clubMenu(
         title: String,
         selected: StockClub?,
@@ -138,17 +141,18 @@ struct StockClubYardagesSection: View {
                 .disabled(taken && selected != club)
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(title)
-                    .font(GLFonts.sans(size: 14, weight: .semibold))
+                    .font(.glBody)
                     .foregroundColor(placeholder ? .textTertiary : .textPrimary)
                     .lineLimit(1)
+                Spacer(minLength: 0)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.textTertiary)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.bgElevated)
             .cornerRadius(GLCardMetrics.cornerRadius)
@@ -159,70 +163,22 @@ struct StockClubYardagesSection: View {
         }
     }
 
-    private func yardageStepper(yardage: Int?, onChange: @escaping (Int) -> Void) -> some View {
-        Group {
-            if let yardage {
-                StepperField(
-                    label: "yards",
-                    value: Binding(
-                        get: { yardage },
-                        set: { onChange(clampYards($0)) }
-                    ),
-                    min: GLStockClubYardages.minYards,
-                    max: GLStockClubYardages.maxYards,
-                    step: GLStockClubYardages.step
-                )
-            } else {
-                // Unset row: same chrome as StepperField; + starts at the default carry.
-                HStack(alignment: .center, spacing: 0) {
-                    stepSideButton(systemName: "minus", enabled: false, action: {})
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        Text("—")
-                            .font(GLFonts.mono(size: 34, weight: .semibold))
-                            .foregroundColor(.textTertiary)
-                        Text("YARDS")
-                            .font(.glEyebrow)
-                            .foregroundColor(.textTertiary)
-                            .tracking(0.06 * 11)
-                            .textCase(.uppercase)
-                            .padding(.top, 1)
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 62)
-                    stepSideButton(systemName: "plus", enabled: true) {
-                        onChange(GLStockClubYardages.defaultYardsWhenSetting)
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 62)
-                .background(Color.cardBackground)
-                .cornerRadius(GLCardMetrics.cornerRadius)
-                .overlay(
-                    RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                        .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-                )
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Yards, not set")
-                .accessibilityHint("Increases to set yardage")
-            }
-        }
+    private func yardageBinding(for index: Int, current: Int?) -> Binding<Int> {
+        Binding(
+            get: { current ?? GLStockClubYardages.defaultYardsWhenSetting },
+            set: { updateYardage(at: index, yardage: $0) }
+        )
     }
 
-    private func stepSideButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(enabled ? .textPrimary : .textTertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .frame(width: 62, height: 62)
-        .background(Color.bgElevated)
+    private var draftYardageBinding: Binding<Int> {
+        Binding(
+            get: { draftHasYardage ? draftYardage : GLStockClubYardages.defaultYardsWhenSetting },
+            set: { next in
+                draftYardage = clampYards(next)
+                draftHasYardage = true
+                tryCommitDraft()
+            }
+        )
     }
 
     private func clampYards(_ value: Int) -> Int {

@@ -468,24 +468,17 @@ private extension SDProfile {
         )
     }
 
-    /// Prefer relationship rows; fall back to legacy JSON once, then leave migration to the next save.
+    /// Prefer relationship rows once configured; otherwise legacy JSON or nil (default template).
     func resolvedStockClubYardages() -> [StockClubYardage]? {
         let related = (stockClubYardages ?? []).compactMap { row -> StockClubYardage? in
             guard let club = StockClub(rawValue: row.clubRaw) else { return nil }
             return StockClubYardage(id: row.id, club: club, yardage: row.yardage)
         }
-        if !related.isEmpty {
+        if hasConfiguredStockClubYardages {
             return GLStockClubYardages.sorted(related)
         }
-        // Empty relationship can mean "user cleared bag" OR "never configured".
-        // Legacy blob distinguishes never-configured (nil) from configured.
-        if stockClubYardagesData == nil {
-            // No legacy blob: empty relationship → treat as never configured only when relationship is nil/absent.
-            // After explicit save of [], relationship exists as empty array and blob is cleared → return [].
-            if stockClubYardages != nil {
-                return []
-            }
-            return nil
+        if !related.isEmpty {
+            return GLStockClubYardages.sorted(related)
         }
         guard let stockClubYardagesData,
               let decoded = try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
@@ -510,7 +503,8 @@ private extension SDProfile {
             weeklyRoundTarget: profile.weeklyRoundTarget,
             weeklyPracticeTarget: profile.weeklyPracticeTarget,
             weeklyGoalTargetRevisionsData: revisionsData,
-            stockClubYardagesData: nil
+            stockClubYardagesData: nil,
+            hasConfiguredStockClubYardages: profile.stockClubYardages != nil
         )
     }
 }

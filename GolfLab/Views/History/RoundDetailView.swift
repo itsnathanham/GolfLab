@@ -138,18 +138,9 @@ struct RoundDetailView: View {
 
             Spacer()
 
-            Button(role: .destructive) {
+            GLCircleTrashButton(accessibilityLabel: "Delete round") {
                 showDeleteAlert = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(.chartNegative)
-                    .frame(width: 32, height: 32)
-                    .background(Color.chartNegativeFill.opacity(0.8))
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.chartNegative.opacity(0.2), lineWidth: 1))
             }
-            .buttonStyle(.plain)
         }
     }
 
