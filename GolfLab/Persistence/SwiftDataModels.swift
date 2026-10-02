@@ -11,6 +11,7 @@ final class SDProfile {
     var weeklyRoundTarget: Int?
     var weeklyPracticeTarget: Int?
     var weeklyGoalTargetRevisionsData: Data?
+    var stockClubYardagesData: Data?
 
     init(
         id: UUID = UUID(),
@@ -20,7 +21,8 @@ final class SDProfile {
         preferredUnits: String = "yards",
         weeklyRoundTarget: Int? = nil,
         weeklyPracticeTarget: Int? = nil,
-        weeklyGoalTargetRevisionsData: Data? = nil
+        weeklyGoalTargetRevisionsData: Data? = nil,
+        stockClubYardagesData: Data? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -30,6 +32,7 @@ final class SDProfile {
         self.weeklyRoundTarget = weeklyRoundTarget
         self.weeklyPracticeTarget = weeklyPracticeTarget
         self.weeklyGoalTargetRevisionsData = weeklyGoalTargetRevisionsData
+        self.stockClubYardagesData = stockClubYardagesData
     }
 }
 

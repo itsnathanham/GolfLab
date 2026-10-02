@@ -20,6 +20,8 @@
 		330853D4F51F63C03C840FB1 /* PracticeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AB13A5E4CFA34771BA96D5B /* PracticeSession.swift */; };
 		33B0B4608A36C2FCD64AEFCE /* IBMPlexSans-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 09CB6FCB212593FB9F7727F9 /* IBMPlexSans-Variable.ttf */; };
 		3718A3C1AF066B312B232611 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13624DC04ABC48753C6B908 /* UserProfile.swift */; };
+		0CA25DC103054D09AA2811AA /* StockClubYardage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8AA90BDDBE04968AD5DD573 /* StockClubYardage.swift */; };
+		1C88DF64DFBD4D3F9993F959 /* StockClubYardagesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2747BB70E52044C086EF9C80 /* StockClubYardagesSection.swift */; };
 		3F45A85CD6F4D52DCA0CCF79 /* HoleMetaHeaderCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22373F4D3ECA5348604AAFC5 /* HoleMetaHeaderCard.swift */; };
 		4229C626D0E0BD601E007AEA /* GLFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB0B845CE6E4D63353F0EAF /* GLFonts.swift */; };
 		499416C627C02BD621D7A7D0 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EB49FC0F7CD8080C975EE1 /* Colors.swift */; };
@@ -177,8 +179,10 @@
 		B79256CA229D6D5C6C26A44D /* WatchPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPalette.swift; sourceTree = "<group>"; };
 		C0A1C001AF066B312B2326C0 /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachView.swift; sourceTree = "<group>"; };
 		C13624DC04ABC48753C6B908 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		C8AA90BDDBE04968AD5DD573 /* StockClubYardage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockClubYardage.swift; sourceTree = "<group>"; };
 		C34DE04AC8A262F78ADDE78B /* GLButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLButtonStyles.swift; sourceTree = "<group>"; };
 		C5E3CAC10509D3516A5DE308 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		2747BB70E52044C086EF9C80 /* StockClubYardagesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockClubYardagesSection.swift; sourceTree = "<group>"; };
 		C7E1EB249D58CA8A3DD377DB /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		D28894252BC3053ADE60BF1B /* GolfLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GolfLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -217,6 +221,7 @@
 			isa = PBXGroup;
 			children = (
 				C5E3CAC10509D3516A5DE308 /* ProfileView.swift */,
+				2747BB70E52044C086EF9C80 /* StockClubYardagesSection.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -229,6 +234,7 @@
 				36F3DFB4001EF9863A2460B8 /* Round.swift */,
 				9493E4629BD4DE4845F18497 /* StatsSeasonFilter.swift */,
 				C13624DC04ABC48753C6B908 /* UserProfile.swift */,
+				C8AA90BDDBE04968AD5DD573 /* StockClubYardage.swift */,
 				E8B4C201AF066B312B2326A3 /* WeeklyGoalTargetRevision.swift */,
 			);
 			path = Models;
@@ -694,6 +700,8 @@
 				A2CK15AF066B312B2326D1 /* ICloudRequiredView.swift in Sources */,
 				A64A3D13E2EDC2BFF5CCE3DA /* Typography.swift in Sources */,
 				3718A3C1AF066B312B232611 /* UserProfile.swift in Sources */,
+				0CA25DC103054D09AA2811AA /* StockClubYardage.swift in Sources */,
+				1C88DF64DFBD4D3F9993F959 /* StockClubYardagesSection.swift in Sources */,
 				E8B4C201AF066B312B2326A2 /* WeeklyGoalTargetRevision.swift in Sources */,
 				D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */,
 				808144D94F4C099CA8CF426D /* WatchConnectivityService.swift in Sources */,

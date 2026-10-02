@@ -12,7 +12,8 @@ protocol GolfLabStore: AnyObject {
         preferredUnits: String,
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
-        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
+        stockClubYardages: [StockClubYardage]?
     ) async throws -> UserProfile
     func ensureProfile(userId: UUID) throws -> UserProfile
 
@@ -125,7 +126,8 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         preferredUnits: String,
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
-        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
+        stockClubYardages: [StockClubYardage]?
     ) async throws -> UserProfile {
         let context = try requireContext()
         let profile = try findProfile(userId: userId) ?? {
@@ -141,6 +143,9 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         profile.weeklyPracticeTarget = weeklyPracticeTarget
         if let weeklyGoalTargetRevisions {
             profile.weeklyGoalTargetRevisionsData = try JSONEncoder().encode(weeklyGoalTargetRevisions)
+        }
+        if let stockClubYardages {
+            profile.stockClubYardagesData = try JSONEncoder().encode(stockClubYardages)
         }
         try context.save()
         return profile.asUserProfile()
@@ -414,6 +419,10 @@ private extension SDProfile {
             guard let weeklyGoalTargetRevisionsData else { return nil }
             return try? JSONDecoder().decode([WeeklyGoalTargetRevision].self, from: weeklyGoalTargetRevisionsData)
         }()
+        let stockYardages: [StockClubYardage]? = {
+            guard let stockClubYardagesData else { return nil }
+            return try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
+        }()
         return UserProfile(
             id: id,
             displayName: displayName,
@@ -422,14 +431,19 @@ private extension SDProfile {
             preferredUnits: preferredUnits,
             weeklyRoundTarget: weeklyRoundTarget,
             weeklyPracticeTarget: weeklyPracticeTarget,
-            weeklyGoalTargetRevisions: revisions
+            weeklyGoalTargetRevisions: revisions,
+            stockClubYardages: stockYardages
         )
     }
 
     static func from(_ profile: UserProfile) -> SDProfile {
-        let data: Data? = {
+        let revisionsData: Data? = {
             guard let weeklyGoalTargetRevisions = profile.weeklyGoalTargetRevisions else { return nil }
             return try? JSONEncoder().encode(weeklyGoalTargetRevisions)
+        }()
+        let stockData: Data? = {
+            guard let stockClubYardages = profile.stockClubYardages else { return nil }
+            return try? JSONEncoder().encode(stockClubYardages)
         }()
         return SDProfile(
             id: profile.id,
@@ -439,7 +453,8 @@ private extension SDProfile {
             preferredUnits: profile.preferredUnits,
             weeklyRoundTarget: profile.weeklyRoundTarget,
             weeklyPracticeTarget: profile.weeklyPracticeTarget,
-            weeklyGoalTargetRevisionsData: data
+            weeklyGoalTargetRevisionsData: revisionsData,
+            stockClubYardagesData: stockData
         )
     }
 }
