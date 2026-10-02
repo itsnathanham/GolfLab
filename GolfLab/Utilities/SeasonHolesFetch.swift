@@ -1,29 +1,6 @@
 import Foundation
 
 enum SeasonHolesFetch {
-    @MainActor
-    static func holesByRoundId(
-        rounds: [Round],
-        holeRowCountByRoundId: [UUID: Int]
-    ) async -> [UUID: [Hole]] {
-        var result: [UUID: [Hole]] = [:]
-        await withTaskGroup(of: (UUID, [Hole])?.self) { group in
-            for round in rounds {
-                let rowCount = holeRowCountByRoundId[round.id] ?? 0
-                guard VsParCumulativeProgression.isRoundComplete(round, holeRowCount: rowCount) else { continue }
-                group.addTask { @MainActor in
-                    let holes = (try? await GolfLabData.store.fetchHoles(roundId: round.id)) ?? []
-                    guard holes.count >= round.holes else { return nil }
-                    return (round.id, holes)
-                }
-            }
-            for await pair in group {
-                if let pair { result[pair.0] = pair.1 }
-            }
-        }
-        return result
-    }
-
     static func calendarYearRounds(from allRounds: [Round], year: Int? = nil) -> [Round] {
         let y = year ?? Calendar.current.component(.year, from: Date())
         return allRounds.filter { $0.datePlayed.hasPrefix("\(y)") }
