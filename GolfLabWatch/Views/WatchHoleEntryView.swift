@@ -119,21 +119,26 @@ struct WatchHoleEntryView: View {
     }
 
     private var holeHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("HOLE \(displayHoleOrdinal)")
-                    .font(.system(size: 11, weight: .medium))
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("HOLE")
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(WatchPalette.textTertiary)
-                Text("Par \(par)")
-                    .font(.system(size: 16, weight: .semibold))
+                    .tracking(1.0)
+                    .textCase(.uppercase)
+                Text("\(displayHoleOrdinal)")
+                    .font(.system(size: 22, weight: .semibold, design: .monospaced))
                     .foregroundColor(WatchPalette.textPrimary)
+                Text("Par \(par)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(WatchPalette.accent)
                 if let yardage = currentHole?.yardage {
                     Text("\(yardage)y")
                         .font(.system(size: 11))
                         .foregroundColor(WatchPalette.textSecondary)
                 }
             }
-            Spacer()
+            Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 0) {
                 let vs = session.scoreVsPar
                 Text(vs == 0 ? "E" : (vs > 0 ? "+\(vs)" : "\(vs)"))
