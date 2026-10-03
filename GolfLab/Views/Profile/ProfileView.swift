@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var displayName = ""
     @State private var weeklyRoundGoal = 1
     @State private var weeklyPracticeGoal = 2
+    @State private var stockClubRows: [StockClubYardage] = GLStockClubYardages.defaultBagRows()
     @State private var isSaving = false
     @State private var saveConfirmed = false
     @State private var showSaveErrorAlert = false
@@ -16,6 +17,8 @@ struct ProfileView: View {
     @State private var showExporter = false
     @State private var isExporting = false
     @State private var showExportError = false
+    @State private var stockAutosaveTask: Task<Void, Never>?
+    @State private var stockYardagesDirty = false
 
     var body: some View {
         ScrollView {
@@ -57,6 +60,10 @@ struct ProfileView: View {
                         }
                     }
 
+                    StockClubYardagesSection(rows: $stockClubRows) {
+                        scheduleStockYardagesAutosave()
+                    }
+
                     GLPrimaryCTAButton(
                         title: saveConfirmed ? "Saved" : "Save changes",
                         isBusy: isSaving,
@@ -69,7 +76,7 @@ struct ProfileView: View {
                         exportData()
                     }
 
-                    Text("Rounds sync with iCloud on this Apple ID.")
+                    Text("Rounds sync with iCloud on this Apple ID. Stock yardages save as you edit.")
                         .font(.glCaption)
                         .foregroundColor(.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -105,6 +112,12 @@ struct ProfileView: View {
             }
         }
         .task { await loadProfile() }
+        .onDisappear {
+            stockAutosaveTask?.cancel()
+            stockAutosaveTask = nil
+            guard stockYardagesDirty else { return }
+            Task { await persistStockClubYardages() }
+        }
     }
 
     private var topNav: some View {
@@ -128,13 +141,55 @@ struct ProfileView: View {
                 displayName = p.displayName ?? ""
                 weeklyRoundGoal = p.weeklyRoundTarget ?? 1
                 weeklyPracticeGoal = p.weeklyPracticeTarget ?? 2
+                if let saved = p.stockClubYardages {
+                    stockClubRows = GLStockClubYardages.sorted(saved)
+                } else {
+                    stockClubRows = GLStockClubYardages.defaultBagRows()
+                }
                 roundStore.applyWeeklyGoalState(from: p)
             }
         }
     }
 
+    private func scheduleStockYardagesAutosave() {
+        stockYardagesDirty = true
+        stockAutosaveTask?.cancel()
+        stockAutosaveTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            await persistStockClubYardages()
+        }
+    }
+
+    @MainActor
+    private func persistStockClubYardages() async {
+        guard stockYardagesDirty else { return }
+        guard let userId = AccountService.shared.currentUserId else { return }
+        let toSave = GLStockClubYardages.sorted(stockClubRows)
+        do {
+            let updated = try await GolfLabData.store.updateProfile(
+                userId: userId,
+                displayName: profile?.displayName,
+                homeCourseName: profile?.homeCourseName,
+                homeCourseTee: profile?.homeCourseTee,
+                preferredUnits: profile?.preferredUnits ?? "yards",
+                weeklyRoundTarget: profile?.weeklyRoundTarget,
+                weeklyPracticeTarget: profile?.weeklyPracticeTarget,
+                weeklyGoalTargetRevisions: nil,
+                stockClubYardages: toSave
+            )
+            profile = updated
+            stockYardagesDirty = false
+        } catch {
+            saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            showSaveErrorAlert = true
+        }
+    }
+
     private func saveProfile() {
         isSaving = true
+        stockAutosaveTask?.cancel()
+        stockAutosaveTask = nil
         Task {
             guard let userId = AccountService.shared.currentUserId else {
                 await MainActor.run { isSaving = false }
@@ -155,6 +210,8 @@ struct ProfileView: View {
                     )
                     : nil
 
+                let stockToSave = GLStockClubYardages.sorted(stockClubRows)
+
                 let updated = try await GolfLabData.store.updateProfile(
                     userId: userId,
                     displayName: displayName.isEmpty ? nil : displayName,
@@ -163,13 +220,18 @@ struct ProfileView: View {
                     preferredUnits: "yards",
                     weeklyRoundTarget: weeklyRoundGoal,
                     weeklyPracticeTarget: weeklyPracticeGoal,
-                    weeklyGoalTargetRevisions: revisionsPatch
+                    weeklyGoalTargetRevisions: revisionsPatch,
+                    stockClubYardages: stockToSave
                 )
                 await MainActor.run {
                     profile = updated
                     displayName = updated.displayName ?? ""
                     weeklyRoundGoal = updated.weeklyRoundTarget ?? 1
                     weeklyPracticeGoal = updated.weeklyPracticeTarget ?? 2
+                    if let saved = updated.stockClubYardages {
+                        stockClubRows = GLStockClubYardages.sorted(saved)
+                    }
+                    stockYardagesDirty = false
                     roundStore.applyWeeklyGoalState(from: updated)
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
                     isSaving = false

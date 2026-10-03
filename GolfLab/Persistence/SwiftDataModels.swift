@@ -11,6 +11,13 @@ final class SDProfile {
     var weeklyRoundTarget: Int?
     var weeklyPracticeTarget: Int?
     var weeklyGoalTargetRevisionsData: Data?
+    /// Legacy JSON blob from an earlier PR revision; migrated into `stockClubYardages` on save.
+    var stockClubYardagesData: Data?
+    /// False until the user edits stock yardages at least once (nil vs empty bag).
+    var hasConfiguredStockClubYardages: Bool = false
+
+    @Relationship(deleteRule: .cascade, inverse: \SDStockClubYardage.profile)
+    var stockClubYardages: [SDStockClubYardage]? = []
 
     init(
         id: UUID = UUID(),
@@ -20,7 +27,9 @@ final class SDProfile {
         preferredUnits: String = "yards",
         weeklyRoundTarget: Int? = nil,
         weeklyPracticeTarget: Int? = nil,
-        weeklyGoalTargetRevisionsData: Data? = nil
+        weeklyGoalTargetRevisionsData: Data? = nil,
+        stockClubYardagesData: Data? = nil,
+        hasConfiguredStockClubYardages: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
@@ -30,6 +39,34 @@ final class SDProfile {
         self.weeklyRoundTarget = weeklyRoundTarget
         self.weeklyPracticeTarget = weeklyPracticeTarget
         self.weeklyGoalTargetRevisionsData = weeklyGoalTargetRevisionsData
+        self.stockClubYardagesData = stockClubYardagesData
+        self.hasConfiguredStockClubYardages = hasConfiguredStockClubYardages
+    }
+}
+
+/// Per-user stock carry distance for one club (SwiftData / CloudKit schema).
+@Model
+final class SDStockClubYardage {
+    var id: UUID = UUID()
+    var userId: UUID = UUID()
+    /// `StockClub.rawValue`
+    var clubRaw: String = StockClub.driver.rawValue
+    /// Yards; may be nil for template rows not yet filled.
+    var yardage: Int?
+    var profile: SDProfile?
+
+    init(
+        id: UUID = UUID(),
+        userId: UUID,
+        clubRaw: String,
+        yardage: Int? = nil,
+        profile: SDProfile? = nil
+    ) {
+        self.id = id
+        self.userId = userId
+        self.clubRaw = clubRaw
+        self.yardage = yardage
+        self.profile = profile
     }
 }
 

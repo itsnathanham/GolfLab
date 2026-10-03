@@ -97,6 +97,26 @@ struct GLCircleBackButton: View {
     }
 }
 
+/// Destructive circle control (round detail delete, profile bag row delete).
+struct GLCircleTrashButton: View {
+    var accessibilityLabel: String = "Delete"
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: .destructive, action: action) {
+            Image(systemName: "trash")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.chartNegative)
+                .frame(width: 32, height: 32)
+                .background(Color.chartNegativeFill.opacity(0.8))
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.chartNegative.opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
 /// Circle chevron for in-round hole navigation (`HoleEntryView`) — matches `GLCircleBackButton` chrome; dims when `isEnabled` is false.
 struct GLCircleChevronButton: View {
     enum Direction {

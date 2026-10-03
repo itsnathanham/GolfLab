@@ -12,7 +12,8 @@ protocol GolfLabStore: AnyObject {
         preferredUnits: String,
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
-        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
+        stockClubYardages: [StockClubYardage]?
     ) async throws -> UserProfile
     func ensureProfile(userId: UUID) throws -> UserProfile
 
@@ -127,7 +128,8 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         preferredUnits: String,
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
-        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
+        weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
+        stockClubYardages: [StockClubYardage]?
     ) async throws -> UserProfile {
         let context = try requireContext()
         let profile = try findProfile(userId: userId) ?? {
@@ -143,6 +145,9 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         profile.weeklyPracticeTarget = weeklyPracticeTarget
         if let weeklyGoalTargetRevisions {
             profile.weeklyGoalTargetRevisionsData = try JSONEncoder().encode(weeklyGoalTargetRevisions)
+        }
+        if let stockClubYardages {
+            try replaceStockClubYardages(on: profile, userId: userId, rows: stockClubYardages)
         }
         try context.save()
         return profile.asUserProfile()
@@ -333,7 +338,11 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         let context = try requireContext()
         if let profile = snapshot.profile {
             if try findProfile(userId: profile.id) == nil {
-                context.insert(SDProfile.from(profile))
+                let model = SDProfile.from(profile)
+                context.insert(model)
+                if let rows = profile.stockClubYardages {
+                    try replaceStockClubYardages(on: model, userId: profile.id, rows: rows)
+                }
             }
             GolfLabUserID.save(profile.id)
         }
@@ -419,6 +428,48 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         descriptor.fetchLimit = 1
         return try context.fetch(descriptor).first
     }
+
+    /// Upserts stock-yardage rows for a profile (CloudKit-synced relationship).
+    private func replaceStockClubYardages(
+        on profile: SDProfile,
+        userId: UUID,
+        rows: [StockClubYardage]
+    ) throws {
+        let context = try requireContext()
+        let desired = GLStockClubYardages.sorted(rows)
+        var existingById = Dictionary(
+            (profile.stockClubYardages ?? []).map { ($0.id, $0) },
+            uniquingKeysWith: { _, last in last }
+        )
+        var kept: [SDStockClubYardage] = []
+        kept.reserveCapacity(desired.count)
+
+        for row in desired {
+            if let model = existingById.removeValue(forKey: row.id) {
+                model.userId = userId
+                model.clubRaw = row.club.rawValue
+                model.yardage = row.yardage
+                model.profile = profile
+                kept.append(model)
+            } else {
+                let model = SDStockClubYardage(
+                    id: row.id,
+                    userId: userId,
+                    clubRaw: row.club.rawValue,
+                    yardage: row.yardage,
+                    profile: profile
+                )
+                context.insert(model)
+                kept.append(model)
+            }
+        }
+        for orphan in existingById.values {
+            context.delete(orphan)
+        }
+        profile.stockClubYardages = kept
+        profile.hasConfiguredStockClubYardages = true
+        profile.stockClubYardagesData = nil
+    }
 }
 
 private extension SDProfile {
@@ -427,6 +478,7 @@ private extension SDProfile {
             guard let weeklyGoalTargetRevisionsData else { return nil }
             return try? JSONDecoder().decode([WeeklyGoalTargetRevision].self, from: weeklyGoalTargetRevisionsData)
         }()
+        let stockYardages: [StockClubYardage]? = resolvedStockClubYardages()
         return UserProfile(
             id: id,
             displayName: displayName,
@@ -435,15 +487,34 @@ private extension SDProfile {
             preferredUnits: preferredUnits,
             weeklyRoundTarget: weeklyRoundTarget,
             weeklyPracticeTarget: weeklyPracticeTarget,
-            weeklyGoalTargetRevisions: revisions
+            weeklyGoalTargetRevisions: revisions,
+            stockClubYardages: stockYardages
         )
     }
 
+    /// Prefer relationship rows once configured; otherwise legacy JSON or nil (default template).
+    func resolvedStockClubYardages() -> [StockClubYardage]? {
+        let related = (stockClubYardages ?? []).compactMap { row -> StockClubYardage? in
+            guard let club = StockClub(rawValue: row.clubRaw) else { return nil }
+            return StockClubYardage(id: row.id, club: club, yardage: row.yardage)
+        }
+        if hasConfiguredStockClubYardages || !related.isEmpty {
+            return GLStockClubYardages.sorted(related)
+        }
+        guard let stockClubYardagesData,
+              let decoded = try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
+        else {
+            return nil
+        }
+        return GLStockClubYardages.sorted(decoded)
+    }
+
     static func from(_ profile: UserProfile) -> SDProfile {
-        let data: Data? = {
+        let revisionsData: Data? = {
             guard let weeklyGoalTargetRevisions = profile.weeklyGoalTargetRevisions else { return nil }
             return try? JSONEncoder().encode(weeklyGoalTargetRevisions)
         }()
+        // Relationship rows are attached by `replaceStockClubYardages` after insert.
         return SDProfile(
             id: profile.id,
             displayName: profile.displayName,
@@ -452,7 +523,9 @@ private extension SDProfile {
             preferredUnits: profile.preferredUnits,
             weeklyRoundTarget: profile.weeklyRoundTarget,
             weeklyPracticeTarget: profile.weeklyPracticeTarget,
-            weeklyGoalTargetRevisionsData: data
+            weeklyGoalTargetRevisionsData: revisionsData,
+            stockClubYardagesData: nil,
+            hasConfiguredStockClubYardages: profile.stockClubYardages != nil
         )
     }
 }
@@ -565,6 +638,7 @@ enum GolfLabPersistence {
     static func makeContainer() -> ModelContainer {
         let schema = Schema([
             SDProfile.self,
+            SDStockClubYardage.self,
             SDRound.self,
             SDHole.self,
             SDPracticeSession.self
