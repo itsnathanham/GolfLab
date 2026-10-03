@@ -268,12 +268,14 @@ struct StepperField: View {
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(label.uppercased())
-                    .font(.glEyebrow)
-                    .foregroundColor(.textTertiary)
-                    .tracking(0.06 * 11)
-                    .textCase(.uppercase)
-                    .padding(.top, 1)
+                if !label.isEmpty {
+                    Text(label.uppercased())
+                        .font(.glEyebrow)
+                        .foregroundColor(.textTertiary)
+                        .tracking(0.06 * 11)
+                        .textCase(.uppercase)
+                        .padding(.top, 1)
+                }
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)

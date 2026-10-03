@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Profile bag setup: default clubs, add/delete, autosave, bag-ordered.
+/// Profile bag setup: default clubs, add/delete, autosave.
 struct StockClubYardagesSection: View {
     @Binding var rows: [StockClubYardage]
     var onChange: () -> Void
@@ -22,7 +22,7 @@ struct StockClubYardagesSection: View {
         GLFormCard {
             VStack(alignment: .leading, spacing: 16) {
                 GLFormFieldLabel(text: "Stock yardages")
-                Text("Carry distances in yards. Changes save automatically. Bag sorts as driver, woods, irons, then wedges.")
+                Text("Total distance in yards.")
                     .font(.glFootnote)
                     .foregroundColor(.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -62,18 +62,25 @@ struct StockClubYardagesSection: View {
                 }
             }
 
-            yardsStepper(
+            StepperField(
+                label: "",
                 value: Binding(
                     get: { row.yardage ?? GLStockClubYardages.defaultYardsWhenSetting },
                     set: { updateYardage(at: index, yardage: $0) }
-                )
+                ),
+                min: GLStockClubYardages.minYards,
+                max: GLStockClubYardages.maxYards,
+                step: GLStockClubYardages.step
             )
+            .accessibilityLabel("Yards")
         }
     }
 
     private var addClubSlot: some View {
         VStack(alignment: .leading, spacing: 8) {
-            fieldCaption("Add club")
+            Text("Add club")
+                .font(.glCaption)
+                .foregroundColor(.textSecondary)
 
             if availableForDraft.isEmpty {
                 Text("Every available club is already in your bag.")
@@ -90,29 +97,17 @@ struct StockClubYardagesSection: View {
                     tryCommitDraft()
                 }
 
-                yardsStepper(value: draftYardageBinding)
+                StepperField(
+                    label: "",
+                    value: draftYardageBinding,
+                    min: GLStockClubYardages.minYards,
+                    max: GLStockClubYardages.maxYards,
+                    step: GLStockClubYardages.step
+                )
+                .accessibilityLabel("Yards")
             }
         }
         .padding(.top, rows.isEmpty ? 0 : 4)
-    }
-
-    private func fieldCaption(_ text: String) -> some View {
-        Text(text)
-            .font(.glCaption)
-            .foregroundColor(.textSecondary)
-    }
-
-    private func yardsStepper(value: Binding<Int>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            fieldCaption("Yards")
-            StepperField(
-                label: "yards",
-                value: value,
-                min: GLStockClubYardages.minYards,
-                max: GLStockClubYardages.maxYards,
-                step: GLStockClubYardages.step
-            )
-        }
     }
 
     private func clubMenu(
@@ -174,7 +169,6 @@ struct StockClubYardagesSection: View {
         guard rows.indices.contains(index) else { return }
         guard !usedClubs.contains(club) || rows[index].club == club else { return }
         rows[index].club = club
-        rows = GLStockClubYardages.sorted(rows)
         onChange()
     }
 
@@ -194,8 +188,12 @@ struct StockClubYardagesSection: View {
     private func tryCommitDraft() {
         guard let club = draftClub, draftHasYardage else { return }
         guard !usedClubs.contains(club) else { return }
-        let entry = StockClubYardage(club: club, yardage: GLStockClubYardages.clampYards(draftYardage))
-        rows = GLStockClubYardages.sorted(rows + [entry])
+        let entry = StockClubYardage(
+            club: club,
+            yardage: GLStockClubYardages.clampYards(draftYardage),
+            displayOrder: rows.count
+        )
+        rows.append(entry)
         draftClub = nil
         draftYardage = GLStockClubYardages.defaultYardsWhenSetting
         draftHasYardage = false

@@ -44,7 +44,7 @@ final class SDProfile {
     }
 }
 
-/// Per-user stock carry distance for one club (SwiftData / CloudKit schema).
+/// Per-user stock total distance for one club (SwiftData / CloudKit schema).
 @Model
 final class SDStockClubYardage {
     var id: UUID = UUID()
@@ -53,6 +53,8 @@ final class SDStockClubYardage {
     var clubRaw: String = StockClub.driver.rawValue
     /// Yards; may be nil for template rows not yet filled.
     var yardage: Int?
+    /// User list order (0-based).
+    var displayOrder: Int = 0
     var profile: SDProfile?
 
     init(
@@ -60,12 +62,14 @@ final class SDStockClubYardage {
         userId: UUID,
         clubRaw: String,
         yardage: Int? = nil,
+        displayOrder: Int = 0,
         profile: SDProfile? = nil
     ) {
         self.id = id
         self.userId = userId
         self.clubRaw = clubRaw
         self.yardage = yardage
+        self.displayOrder = displayOrder
         self.profile = profile
     }
 }

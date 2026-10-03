@@ -46,30 +46,6 @@ enum StockClub: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Stable bag order: driver → woods → irons → gap/sand/lob.
-    var sortIndex: Int {
-        switch self {
-        case .driver: return 0
-        case .wood3: return 10
-        case .wood5: return 11
-        case .wood7: return 12
-        case .wood9: return 13
-        case .iron1: return 20
-        case .iron2: return 21
-        case .iron3: return 22
-        case .iron4: return 23
-        case .iron5: return 24
-        case .iron6: return 25
-        case .iron7: return 26
-        case .iron8: return 27
-        case .iron9: return 28
-        case .pitchingWedge: return 29
-        case .gapWedge: return 40
-        case .sandWedge: return 41
-        case .lobWedge: return 42
-        }
-    }
-
     /// Starter bag: driver, 3W, 3–PW, gap / sand / lob.
     static var defaultBag: [StockClub] {
         [
@@ -86,11 +62,14 @@ struct StockClubYardage: Codable, Equatable, Identifiable, Sendable {
     var club: StockClub
     /// Yards; template rows may be nil until the user sets a value.
     var yardage: Int?
+    /// User list order (0-based). Not club-family sorting.
+    var displayOrder: Int
 
-    init(id: UUID = UUID(), club: StockClub, yardage: Int? = nil) {
+    init(id: UUID = UUID(), club: StockClub, yardage: Int? = nil, displayOrder: Int = 0) {
         self.id = id
         self.club = club
         self.yardage = yardage
+        self.displayOrder = displayOrder
     }
 }
 
@@ -101,15 +80,27 @@ enum GLStockClubYardages {
     static let defaultYardsWhenSetting = 100
 
     static func defaultBagRows() -> [StockClubYardage] {
-        StockClub.defaultBag.map { StockClubYardage(club: $0, yardage: nil) }
+        StockClub.defaultBag.enumerated().map { index, club in
+            StockClubYardage(club: club, yardage: nil, displayOrder: index)
+        }
     }
 
-    static func sorted(_ rows: [StockClubYardage]) -> [StockClubYardage] {
+    /// Stable list order from `displayOrder` (insertion / saved order).
+    static func ordered(_ rows: [StockClubYardage]) -> [StockClubYardage] {
         rows.sorted { lhs, rhs in
-            if lhs.club.sortIndex != rhs.club.sortIndex {
-                return lhs.club.sortIndex < rhs.club.sortIndex
+            if lhs.displayOrder != rhs.displayOrder {
+                return lhs.displayOrder < rhs.displayOrder
             }
             return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    /// Rewrites `displayOrder` to match the current array index.
+    static func withDisplayOrders(_ rows: [StockClubYardage]) -> [StockClubYardage] {
+        rows.enumerated().map { index, row in
+            var copy = row
+            copy.displayOrder = index
+            return copy
         }
     }
 

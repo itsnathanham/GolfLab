@@ -142,7 +142,7 @@ struct ProfileView: View {
                 weeklyRoundGoal = p.weeklyRoundTarget ?? 1
                 weeklyPracticeGoal = p.weeklyPracticeTarget ?? 2
                 if let saved = p.stockClubYardages {
-                    stockClubRows = GLStockClubYardages.sorted(saved)
+                    stockClubRows = GLStockClubYardages.ordered(saved)
                 } else {
                     stockClubRows = GLStockClubYardages.defaultBagRows()
                 }
@@ -165,7 +165,7 @@ struct ProfileView: View {
     private func persistStockClubYardages() async {
         guard stockYardagesDirty else { return }
         guard let userId = AccountService.shared.currentUserId else { return }
-        let toSave = GLStockClubYardages.sorted(stockClubRows)
+        let toSave = GLStockClubYardages.withDisplayOrders(stockClubRows)
         do {
             let updated = try await GolfLabData.store.updateProfile(
                 userId: userId,
@@ -179,6 +179,9 @@ struct ProfileView: View {
                 stockClubYardages: toSave
             )
             profile = updated
+            if let saved = updated.stockClubYardages {
+                stockClubRows = saved
+            }
             stockYardagesDirty = false
         } catch {
             saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -210,7 +213,7 @@ struct ProfileView: View {
                     )
                     : nil
 
-                let stockToSave = GLStockClubYardages.sorted(stockClubRows)
+                let stockToSave = GLStockClubYardages.withDisplayOrders(stockClubRows)
 
                 let updated = try await GolfLabData.store.updateProfile(
                     userId: userId,
@@ -229,7 +232,7 @@ struct ProfileView: View {
                     weeklyRoundGoal = updated.weeklyRoundTarget ?? 1
                     weeklyPracticeGoal = updated.weeklyPracticeTarget ?? 2
                     if let saved = updated.stockClubYardages {
-                        stockClubRows = GLStockClubYardages.sorted(saved)
+                        stockClubRows = saved
                     }
                     stockYardagesDirty = false
                     roundStore.applyWeeklyGoalState(from: updated)

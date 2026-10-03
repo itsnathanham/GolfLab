@@ -436,7 +436,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         rows: [StockClubYardage]
     ) throws {
         let context = try requireContext()
-        let desired = GLStockClubYardages.sorted(rows)
+        let desired = GLStockClubYardages.withDisplayOrders(rows)
         var existingById = Dictionary(
             (profile.stockClubYardages ?? []).map { ($0.id, $0) },
             uniquingKeysWith: { _, last in last }
@@ -449,6 +449,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
                 model.userId = userId
                 model.clubRaw = row.club.rawValue
                 model.yardage = row.yardage
+                model.displayOrder = row.displayOrder
                 model.profile = profile
                 kept.append(model)
             } else {
@@ -457,6 +458,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
                     userId: userId,
                     clubRaw: row.club.rawValue,
                     yardage: row.yardage,
+                    displayOrder: row.displayOrder,
                     profile: profile
                 )
                 context.insert(model)
@@ -496,17 +498,22 @@ private extension SDProfile {
     func resolvedStockClubYardages() -> [StockClubYardage]? {
         let related = (stockClubYardages ?? []).compactMap { row -> StockClubYardage? in
             guard let club = StockClub(rawValue: row.clubRaw) else { return nil }
-            return StockClubYardage(id: row.id, club: club, yardage: row.yardage)
+            return StockClubYardage(
+                id: row.id,
+                club: club,
+                yardage: row.yardage,
+                displayOrder: row.displayOrder
+            )
         }
         if hasConfiguredStockClubYardages || !related.isEmpty {
-            return GLStockClubYardages.sorted(related)
+            return GLStockClubYardages.ordered(related)
         }
         guard let stockClubYardagesData,
               let decoded = try? JSONDecoder().decode([StockClubYardage].self, from: stockClubYardagesData)
         else {
             return nil
         }
-        return GLStockClubYardages.sorted(decoded)
+        return GLStockClubYardages.ordered(decoded)
     }
 
     static func from(_ profile: UserProfile) -> SDProfile {
