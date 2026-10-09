@@ -329,7 +329,8 @@ struct RoundDetailView: View {
     }
 
     private var seasonAverageOverlay: VsParLineChartSeries? {
-        var holesByRound = Dictionary(uniqueKeysWithValues: SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds).compactMap { seasonRound -> (UUID, [Hole])? in
+        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds).filter { $0.holes == round.holes }
+        var holesByRound = Dictionary(uniqueKeysWithValues: seasonRounds.compactMap { seasonRound -> (UUID, [Hole])? in
             let cached = roundStore.holes(for: seasonRound.id)
             guard !cached.isEmpty else { return nil }
             return (seasonRound.id, cached)
@@ -339,7 +340,7 @@ struct RoundDetailView: View {
         }
         return VsParCumulativeProgression.seasonAverageOverlaySeries(
             holesByRoundId: holesByRound,
-            seasonRounds: SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds),
+            seasonRounds: seasonRounds,
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
             chartHoleCount: round.holes
         )

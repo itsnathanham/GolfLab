@@ -118,36 +118,8 @@ struct HomeView: View {
     // MARK: - Season / headline
 
     private var holeFilterPicker: some View {
-        HStack(spacing: 6) {
-            ForEach(HoleFilter.allCases, id: \.self) { filter in
-                let hasRounds = HoleFilterState.hasRounds(for: filter, in: roundStore.allRounds)
-                let isSelected = holeFilter == filter
-                
-                Button {
-                    if hasRounds {
-                        holeFilter = filter
-                        HoleFilterState.persistHoleFilter(filter)
-                    }
-                } label: {
-                    Text(filter.displayTitle.uppercased())
-                        .font(isSelected ? .glFilterActive : .glFilterInactive)
-                        .tracking(0.08 * 11)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(isSelected ? Color.accentDim : Color.clear)
-                        .foregroundColor(hasRounds ? (isSelected ? Color.accent : Color.textTertiary) : Color.textTertiary.opacity(0.4))
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(isSelected ? Color.borderAccent : Color.borderDefault, lineWidth: 1)
-                        )
-                }
-                .disabled(!hasRounds)
-            }
-        }
+        HoleFilterPicker(selectedFilter: $holeFilter, availableRounds: roundStore.allRounds)
     }
-
-    // MARK: - Season / headline
 
     private var seasonBlock: some View {
         VStack(alignment: .leading, spacing: 5) {

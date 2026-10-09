@@ -53,6 +53,7 @@
 		A2CK13AF066B312B2326D1 /* AccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CK03AF066B312B2326D1 /* AccountService.swift */; };
 		A2CK15AF066B312B2326D1 /* ICloudRequiredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CK05AF066B312B2326D1 /* ICloudRequiredView.swift */; };
 		A64A3D13E2EDC2BFF5CCE3DA /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */; };
+		35B35336D2FFDA3DBCC6BE07 /* HoleFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */; };
 		A6982260202120C6AA3D28B5 /* IBMPlexMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9C9F28C3179D5BD945164DAF /* IBMPlexMono-SemiBold.ttf */; };
 		A6DFA77C13045F9B12C3C864 /* Hole.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410F861DA0586FEBCB6C4DC2 /* Hole.swift */; };
 		B2CA61B262034F69E4317724 /* WatchPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79256CA229D6D5C6C26A44D /* WatchPalette.swift */; };
@@ -187,6 +188,7 @@
 		2747BB70E52044C086EF9C80 /* StockClubYardagesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockClubYardagesSection.swift; sourceTree = "<group>"; };
 		C7E1EB249D58CA8A3DD377DB /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleFilterPicker.swift; sourceTree = "<group>"; };
 		D28894252BC3053ADE60BF1B /* GolfLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GolfLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D753DD0C25E4760B60F42D9A /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		D7C36111E50165737A0D9111 /* GLChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLChrome.swift; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				B6E75F15C55A671D377F79A1 /* GLFormChrome.swift */,
 				404BA498477C9F7BA379A825 /* StatToggle.swift */,
 				CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */,
+				9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -703,6 +706,7 @@
 				A2CK11AF066B312B2326D1 /* SwiftDataModels.swift in Sources */,
 				A2CK15AF066B312B2326D1 /* ICloudRequiredView.swift in Sources */,
 				A64A3D13E2EDC2BFF5CCE3DA /* Typography.swift in Sources */,
+				35B35336D2FFDA3DBCC6BE07 /* HoleFilterPicker.swift in Sources */,
 				3718A3C1AF066B312B232611 /* UserProfile.swift in Sources */,
 				0CA25DC103054D09AA2811AA /* StockClubYardage.swift in Sources */,
 				1C88DF64DFBD4D3F9993F959 /* StockClubYardagesSection.swift in Sources */,
