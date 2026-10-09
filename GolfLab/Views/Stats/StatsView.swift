@@ -4,6 +4,7 @@ struct StatsView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @State private var timeRange: TimeRange = .season
     @State private var selectedSeasonYear = Calendar.current.component(.year, from: Date())
+    @State private var holeFilter: HoleFilter = .all
 
     var body: some View {
         NavigationStack {
@@ -18,6 +19,10 @@ struct StatsView: View {
                         insufficientDataView
                     } else {
                         timeRangePicker
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.bottom, 8)
+
+                        holeFilterPicker
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 18)
 
@@ -87,9 +92,14 @@ struct StatsView: View {
         .onAppear {
             normalizeSelectedSeasonYear()
             StatsSeasonFilter.persistStatsSeasonPickerYear(selectedSeasonYear)
+            holeFilter = HoleFilterState.restoredHoleFilter(rounds: roundStore.allRounds)
         }
         .onChange(of: roundStore.roundsListEpoch) { _, _ in
             normalizeSelectedSeasonYear()
+            let restored = HoleFilterState.restoredHoleFilter(rounds: roundStore.allRounds)
+            if holeFilter != restored && !HoleFilterState.hasRounds(for: holeFilter, in: roundStore.allRounds) {
+                holeFilter = restored
+            }
         }
         .onChange(of: selectedSeasonYear) { _, newYear in
             StatsSeasonFilter.persistStatsSeasonPickerYear(newYear)
@@ -100,6 +110,38 @@ struct StatsView: View {
 
     private var statsTopBar: some View {
         GLHubRootTopBar(screenTitle: "Stats")
+    }
+
+    // MARK: - Pills
+
+    private var holeFilterPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(HoleFilter.allCases, id: \.self) { filter in
+                let hasRounds = HoleFilterState.hasRounds(for: filter, in: roundStore.allRounds)
+                let isSelected = holeFilter == filter
+                
+                Button {
+                    if hasRounds {
+                        holeFilter = filter
+                        HoleFilterState.persistHoleFilter(filter)
+                    }
+                } label: {
+                    Text(filter.displayTitle.uppercased())
+                        .font(isSelected ? .glFilterActive : .glFilterInactive)
+                        .tracking(0.08 * 11)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(isSelected ? Color.accentDim : Color.clear)
+                        .foregroundColor(hasRounds ? (isSelected ? Color.accent : Color.textTertiary) : Color.textTertiary.opacity(0.4))
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isSelected ? Color.borderAccent : Color.borderDefault, lineWidth: 1)
+                        )
+                }
+                .disabled(!hasRounds)
+            }
+        }
     }
 
     // MARK: - Pills
@@ -389,14 +431,16 @@ struct StatsView: View {
     }
 
     private var filteredRounds: [Round] {
+        let timeFiltered: [Round]
         switch timeRange {
         case .season:
-            return roundStore.allRounds.filter { $0.datePlayed.hasPrefix("\(resolvedSeasonYearValue)") }
+            timeFiltered = roundStore.allRounds.filter { $0.datePlayed.hasPrefix("\(resolvedSeasonYearValue)") }
         case .last10:
-            return roundStore.allRounds.lastRoundsByDatePlayed(10)
+            timeFiltered = roundStore.allRounds.lastRoundsByDatePlayed(10)
         case .allTime:
-            return roundStore.allRounds
+            timeFiltered = roundStore.allRounds
         }
+        return HoleFilterState.filteredRounds(timeFiltered, filter: holeFilter)
     }
 
     private var availableSeasonYears: [Int] {

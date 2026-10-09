@@ -284,7 +284,9 @@ struct LastRoundSummaryView: View {
     }
 
     private var homeSeasonRounds: [Round] {
-        SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        guard let currentRound = lastRound else { return seasonRounds }
+        return seasonRounds.filter { $0.holes == currentRound.holes }
     }
 
     private func roundGirPct(round: Round) -> Double? {

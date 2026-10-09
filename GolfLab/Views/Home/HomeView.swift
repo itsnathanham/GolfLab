@@ -5,6 +5,7 @@ struct HomeView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @State private var showLogPractice = false
     @State private var logPracticeSheetUserId: UUID?
+    @State private var holeFilter: HoleFilter = .all
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,10 @@ struct HomeView: View {
                             .padding(.top, 8)
                     } else {
                         seasonBlock
+                            .padding(.horizontal, GLLayout.horizontalInset)
+                            .padding(.bottom, 18)
+
+                        holeFilterPicker
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 18)
 
@@ -54,6 +59,15 @@ struct HomeView: View {
             }
             .background(Color.appBackground)
             .toolbar(.hidden, for: .navigationBar)
+        }
+        .onAppear {
+            holeFilter = HoleFilterState.restoredHoleFilter(rounds: roundStore.allRounds)
+        }
+        .onChange(of: roundStore.roundsListEpoch) { _, _ in
+            let restored = HoleFilterState.restoredHoleFilter(rounds: roundStore.allRounds)
+            if holeFilter != restored && !HoleFilterState.hasRounds(for: holeFilter, in: roundStore.allRounds) {
+                holeFilter = restored
+            }
         }
         .onChange(of: showLogPractice) { _, open in
             if !open {
@@ -103,6 +117,38 @@ struct HomeView: View {
 
     // MARK: - Season / headline
 
+    private var holeFilterPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(HoleFilter.allCases, id: \.self) { filter in
+                let hasRounds = HoleFilterState.hasRounds(for: filter, in: roundStore.allRounds)
+                let isSelected = holeFilter == filter
+                
+                Button {
+                    if hasRounds {
+                        holeFilter = filter
+                        HoleFilterState.persistHoleFilter(filter)
+                    }
+                } label: {
+                    Text(filter.displayTitle.uppercased())
+                        .font(isSelected ? .glFilterActive : .glFilterInactive)
+                        .tracking(0.08 * 11)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(isSelected ? Color.accentDim : Color.clear)
+                        .foregroundColor(hasRounds ? (isSelected ? Color.accent : Color.textTertiary) : Color.textTertiary.opacity(0.4))
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isSelected ? Color.borderAccent : Color.borderDefault, lineWidth: 1)
+                        )
+                }
+                .disabled(!hasRounds)
+            }
+        }
+    }
+
+    // MARK: - Season / headline
+
     private var seasonBlock: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(seasonCaption)
@@ -118,7 +164,13 @@ struct HomeView: View {
     private var seasonCaption: String {
         let y = Calendar.current.component(.year, from: Date())
         let n = homeSeasonRounds.count
-        return "\(y) season · \(n) round\(n == 1 ? "" : "s")"
+        let suffix: String
+        if holeFilter == .all {
+            suffix = "\(n) round\(n == 1 ? "" : "s")"
+        } else {
+            suffix = "\(n) round\(n == 1 ? "" : "s") · \(holeFilter.displayTitle)"
+        }
+        return "\(y) season · \(suffix)"
     }
 
     @ViewBuilder
@@ -150,7 +202,8 @@ struct HomeView: View {
     // MARK: - Stat grid (2×2, same chrome + order as Last round)
 
     private var homeSeasonRounds: [Round] {
-        SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds)
+        return HoleFilterState.filteredRounds(seasonRounds, filter: holeFilter)
     }
 
     private var homeStatGrid: some View {
