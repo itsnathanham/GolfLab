@@ -5,27 +5,20 @@ struct HoleFilterPicker: View {
     let availableRounds: [Round]
     
     var body: some View {
-        Menu {
+        Picker("", selection: $selectedFilter) {
             ForEach(HoleFilter.allCases, id: \.self) { filter in
                 let hasRounds = HoleFilterState.hasRounds(for: filter, in: availableRounds)
-                Button {
-                    if hasRounds {
-                        withAnimation(.none) {
-                            selectedFilter = filter
-                        }
-                        HoleFilterState.persistHoleFilter(filter)
-                    }
-                } label: {
-                    HStack {
-                        Text(filter.displayTitle)
-                        if selectedFilter == filter {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-                .disabled(!hasRounds)
+                Text(filter.displayTitle)
+                    .tag(filter)
+                    .disabled(!hasRounds)
             }
-        } label: {
+        }
+        .pickerStyle(.menu)
+        .onChange(of: selectedFilter) { _, newValue in
+            HoleFilterState.persistHoleFilter(newValue)
+        }
+        .buttonStyle(.plain)
+        .overlay(
             HStack(spacing: 6) {
                 Text(selectedFilter.displayTitle.uppercased())
                     .font(.glFilterActive)
@@ -43,7 +36,8 @@ struct HoleFilterPicker: View {
                 RoundedRectangle(cornerRadius: 6)
                     .stroke(Color.borderAccent, lineWidth: 1)
             )
-        }
+            .allowsHitTesting(false)
+        )
         .animation(.none, value: selectedFilter)
     }
 }
