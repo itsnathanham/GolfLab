@@ -115,6 +115,7 @@ struct StatsView: View {
 
     private var holeFilterPicker: some View {
         HoleFilterPicker(selectedFilter: $holeFilter, availableRounds: roundStore.allRounds)
+            .animation(.none, value: holeFilter)
     }
 
     private var timeRangePicker: some View {

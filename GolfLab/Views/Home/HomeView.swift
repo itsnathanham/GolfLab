@@ -115,6 +115,7 @@ struct HomeView: View {
 
     private var holeFilterPicker: some View {
         HoleFilterPicker(selectedFilter: $holeFilter, availableRounds: roundStore.allRounds)
+            .animation(.none, value: holeFilter)
     }
 
     private var seasonBlock: some View {
