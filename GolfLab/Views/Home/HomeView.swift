@@ -28,10 +28,6 @@ struct HomeView: View {
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 18)
 
-                        quickStatsSectionHeader
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 10)
-
                         homeStatGrid
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 22)
@@ -163,12 +159,6 @@ struct HomeView: View {
             + Text(" this season")
             .font(GLFonts.sans(size: 22, weight: .light))
             .foregroundColor(.textPrimary)
-    }
-
-    // MARK: - Quick stats
-
-    private var quickStatsSectionHeader: some View {
-        GLFormFieldLabel(text: "Quick stats")
     }
 
     // MARK: - Stat grid (2×2, same chrome + order as Last round)

@@ -31,6 +31,7 @@ struct HoleFilterPicker: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 9, weight: .semibold))
             }
+            .frame(minWidth: 100)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color.accentDim)
@@ -40,6 +41,9 @@ struct HoleFilterPicker: View {
                 RoundedRectangle(cornerRadius: 6)
                     .stroke(Color.borderAccent, lineWidth: 1)
             )
+        }
+        .transaction { transaction in
+            transaction.animation = nil
         }
     }
 }

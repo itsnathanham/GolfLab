@@ -1,7 +1,7 @@
 import Foundation
 
 enum HoleFilter: String, CaseIterable {
-    case all = "All"
+    case all = "All rounds"
     case eighteen = "18 holes"
     case nine = "9 holes"
     

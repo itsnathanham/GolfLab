@@ -18,13 +18,12 @@ struct StatsView: View {
                     if filteredRounds.count < 2 {
                         insufficientDataView
                     } else {
-                        timeRangePicker
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 8)
-
-                        holeFilterPicker
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 18)
+                        HStack(spacing: 8) {
+                            holeFilterPicker
+                            timeRangePicker
+                        }
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.bottom, 18)
 
                         statsFourUpGrid
                             .padding(.horizontal, GLLayout.horizontalInset)
