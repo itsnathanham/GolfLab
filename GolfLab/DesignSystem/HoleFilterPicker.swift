@@ -10,7 +10,9 @@ struct HoleFilterPicker: View {
                 let hasRounds = HoleFilterState.hasRounds(for: filter, in: availableRounds)
                 Button {
                     if hasRounds {
-                        selectedFilter = filter
+                        withAnimation(.none) {
+                            selectedFilter = filter
+                        }
                         HoleFilterState.persistHoleFilter(filter)
                     }
                 } label: {
