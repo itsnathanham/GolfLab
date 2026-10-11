@@ -27,6 +27,7 @@
 		499416C627C02BD621D7A7D0 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EB49FC0F7CD8080C975EE1 /* Colors.swift */; };
 		4BB63645AF5E9A31CD0E10B0 /* WatchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A5007B516AC096AA30F6635 /* WatchRootView.swift */; };
 		0A729FB043C40635A0BD5EFD /* GLComplicationIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573218C04C1B974319B9966B /* GLComplicationIcon.swift */; };
+		B931C1DC5753E4D9E0B8AD2F /* GLComplicationIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573218C04C1B974319B9966B /* GLComplicationIcon.swift */; };
 		4D33160937859E8DE3F2A41A /* RoundVsParProgressChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193D2052419D826D8DC60A28 /* RoundVsParProgressChartView.swift */; };
 		544C74ABA754E927D5DCE643 /* GLButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34DE04AC8A262F78ADDE78B /* GLButtonStyles.swift */; };
 		5ECBBD351ED295279EA7973F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CBBE2CC7442B4EC856DC52C /* Assets.xcassets */; };
@@ -731,6 +732,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				W1C004AF066B312B2326D1 /* ActiveRoundComplicationWidget.swift in Sources */,
+				B931C1DC5753E4D9E0B8AD2F /* GLComplicationIcon.swift in Sources */,
 				W1C002AF066B312B2326D1 /* WatchComplicationStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
