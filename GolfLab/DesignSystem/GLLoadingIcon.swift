@@ -53,7 +53,6 @@ struct GLLoadingIcon: View {
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(Color.accent)
                 .frame(width: 3, height: 45)
-                .offset(x: 0, y: 0)
             
             Path { path in
                 path.move(to: CGPoint(x: 3, y: 0))
