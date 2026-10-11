@@ -33,8 +33,7 @@ struct ActiveRoundComplicationView: View {
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
                 .minimumScaleFactor(0.6)
         } else {
-            Image(systemName: "figure.golf")
-                .font(.system(size: 16, weight: .semibold))
+            GLComplicationIcon()
         }
     }
 }
