@@ -44,8 +44,6 @@ struct HoleFilterPicker: View {
                     .stroke(Color.borderAccent, lineWidth: 1)
             )
         }
-        .transaction { transaction in
-            transaction.animation = nil
-        }
+        .animation(.none, value: selectedFilter)
     }
 }
