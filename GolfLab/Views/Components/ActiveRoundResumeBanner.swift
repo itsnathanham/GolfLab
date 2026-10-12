@@ -15,7 +15,9 @@ struct ActiveRoundResumeBanner: View {
                         Text("Round resumed")
                             .font(GLFonts.sans(size: 14, weight: .semibold))
                             .foregroundColor(.textPrimary)
-                        Text("Your scorecard for \(round.setup.courseName) was restored after the app closed.")
+                        Text(roundStore.restoredFromWatch
+                             ? "Your scorecard for \(round.setup.courseName) was restored from your Apple Watch."
+                             : "Your scorecard for \(round.setup.courseName) was restored after the app closed.")
                             .font(.glFootnote)
                             .foregroundColor(.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

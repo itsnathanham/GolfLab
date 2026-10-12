@@ -43,6 +43,7 @@
 		90EAF3F422687B4CEFDB1D9C /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D753DD0C25E4760B60F42D9A /* SplashView.swift */; };
 		92BCB7E1DE6B96C7D591FEF6 /* RoundStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39D75AB183F427E7A98D9952 /* RoundStore.swift */; };
 		9416E535836DDDFE45BF570F /* WatchMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */; };
+		A0C002AF066B312B2326D2AA /* ScorecardSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C001AF066B312B2326D1AA /* ScorecardSync.swift */; };
 		9A5FA7361FBC232A074F0CF4 /* StatsSeasonFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9493E4629BD4DE4845F18497 /* StatsSeasonFilter.swift */; };
 		6657CFD1F2BA8F3AB4F23007 /* HoleFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A04A3A888FBB8390F08859A /* HoleFilter.swift */; };
 		A1B2C3D4E5F60718293A4B5C /* ActiveRoundDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */; };
@@ -66,6 +67,7 @@
 		C0A1C002AF066B312B2326C1 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1C001AF066B312B2326C0 /* CoachView.swift */; };
 		D36A7C0AAF97FBF5594B679B /* GLFormChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E75F15C55A671D377F79A1 /* GLFormChrome.swift */; };
 		D41B3669ED6AD57DA06A1DE4 /* WatchMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */; };
+		A0C003AF066B312B2326D3AA /* ScorecardSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C001AF066B312B2326D1AA /* ScorecardSync.swift */; };
 		D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8B4C201AF066B312B2326C0 /* WeeklyGoalsStreakSection.swift */; };
 		DEDA9A241D34378F6D175E1D /* GLCalendarChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEFDABF24F2C4AA3DA701EB3 /* GLCalendarChrome.swift */; };
 		DFF7A7A348C0AED2BA557B72 /* RoundTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE30AAB3C603E26C96545B9 /* RoundTabView.swift */; };
@@ -153,6 +155,7 @@
 		4F04EA2BB88B12F89DC920C0 /* HistoryCalendarMonthCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCalendarMonthCard.swift; sourceTree = "<group>"; };
 		52B3F5481AF9DC54DA07AAD4 /* LastRoundSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LastRoundSummaryView.swift; sourceTree = "<group>"; };
 		52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMessages.swift; sourceTree = "<group>"; };
+		A0C001AF066B312B2326D1AA /* ScorecardSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScorecardSync.swift; sourceTree = "<group>"; };
 		5A5007B516AC096AA30F6635 /* WatchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRootView.swift; sourceTree = "<group>"; };
 		573218C04C1B974319B9966B /* GLComplicationIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLComplicationIcon.swift; sourceTree = "<group>"; };
 		5E60441036AA2A749FC58294 /* GLCalendarISO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLCalendarISO.swift; sourceTree = "<group>"; };
@@ -488,6 +491,7 @@
 			isa = PBXGroup;
 			children = (
 				52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */,
+				A0C001AF066B312B2326D1AA /* ScorecardSync.swift */,
 				GLPRACT002AF066B312B2326D1 /* GLPracticeRangeBalls.swift */,
 				W1C003AF066B312B2326D1 /* WatchComplicationStore.swift */,
 			);
@@ -653,6 +657,7 @@
 				130D12F53875E5A088CFB37D /* WatchHoleEntryView.swift in Sources */,
 				WATCHPRAC001AF066B312B2326D1 /* WatchPracticeLogView.swift in Sources */,
 				D41B3669ED6AD57DA06A1DE4 /* WatchMessages.swift in Sources */,
+				A0C003AF066B312B2326D3AA /* ScorecardSync.swift in Sources */,
 				GLPRACT001AF066B312B2326D1 /* GLPracticeRangeBalls.swift in Sources */,
 				GLCAL001AF066B312B2326D1 /* GLCalendarISO.swift in Sources */,
 				B2CA61B262034F69E4317724 /* WatchPalette.swift in Sources */,
@@ -723,6 +728,7 @@
 				D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */,
 				808144D94F4C099CA8CF426D /* WatchConnectivityService.swift in Sources */,
 				9416E535836DDDFE45BF570F /* WatchMessages.swift in Sources */,
+				A0C002AF066B312B2326D2AA /* ScorecardSync.swift in Sources */,
 				GLPRACT003AF066B312B2326D1 /* GLPracticeRangeBalls.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

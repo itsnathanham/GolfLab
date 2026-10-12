@@ -74,15 +74,11 @@ struct MainTabView: View {
         }
         .onAppear {
             if roundStore.isRoundActive {
+                loadedTabs.insert(1)
+                selectedTab = 1
                 roundStore.pushCompanionSnapshotToWatch()
             }
             flushWatchPracticeEntries()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .watchRequestedEndRound)) { _ in
-            Task {
-                await roundStore.saveActiveRoundFromWatchEndRequest()
-                roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .watchRequestedCompanionSync)) { _ in
             if roundStore.isRoundActive {
