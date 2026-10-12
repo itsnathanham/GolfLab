@@ -10,6 +10,8 @@ struct WatchHoleEntryView: View {
     @State private var fir: Bool = false
     @State private var penalty: Bool = false
     @State private var showEndRound = false
+    @State private var formDirty = false
+    @State private var suppressDirty = false
 
     private enum ScrollAnchor: Hashable {
         case top
@@ -46,15 +48,22 @@ struct WatchHoleEntryView: View {
             .navigationTitle("Hole \(displayHoleOrdinal)")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                resetToDefaults()
+                loadFormFromSavedHole()
             }
             .onChange(of: session.currentHoleIndex) { _, _ in
-                resetToDefaults()
+                formDirty = false
+                loadFormFromSavedHole()
                 scrollToTop(using: proxy)
             }
             .onChange(of: session.syncGeneration) { _, _ in
-                resetToDefaults()
+                guard !formDirty else { return }
+                loadFormFromSavedHole()
             }
+            .onChange(of: score) { _, _ in markFormDirty() }
+            .onChange(of: putts) { _, _ in markFormDirty() }
+            .onChange(of: gir) { _, _ in markFormDirty() }
+            .onChange(of: fir) { _, _ in markFormDirty() }
+            .onChange(of: penalty) { _, _ in markFormDirty() }
         }
         .sheet(isPresented: $showEndRound) {
             WatchEndRoundView()
@@ -165,6 +174,27 @@ struct WatchHoleEntryView: View {
     }
 
     // MARK: - Logic
+
+    private func markFormDirty() {
+        if !suppressDirty {
+            formDirty = true
+        }
+    }
+
+    private func loadFormFromSavedHole() {
+        suppressDirty = true
+        if let entry = session.holeEntries.first(where: { $0.holeNumber == displayHoleOrdinal }) {
+            score = entry.score
+            crownValue = Double(entry.score)
+            putts = entry.putts
+            gir = entry.gir
+            fir = entry.fir ?? false
+            penalty = entry.penalty ?? false
+        } else {
+            resetToDefaults()
+        }
+        suppressDirty = false
+    }
 
     private func resetToDefaults() {
         score = par

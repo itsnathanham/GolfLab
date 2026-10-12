@@ -26,6 +26,8 @@ struct WatchRootView: View {
 }
 
 struct WatchIdleView: View {
+    @EnvironmentObject private var session: WatchSessionService
+
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "chart.line.uptrend.xyaxis")
@@ -34,7 +36,9 @@ struct WatchIdleView: View {
             Text("Golf Lab")
                 .font(.headline)
                 .foregroundColor(WatchPalette.textPrimary)
-            Text("Start a round\non your iPhone")
+            Text(session.isWaitingForPhoneToSave
+                 ? "Round is on this watch.\nOpen Golf Lab on your iPhone to keep it."
+                 : "Start a round\non your iPhone")
                 .font(.footnote)
                 .foregroundColor(WatchPalette.textSecondary)
                 .multilineTextAlignment(.center)

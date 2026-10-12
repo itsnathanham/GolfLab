@@ -62,17 +62,33 @@ class RoundStore: ObservableObject {
     /// When true, the Round tab shows **New Round** setup even if a last-round summary would normally appear (e.g. **Start round** from Home).
     @Published var preferNewRoundSetup = false
 
-    /// Set after restoring an in-progress scorecard from local storage (process kill / relaunch).
+    /// Set after restoring an in-progress scorecard from local storage or the watch.
     @Published private(set) var didRestoreActiveRoundFromDraft = false
+    /// Restored from the watch because the phone had no local round.
+    @Published private(set) var restoredFromWatch = false
 
     /// Coalesces overlapping hydrate / refresh / pull-to-refresh so profile sync does not race.
     private var loadRoundsInflight: Task<Void, Never>?
 
     private var companionSessionId = UUID()
     private var companionRevision: UInt64 = 0
+    /// Highest per-hole revision this phone has seen or written for the live session.
+    private var holeClock: UInt64 = 0
+    /// The next outbound snapshot intentionally replaces a different watch session.
+    private var outboundReplacesSession = false
 
     init() {
         restoreActiveRoundFromDraftIfNeeded()
+        WatchConnectivityService.shared.attach(self)
+    }
+
+    /// Called once Watch Connectivity is active, after any scorecard the watch already published has been merged.
+    func connectivityDidActivate() {
+        if isRoundActive {
+            pushCompanionSnapshotToWatch()
+        } else {
+            republishLatestTombstone()
+        }
     }
 
     func requestRoundSetupFromHome() {
@@ -85,17 +101,23 @@ class RoundStore: ObservableObject {
 
     func dismissRestoredRoundBanner() {
         didRestoreActiveRoundFromDraft = false
+        restoredFromWatch = false
     }
 
     /// Abandons the in-progress scorecard without saving.
     func discardActiveRound() {
+        let endedSession = companionSessionId
+        let hadRound = isRoundActive
         activeRound = nil
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
+        restoredFromWatch = false
         preferNewRoundSetup = false
-        ActiveRoundDraftStore.clear()
+        if hadRound {
+            ActiveRoundDraftStore.tombstone(sessionId: endedSession, holeClock: holeClock)
+            WatchConnectivityService.shared.pushCompanionSnapshot(.tombstone(sessionId: endedSession))
+        }
         WatchConnectivityService.shared.clearEntries()
-        WatchConnectivityService.shared.notifyCompanionEnded()
     }
 
     // MARK: - Start a new round
@@ -103,9 +125,12 @@ class RoundStore: ObservableObject {
     func startRound(setup: RoundSetup, userId: UUID) {
         preferNewRoundSetup = false
         didRestoreActiveRoundFromDraft = false
+        restoredFromWatch = false
         WatchConnectivityService.shared.clearEntries()
         companionSessionId = UUID()
         companionRevision = 0
+        holeClock = 0
+        outboundReplacesSession = true
 
         let holes: [ActiveHole] = setup.holeSetups.map { h in
             ActiveHole(holeNumber: h.holeNumber, par: h.par, yardage: h.yardage, strokeIndex: h.strokeIndex)
@@ -129,13 +154,16 @@ class RoundStore: ObservableObject {
         let idx = min(max(0, round.currentHoleIndex), lastIdx)
         let saved = round.holes.filter(\.isSaved).map { h in
             WatchHoleEntry(
+                sessionId: companionSessionId,
                 holeNumber: h.holeNumber,
                 par: h.par,
                 score: h.score,
                 putts: h.putts,
                 gir: h.gir,
                 fir: h.fir,
-                penalty: h.penalty
+                penalty: h.penalty,
+                revision: h.revision,
+                editedAt: h.editedAt
             )
         }
         let setup = WatchRoundSetup(
@@ -152,33 +180,57 @@ class RoundStore: ObservableObject {
             }
         )
         let nextRevision = companionRevision + 1
+        let replacesSession = outboundReplacesSession
+        outboundReplacesSession = false
         return WatchCompanionSnapshot(
             sessionId: companionSessionId,
             revision: nextRevision,
             setup: setup,
-            state: WatchRoundState(currentHoleIndex: idx, savedEntries: saved)
+            state: WatchRoundState(currentHoleIndex: idx, savedEntries: saved),
+            tombstone: false,
+            replacesSession: replacesSession,
+            datePlayed: round.setup.datePlayed,
+            userId: round.userId
         )
     }
 
     private func restoreActiveRoundFromDraftIfNeeded() {
-        guard let envelope = ActiveRoundDraftStore.load() else { return }
-        activeRound = envelope.round
+        guard let envelope = ActiveRoundDraftStore.load(), let round = envelope.round else { return }
+        activeRound = round
         isRoundActive = true
-        companionSessionId = envelope.companionSessionId
+        companionSessionId = envelope.companionSessionId ?? UUID()
         companionRevision = envelope.companionRevision
+        holeClock = max(envelope.holeClock, round.holes.map(\.revision).max() ?? 0)
         didRestoreActiveRoundFromDraft = true
+        restoredFromWatch = false
     }
 
     private func persistActiveRoundDraft() {
-        guard isRoundActive, let round = activeRound else {
-            ActiveRoundDraftStore.clear()
-            return
-        }
+        guard isRoundActive, let round = activeRound else { return }
         ActiveRoundDraftStore.save(
             round: round,
             companionSessionId: companionSessionId,
-            companionRevision: companionRevision
+            companionRevision: companionRevision,
+            holeClock: holeClock
         )
+    }
+
+    private func stampSaved(_ hole: inout ActiveHole) {
+        holeClock += 1
+        hole.revision = holeClock
+        hole.editedAt = Date()
+        hole.isSaved = true
+    }
+
+    private func noteRemoteRevision(_ revision: UInt64) {
+        if revision > holeClock {
+            holeClock = revision
+        }
+    }
+
+    private func republishLatestTombstone() {
+        guard let sessionId = ActiveRoundDraftStore.load()?.tombstones.last else { return }
+        WatchConnectivityService.shared.pushCompanionSnapshot(.tombstone(sessionId: sessionId))
     }
 
     // MARK: - Save a hole (from iPhone entry)
@@ -187,7 +239,7 @@ class RoundStore: ObservableObject {
         guard var round = activeRound else { return }
         guard let index = round.holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }) else { return }
         var saved = entry
-        saved.isSaved = true
+        stampSaved(&saved)
         round.holes[index] = saved
         activeRound = round
         pushCompanionSnapshotToWatch()
@@ -205,7 +257,7 @@ class RoundStore: ObservableObject {
             return nil
         }
         var saved = entry
-        saved.isSaved = true
+        stampSaved(&saved)
         round.holes[index] = saved
 
         if index < round.holes.count - 1 {
@@ -229,7 +281,7 @@ class RoundStore: ObservableObject {
         round.holes[idx].gir = gir
         round.holes[idx].fir = par > 3 ? fir : nil
         round.holes[idx].penalty = penalty
-        round.holes[idx].isSaved = true
+        stampSaved(&round.holes[idx])
         activeRound = round
         pushCompanionSnapshotToWatch()
     }
@@ -248,41 +300,119 @@ class RoundStore: ObservableObject {
               let idx = round.holes.firstIndex(where: { $0.holeNumber == holeNumber }) else { return }
         patch(&round.holes[idx])
         activeRound = round
+        persistActiveRoundDraft()
     }
 
     // MARK: - Merge Watch hole data
 
     func mergeWatchEntries(_ entries: [WatchHoleEntry]) {
-        guard var round = activeRound else { return }
-        var appliedAny = false
+        let versions = entries.map(\.version)
+        guard applyWatchHoleVersions(entries) else {
+            replyIfWatchIsBehind(remote: versions)
+            return
+        }
+        replyIfWatchIsBehind(remote: versions)
+    }
+
+    /// Merges a watch scorecard. Does not move the phone cursor.
+    /// When the phone has no round and this session was not discarded, adopts the watch card.
+    func applyWatchScorecard(_ snapshot: WatchCompanionSnapshot) {
+        if snapshot.tombstone {
+            if companionSessionId == snapshot.sessionId, isRoundActive {
+                activeRound = nil
+                isRoundActive = false
+                didRestoreActiveRoundFromDraft = false
+                restoredFromWatch = false
+                ActiveRoundDraftStore.tombstone(sessionId: snapshot.sessionId, holeClock: holeClock)
+            }
+            return
+        }
+        if ActiveRoundDraftStore.isTombstoned(snapshot.sessionId), !snapshot.replacesSession {
+            return
+        }
+        guard isRoundActive, companionSessionId == snapshot.sessionId else {
+            guard !isRoundActive else { return }
+            adoptWatchScorecard(snapshot)
+            return
+        }
+        let versions = snapshot.state.savedEntries.map(\.version)
+        _ = applyWatchHoleVersions(snapshot.state.savedEntries)
+        replyIfWatchIsBehind(remote: versions)
+    }
+
+    private func applyWatchHoleVersions(_ entries: [WatchHoleEntry]) -> Bool {
+        guard var round = activeRound else { return false }
+        var changed = false
         for entry in entries {
+            if let sessionId = entry.sessionId, sessionId != companionSessionId { continue }
+            if let sessionId = entry.sessionId, ActiveRoundDraftStore.isTombstoned(sessionId) { continue }
             guard let index = round.holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }) else { continue }
-            // Holes already saved on iPhone keep phone data — avoids stale Watch payloads wiping edits.
-            if round.holes[index].isSaved { continue }
-            appliedAny = true
+            let remote = entry.version
+            guard ScorecardSync.prefersRemote(local: round.holes[index].version, remote: remote) else { continue }
             round.holes[index].score = entry.score
             round.holes[index].putts = entry.putts
             round.holes[index].gir = entry.gir
             round.holes[index].fir = entry.fir
             round.holes[index].penalty = entry.penalty ?? false
             round.holes[index].isSaved = true
+            round.holes[index].revision = entry.revision
+            round.holes[index].editedAt = entry.editedAt
+            noteRemoteRevision(entry.revision)
+            changed = true
         }
-        activeRound = round
-        if appliedAny {
-            reconcileCurrentHoleAfterCompanionSave()
+        if changed {
+            activeRound = round
+            persistActiveRoundDraft()
         }
+        return changed
+    }
+
+    private func replyIfWatchIsBehind(remote: [HoleVersion]) {
+        guard let round = activeRound, isRoundActive else { return }
+        let local = round.holes.map(\.version)
+        guard ScorecardSync.localHasProgressRemoteLacks(local: local, remote: remote) else { return }
         pushCompanionSnapshotToWatch()
     }
 
-    /// After Watch (or reconciliation) saves holes: move the scorecard to the first hole that still needs a scorecard save.
-    private func reconcileCurrentHoleAfterCompanionSave() {
-        guard var round = activeRound else { return }
-        if let idx = round.holes.firstIndex(where: { !$0.isSaved }) {
-            round.currentHoleIndex = idx
-        } else if !round.holes.isEmpty {
-            round.currentHoleIndex = round.holes.count - 1
+    private func adoptWatchScorecard(_ snapshot: WatchCompanionSnapshot) {
+        let userId = snapshot.userId ?? GolfLabUserID.load() ?? UUID()
+        let setups = snapshot.setup.holeSetups.map {
+            HoleSetup(holeNumber: $0.holeNumber, par: $0.par, yardage: $0.yardage, strokeIndex: $0.strokeIndex)
         }
+        guard !setups.isEmpty else { return }
+        let setup = RoundSetup(
+            courseName: snapshot.setup.courseName,
+            tee: snapshot.setup.tee,
+            totalHoles: snapshot.setup.totalHoles,
+            datePlayed: snapshot.datePlayed ?? Date(),
+            holeSetups: setups
+        )
+        var holes: [ActiveHole] = setups.map {
+            ActiveHole(holeNumber: $0.holeNumber, par: $0.par, yardage: $0.yardage, strokeIndex: $0.strokeIndex)
+        }
+        for entry in snapshot.state.savedEntries {
+            guard let index = holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }) else { continue }
+            holes[index].score = entry.score
+            holes[index].putts = entry.putts
+            holes[index].gir = entry.gir
+            holes[index].fir = entry.fir
+            holes[index].penalty = entry.penalty ?? false
+            holes[index].isSaved = true
+            holes[index].revision = entry.revision
+            holes[index].editedAt = entry.editedAt
+            noteRemoteRevision(entry.revision)
+        }
+        var round = ActiveRound(setup: setup, userId: userId, holes: holes)
+        let lastIdx = max(0, holes.count - 1)
+        round.currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), lastIdx)
+        companionSessionId = snapshot.sessionId
+        companionRevision = snapshot.revision
         activeRound = round
+        isRoundActive = true
+        didRestoreActiveRoundFromDraft = true
+        restoredFromWatch = true
+        preferNewRoundSetup = false
+        persistActiveRoundDraft()
     }
 
     /// Applies any hole data received from Apple Watch so totals and inserts include every logged hole,
@@ -293,9 +423,12 @@ class RoundStore: ObservableObject {
 
     /// Watch **End & Save** — same persistence path as iPhone End round (merges queued hole payloads first).
     func saveActiveRoundFromWatchEndRequest() async {
+        if !isRoundActive, let snapshot = WatchConnectivityService.shared.latestWatchScorecard {
+            applyWatchScorecard(snapshot)
+        }
         guard isRoundActive, activeRound != nil else { return }
         do {
-        _ = try await saveActiveRound()
+            _ = try await saveActiveRound()
         } catch RoundError.noActiveRound {
             // Already finished (e.g. duplicate end message).
         } catch {
@@ -311,7 +444,7 @@ class RoundStore: ObservableObject {
         let idx = round.currentHoleIndex
         guard idx < round.holes.count, idx > 0 else { return }
         guard round.holes[..<idx].allSatisfy(\.isSaved), !round.holes[idx].isSaved else { return }
-        round.holes[idx].isSaved = true
+        stampSaved(&round.holes[idx])
         activeRound = round
         pushCompanionSnapshotToWatch()
     }
@@ -361,9 +494,10 @@ class RoundStore: ObservableObject {
 
         _ = try await GolfLabData.store.insertHoles(holeInserts)
 
+        let endedSession = companionSessionId
         WatchConnectivityService.shared.clearEntries()
-        WatchConnectivityService.shared.notifyCompanionEnded()
-        ActiveRoundDraftStore.clear()
+        ActiveRoundDraftStore.tombstone(sessionId: endedSession, holeClock: holeClock)
+        WatchConnectivityService.shared.pushCompanionSnapshot(.tombstone(sessionId: endedSession))
 
         let newId = savedRound.id
         // Clear before reload so par averages from `fetchHoleAggregatesByUser` are not merged twice with the same holes.
@@ -698,6 +832,13 @@ struct ActiveHole: Codable, Equatable {
     var fir: Bool?
     var penalty: Bool
     var isSaved: Bool
+    /// Per-hole Lamport revision. Independent of the phone snapshot counter.
+    var revision: UInt64
+    var editedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case holeNumber, par, yardage, strokeIndex, score, putts, gir, fir, penalty, isSaved, revision, editedAt
+    }
 
     init(holeNumber: Int, par: Int, yardage: Int? = nil, strokeIndex: Int? = nil) {
         self.holeNumber  = holeNumber
@@ -710,6 +851,44 @@ struct ActiveHole: Codable, Equatable {
         self.fir         = par > 3 ? false : nil
         self.penalty     = false
         self.isSaved     = false
+        self.revision    = 0
+        self.editedAt    = .distantPast
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        holeNumber = try container.decode(Int.self, forKey: .holeNumber)
+        par = try container.decode(Int.self, forKey: .par)
+        yardage = try container.decodeIfPresent(Int.self, forKey: .yardage)
+        strokeIndex = try container.decodeIfPresent(Int.self, forKey: .strokeIndex)
+        score = try container.decode(Int.self, forKey: .score)
+        putts = try container.decode(Int.self, forKey: .putts)
+        gir = try container.decode(Bool.self, forKey: .gir)
+        fir = try container.decodeIfPresent(Bool.self, forKey: .fir)
+        penalty = try container.decode(Bool.self, forKey: .penalty)
+        isSaved = try container.decode(Bool.self, forKey: .isSaved)
+        revision = try container.decodeIfPresent(UInt64.self, forKey: .revision) ?? 0
+        editedAt = try container.decodeIfPresent(Date.self, forKey: .editedAt) ?? .distantPast
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(holeNumber, forKey: .holeNumber)
+        try container.encode(par, forKey: .par)
+        try container.encodeIfPresent(yardage, forKey: .yardage)
+        try container.encodeIfPresent(strokeIndex, forKey: .strokeIndex)
+        try container.encode(score, forKey: .score)
+        try container.encode(putts, forKey: .putts)
+        try container.encode(gir, forKey: .gir)
+        try container.encodeIfPresent(fir, forKey: .fir)
+        try container.encode(penalty, forKey: .penalty)
+        try container.encode(isSaved, forKey: .isSaved)
+        try container.encode(revision, forKey: .revision)
+        try container.encode(editedAt, forKey: .editedAt)
+    }
+
+    var version: HoleVersion {
+        HoleVersion(holeNumber: holeNumber, isSaved: isSaved, revision: revision, editedAt: editedAt)
     }
 }
 

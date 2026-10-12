@@ -17,12 +17,11 @@ struct HoleEntryView: View {
             VStack(spacing: 0) {
                 if let round = roundStore.activeRound, round.currentHoleIndex < round.holes.count {
                     let hole = round.holes[round.currentHoleIndex]
-                    // UI progress/totals should update live while editing the current hole.
-                    let progressCount = min(round.currentHoleIndex + 1, round.holes.count)
-                    let throughCurrent = Array(round.holes.prefix(progressCount))
+                    let savedHoles = round.holes.filter(\.isSaved)
+                    let progressCount = savedHoles.count
                     let progress = round.holes.isEmpty ? 0 : CGFloat(progressCount) / CGFloat(round.holes.count)
-                    let liveScore = throughCurrent.reduce(0) { $0 + $1.score }
-                    let livePar = throughCurrent.reduce(0) { $0 + $1.par }
+                    let liveScore = savedHoles.reduce(0) { $0 + $1.score }
+                    let livePar = savedHoles.reduce(0) { $0 + $1.par }
                     let vs = liveScore - livePar
 
                     topNav(round: round)
@@ -104,12 +103,12 @@ struct HoleEntryView: View {
         round.currentHoleIndex > 0
     }
 
-    /// Next hole is only reachable after the current hole has been saved (scorecard commit).
+    /// Saved holes after an unsaved gap stay reachable. A brand-new hole still waits for this hole to be saved.
     private func canGoForward(round: ActiveRound) -> Bool {
-        let idx = round.currentHoleIndex
-        guard idx < round.holes.count else { return false }
-        guard idx < round.holes.count - 1 else { return false }
-        return round.holes[idx].isSaved
+        ScorecardSync.canReviewForward(
+            currentIndex: round.currentHoleIndex,
+            isSaved: round.holes.map(\.isSaved)
+        )
     }
 
     private func goToPreviousHole(round: ActiveRound) {
