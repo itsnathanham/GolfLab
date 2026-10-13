@@ -42,7 +42,7 @@ struct ActiveRoundComplicationWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WatchComplicationStore.widgetKind, provider: ActiveRoundComplicationProvider()) { entry in
             ActiveRoundComplicationView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(Color(red: 25 / 255, green: 105 / 255, blue: 58 / 255), for: .widget)
         }
         .configurationDisplayName("Current Hole")
         .description("Shows the active hole number.")
