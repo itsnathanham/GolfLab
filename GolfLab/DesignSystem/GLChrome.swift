@@ -4,12 +4,12 @@ import SwiftUI
 
 enum GLTopBarMetrics {
     /// Balanced leading / trailing slot (scorecard-style nav).
-    static let sideSlotWidth: CGFloat = 72
-    static let sheetTopPadding: CGFloat = 18
+    static let sideSlotWidth: CGFloat = 68
+    static let sheetTopPadding: CGFloat = 16
     /// Extra space below the sheet grabber / first chrome row (used with `sheetTopPadding` on tall sheets).
-    static let sheetExtraTopInset: CGFloat = 8
-    static let screenRootTopPadding: CGFloat = 6
-    static let titleBarBottomSpacing: CGFloat = 16
+    static let sheetExtraTopInset: CGFloat = 6
+    static let screenRootTopPadding: CGFloat = 4
+    static let titleBarBottomSpacing: CGFloat = 14
 }
 
 enum GLButtonMetrics {
