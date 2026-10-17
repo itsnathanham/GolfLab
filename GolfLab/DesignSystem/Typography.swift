@@ -3,14 +3,14 @@ import SwiftUI
 // IBM Plex via `GLFonts` + bundle (docs/design.md).
 
 extension Font {
-    /// Mono 34 semibold — large stat values, round totals.
-    static let glDisplay = GLFonts.mono(size: 34, weight: .semibold)
-    /// Sans 22 semibold — screen titles.
-    static let glTitle = GLFonts.sans(size: 22, weight: .semibold)
-    /// Sans 18 medium — card titles, section headers.
-    static let glHeadline = GLFonts.sans(size: 18, weight: .medium)
-    /// Sans 16 regular — body.
-    static let glBody = GLFonts.sans(size: 16, weight: .regular)
+    /// Mono 32 semibold — large stat values, round totals (reduced for density).
+    static let glDisplay = GLFonts.mono(size: 32, weight: .semibold)
+    /// Sans 20 semibold — screen titles (reduced for density).
+    static let glTitle = GLFonts.sans(size: 20, weight: .semibold)
+    /// Sans 17 medium — card titles, section headers (reduced for density).
+    static let glHeadline = GLFonts.sans(size: 17, weight: .medium)
+    /// Sans 15 regular — body (reduced for density).
+    static let glBody = GLFonts.sans(size: 15, weight: .regular)
     /// Sans 14 medium — secondary labels.
     static let glSubhead = GLFonts.sans(size: 14, weight: .medium)
     /// Sans 12 medium — field labels (often uppercase + tracking in views).
@@ -38,13 +38,14 @@ extension Font {
 // MARK: - Layout (docs/design.md)
 
 enum GLLayout {
-    static let horizontalInset: CGFloat = 22
+    /// Tighter horizontal inset for data density.
+    static let horizontalInset: CGFloat = 18
 
     enum TabBar {
         static let borderHeight: CGFloat = 1
-        static let contentTopPadding: CGFloat = 12
+        static let contentTopPadding: CGFloat = 10
         static let contentBottomPadding: CGFloat = 4
-        static let itemSpacing: CGFloat = 4
+        static let itemSpacing: CGFloat = 3
         static let iconPointSize: CGFloat = 16
         static let activeDotSize: CGFloat = 3
         /// Icon + spacing + eyebrow label + dot in `MainTabView.tabButton`.
@@ -55,16 +56,17 @@ enum GLLayout {
     }
 
     /// Bottom scroll margin for tab roots (and pushed destinations). Applied in `MainTabView.tabRoot`.
-    static let tabRootScrollBottomMargin: CGFloat = TabBar.occupiedHeight + 20
-    static let sheetContentBottomPadding: CGFloat = 32
+    static let tabRootScrollBottomMargin: CGFloat = TabBar.occupiedHeight + 16
+    static let sheetContentBottomPadding: CGFloat = 28
 }
 
 // MARK: - Layout tokens (cards, sheets, chart panels)
 
 enum GLCardMetrics {
-    static let cornerRadius: CGFloat = 8
-    static let cornerRadiusSmall: CGFloat = 8
-    static let padding: CGFloat = 14
+    static let cornerRadius: CGFloat = 12
+    static let cornerRadiusSmall: CGFloat = 10
+    /// Reduced padding for density.
+    static let padding: CGFloat = 12
     static let strokeWidth: CGFloat = 1
 }
 

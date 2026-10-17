@@ -3,102 +3,113 @@ import SwiftUI
 import UIKit
 #endif
 
-// MARK: - Design brief (docs/design.md)
+// MARK: - Robinhood Dark Theme (dark-only, data-dense)
+// Updated: 2026-10-16 — Pure black backgrounds, bold green accents, stock-inspired aesthetic
 
 extension Color {
-    /// Page / screen background — light green tint, not pure white.
-    static let bgPrimary = Color(hex: "#F4F6F4")
+    // MARK: - Backgrounds (dark-only)
+    
+    /// Page / screen background — pure black for OLED contrast and outdoor readability.
+    static let bgPrimary = Color(hex: "#000000")
+    
     /// Card / panel / off-state toggle surface.
-    static let bgCard = Color(hex: "#FFFFFF")
+    static let bgCard = Color(hex: "#1C1C1E")
+    
     /// Stepper −/+, elevated inactive surfaces.
-    static let bgElevated = Color(hex: "#EAEEEA")
-
-    static var borderDefault: Color { Color.black.opacity(0.07) }
-    static var borderAccent: Color { Color(hex: "#19693A").opacity(0.25) }
-    static var borderPenalty: Color { Color(hex: "#C0412D").opacity(0.28) }
-
-    static let textPrimary = Color(hex: "#111A13")
-    static let textSecondary = Color(hex: "#4A6655")
-    static let textTertiary = Color(hex: "#8FA898")
-
-    /// Deep forest — CTAs, active states, improving trends (use sparingly).
-    static let accent = Color(hex: "#19693A")
-    /// Slightly lighter green — positive deltas.
-    static let accentMid = Color(hex: "#22874E")
-    static var accentDim: Color { accent.opacity(0.08) }
-    static var accentDimmer: Color { accent.opacity(0.04) }
-    /// Text on primary accent button.
-    static let ctaOnAccent = Color(hex: "#F2F8F4")
-
-    // MARK: - App-wide aliases (existing call sites)
-
+    static let bgElevated = Color(hex: "#2C2C2E")
+    
+    // MARK: - Borders
+    
+    static var borderDefault: Color { Color.white.opacity(0.08) }
+    static var borderAccent: Color { Color(hex: "#00C805").opacity(0.25) }
+    static var borderPenalty: Color { Color(hex: "#FF453A").opacity(0.28) }
+    
+    // MARK: - Text
+    
+    static let textPrimary = Color(hex: "#FFFFFF")
+    static let textSecondary = Color(hex: "#8E8E93")
+    static let textTertiary = Color(hex: "#636366")
+    
+    // MARK: - Accent
+    
+    /// Bold green — CTAs, active states, under-par scores.
+    static let accent = Color(hex: "#00C805")
+    
+    /// Lighter green — positive trends, birdie rings.
+    static let accentMid = Color(hex: "#5AC53B")
+    
+    static var accentDim: Color { Color(hex: "#00C805").opacity(0.12) }
+    static var accentDimmer: Color { Color(hex: "#00C805").opacity(0.06) }
+    
+    /// Text on primary accent button — pure black for max contrast.
+    static let ctaOnAccent = Color(hex: "#000000")
+    
+    // MARK: - App-wide aliases
+    
     static var appBackground: Color { bgPrimary }
     static var cardBackground: Color { bgCard }
-    /// Primary CTA tint, selected filters, key emphasis.
     static var brandAccent: Color { accent }
-    /// 1px hairlines on cards and panels.
     static var divider: Color { borderDefault }
-
-    // MARK: - Charts (vs par: below par = “good” = accent)
-
+    
+    // MARK: - Charts (vs par: below par = "good" = accent)
+    
     static var chartPositive: Color { accent }
-    /// Negative / above-par trend — bogey orange from the brief.
-    static let chartNegative = Color(hex: "#C05020")
-    /// Double-bogey+ emphasis — penalty red.
-    static let chartNegativeStrong = Color(hex: "#C0412D")
+    /// Negative / above-par trend — Apple system red.
+    static let chartNegative = Color(hex: "#FF453A")
+    /// Double-bogey+ emphasis — stronger red.
+    static let chartNegativeStrong = Color(hex: "#FF375F")
     /// Steady / neutral series line.
     static var chartNeutral: Color { textSecondary }
     static var chartSeasonAverage: Color { accentMid.opacity(0.55) }
-
-    static var chartPositiveFill: Color { chartPositive.opacity(0.14) }
-    static var chartNegativeFill: Color { chartNegative.opacity(0.14) }
-
-    // MARK: - Scorecard (paper-style rings / boxes; same semantics as chart vs par)
-
-    /// Birdie ring, inner eagle ring — `accentMid` (“positive deltas” / lighter green).
+    
+    /// Gradient fills for line charts (stock-app style).
+    static var chartPositiveFill: Color { chartPositive.opacity(0.20) }
+    static var chartNegativeFill: Color { chartNegative.opacity(0.20) }
+    
+    // MARK: - Scorecard (rings / boxes; same semantics as chart vs par)
+    
+    /// Birdie ring, inner eagle ring — lighter green.
     static var scorecardUnderParMuted: Color { accentMid }
-    /// Eagle outer ring — deep forest `accent`.
+    /// Eagle outer ring — bold green accent.
     static var scorecardUnderParStrong: Color { accent }
-    /// Bogey box, inner double-bogey+ box — bogey orange (`chartNegative`).
+    /// Bogey box, inner double-bogey+ box.
     static var scorecardOverPar: Color { chartNegative }
-    /// Double-bogey+ outer box — penalty red (`chartNegativeStrong`).
+    /// Double-bogey+ outer box — stronger red.
     static var scorecardOverParStrong: Color { chartNegativeStrong }
-
+    
     // MARK: - History calendar (completed rounds vs logged practice)
-
-#if canImport(UIKit)
-    static var calendarRoundDot: Color { Color(uiColor: .systemGreen) }
-#else
-    static var calendarRoundDot: Color { Color.green }
-#endif
-    static let calendarPracticeDot = Color(hex: "#4268AE")
+    
+    /// Round completion dots — bold green.
+    static var calendarRoundDot: Color { accent }
+    /// Practice session dots — muted gray (subdued vs rounds).
+    static let calendarPracticeDot = Color(hex: "#636366")
     static var calendarPracticeDim: Color { calendarPracticeDot.opacity(0.10) }
     static var calendarPracticeBorder: Color { calendarPracticeDot.opacity(0.30) }
-
-    // MARK: - Weekly goals / streak (habit lane — see `docs/design.md` § Weekly goals)
-
-    /// Met week circle + flame (honey amber).
-    static let streakSuccess = Color(hex: "#D4952A")
-    /// Confetti particles + deep gold accents (`scoreEagle` family).
-    static let streakSuccessDeep = Color(hex: "#9A7020")
-    /// Checkmark on amber week circles.
-    static let streakOnSuccess = Color(hex: "#FFFBF3")
+    
+    // MARK: - Weekly goals / streak (consistent with main accent)
+    
+    /// Met week circle + flame — green theme consistent with brand.
+    static var streakSuccess: Color { accent }
+    /// Confetti particles + deep accents.
+    static var streakSuccessDeep: Color { accentMid }
+    /// Checkmark on met week circles.
+    static let streakOnSuccess = Color(hex: "#000000")
     /// Active streak footer caption.
-    static let streakTextActive = Color(hex: "#8F6420")
-    /// Season-best badge fill (same habit lane as streak).
-    static var streakSuccessDim: Color { streakSuccess.opacity(0.12) }
-    static var borderStreak: Color { streakSuccess.opacity(0.28) }
-
-    // MARK: - Legacy palette (kept for gradual migration; prefer tokens above)
-
-    static let green900 = Color(hex: "#19693A")
-    static let green800 = Color(hex: "#143D26")
-    static let green700 = Color(hex: "#19693A")
-    static let green500 = Color(hex: "#22874E")
-    static let green400 = Color(hex: "#2EAD65")
-    static let green300 = Color(hex: "#4DC97E")
-    static let green200 = Color(hex: "#8EDCAA")
-    static let green50 = Color(hex: "#EBF7F0")
+    static var streakTextActive: Color { accent }
+    /// Season-best badge fill.
+    static var streakSuccessDim: Color { accent.opacity(0.12) }
+    static var borderStreak: Color { accent.opacity(0.28) }
+    
+    // MARK: - Legacy palette (deprecated, use semantic tokens above)
+    
+    static let green900 = Color(hex: "#00C805")
+    static let green800 = Color(hex: "#00A004")
+    static let green700 = Color(hex: "#00C805")
+    static let green500 = Color(hex: "#5AC53B")
+    static let green400 = Color(hex: "#4DC97E")
+    static let green300 = Color(hex: "#8EDCAA")
+    static let green200 = Color(hex: "#A8E2C3")
+    static let green50 = Color(hex: "#E0F7EA")
 }
 
 extension Color {
@@ -126,4 +137,3 @@ extension Color {
         )
     }
 }
-
