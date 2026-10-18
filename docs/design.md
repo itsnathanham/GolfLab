@@ -92,6 +92,29 @@ Encode meaning with high contrast:
 - Neutral / steady metrics: secondary #8E8E93
 - Over-par / negative trends: red #FF453A
 
+### Extended chart palette (multi-series differentiation)
+
+For complex charts with multiple data series, use these Apple Fitness-inspired colors:
+
+```swift
+Color(hex: "#30D5C8")        // chartCyan     — distance, pace, yardage
+Color(hex: "#FF2D55")        // chartMagenta  — penalty emphasis, hazards
+Color(hex: "#FFD60A")        // chartYellow   — par baseline, neutral
+Color(hex: "#BF5AF2")        // chartPurple   — practice data, putting
+Color(hex: "#FF9F0A")        // chartOrange   — peak performance, best rounds
+```
+
+Each includes a 20% opacity fill variant (e.g., `chartCyanFill`, `chartPurpleFill`) 
+for stock-style gradient area fills under line charts.
+
+**Usage:**
+- Multi-line charts comparing different metrics (distance vs score vs putts)
+- Practice vs round differentiation (purple vs green)
+- Par baseline overlays (yellow for neutral reference line)
+- Peak performance highlights (orange markers for season bests)
+
+All colors tested for OLED contrast against pure black backgrounds.
+
 ### Weekly goals / streak
 
 Uses the **same green accent** for consistency. No separate gold/amber palette.

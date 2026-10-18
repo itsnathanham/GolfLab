@@ -66,6 +66,28 @@ extension Color {
     static var chartPositiveFill: Color { chartPositive.opacity(0.20) }
     static var chartNegativeFill: Color { chartNegative.opacity(0.20) }
     
+    // MARK: - Extended chart palette (multi-series, data emphasis)
+    
+    /// Cyan — distance, pace, yardage trends.
+    static let chartCyan = Color(hex: "#30D5C8")
+    static var chartCyanFill: Color { chartCyan.opacity(0.20) }
+    
+    /// Magenta — penalty emphasis, focus metrics, hazard stats.
+    static let chartMagenta = Color(hex: "#FF2D55")
+    static var chartMagentaFill: Color { chartMagenta.opacity(0.20) }
+    
+    /// Yellow — par baseline, neutral trends, milestones.
+    static let chartYellow = Color(hex: "#FFD60A")
+    static var chartYellowFill: Color { chartYellow.opacity(0.20) }
+    
+    /// Purple — practice data, putting stats, short game.
+    static let chartPurple = Color(hex: "#BF5AF2")
+    static var chartPurpleFill: Color { chartPurple.opacity(0.20) }
+    
+    /// Orange — peak performance, best rounds, fairway hits.
+    static let chartOrange = Color(hex: "#FF9F0A")
+    static var chartOrangeFill: Color { chartOrange.opacity(0.20) }
+    
     // MARK: - Scorecard (rings / boxes; same semantics as chart vs par)
     
     /// Birdie ring, inner eagle ring — lighter green.

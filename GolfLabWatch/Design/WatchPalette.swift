@@ -14,4 +14,11 @@ enum WatchPalette {
     static let chartNegativeStrong = Color(red: 255 / 255, green: 55 / 255, blue: 95 / 255)
     /// Practice dot — muted gray.
     static let practice = Color(red: 99 / 255, green: 99 / 255, blue: 102 / 255)
+    
+    // Extended chart palette (multi-series, data emphasis)
+    static let chartCyan = Color(red: 48 / 255, green: 213 / 255, blue: 200 / 255)
+    static let chartMagenta = Color(red: 255 / 255, green: 45 / 255, blue: 85 / 255)
+    static let chartYellow = Color(red: 255 / 255, green: 214 / 255, blue: 10 / 255)
+    static let chartPurple = Color(red: 191 / 255, green: 90 / 255, blue: 242 / 255)
+    static let chartOrange = Color(red: 255 / 255, green: 159 / 255, blue: 10 / 255)
 }

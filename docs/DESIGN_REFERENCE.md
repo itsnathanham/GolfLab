@@ -37,6 +37,12 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartNegative` | `#FF453A` | Over-par series (Apple red) |
 | `chartNegativeStrong` | `#FF375F` | Double-bogey+ |
 | `chartNeutral` | `#8E8E93` | Steady series |
+| **Extended chart palette** | | *Multi-series, data emphasis* |
+| `chartCyan` | `#30D5C8` | Distance, pace, yardage trends |
+| `chartMagenta` | `#FF2D55` | Penalty emphasis, focus metrics |
+| `chartYellow` | `#FFD60A` | Par baseline, neutral trends |
+| `chartPurple` | `#BF5AF2` | Practice data, putting stats |
+| `chartOrange` | `#FF9F0A` | Peak performance, best rounds |
 | **Weekly goals** | | *Consistent with main accent* |
 | `streakSuccess` | `#00C805` | Met week circle, flame (green) |
 | `streakSuccessDeep` | `#5AC53B` | Confetti particles |
