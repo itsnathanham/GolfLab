@@ -239,34 +239,46 @@ struct HoleEntryView: View {
 
 struct StepperField: View {
     /// Side buttons are large enough for glove / thumb use (brief ~56pt tap targets — use slightly taller row).
-    private static let tapSide: CGFloat = 62
+    private static let tapSide: CGFloat = 56
 
     let label: String
     @Binding var value: Int
     let min: Int
     let max: Int
     var step: Int = 1
+    
+    /// Flash state for haptic feedback animation
+    @State private var flashState: FlashState = .idle
+    
+    private enum FlashState {
+        case idle
+        case minus
+        case plus
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
             stepButton(
                 systemName: "minus",
                 enabled: value > min,
+                isFlashing: flashState == .minus,
                 action: {
                     value = Swift.max(min, value - step)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    triggerFlash(.minus)
                 }
             )
             .frame(width: Self.tapSide, height: Self.tapSide)
-            .background(Color.bgElevated)
+            .background(flashState == .minus ? Color.accent : Color.bgElevated)
+            .animation(.easeOut(duration: 0.15), value: flashState)
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 Text("\(value)")
-                    .font(GLFonts.mono(size: 34, weight: .semibold))
-                    .foregroundColor(.textPrimary)
+                    .font(GLFonts.mono(size: 32, weight: .semibold))
+                    .foregroundColor(flashState != .idle ? .accent : .textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+                    .animation(.easeOut(duration: 0.15), value: flashState)
                 if !label.isEmpty {
                     Text(label.uppercased())
                         .font(.glEyebrow)
@@ -283,14 +295,16 @@ struct StepperField: View {
             stepButton(
                 systemName: "plus",
                 enabled: value < max,
+                isFlashing: flashState == .plus,
                 action: {
                     let next = value + step
                     value = next > max ? max : next
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    triggerFlash(.plus)
                 }
             )
             .frame(width: Self.tapSide, height: Self.tapSide)
-            .background(Color.bgElevated)
+            .background(flashState == .plus ? Color.accent : Color.bgElevated)
+            .animation(.easeOut(duration: 0.15), value: flashState)
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: Self.tapSide)
@@ -301,12 +315,20 @@ struct StepperField: View {
                 .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
         )
     }
+    
+    private func triggerFlash(_ state: FlashState) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        flashState = state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            flashState = .idle
+        }
+    }
 
-    private func stepButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func stepButton(systemName: String, enabled: Bool, isFlashing: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(enabled ? .textPrimary : .textTertiary)
+                .foregroundColor(isFlashing ? .ctaOnAccent : (enabled ? .textPrimary : .textTertiary))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
         }
