@@ -77,7 +77,19 @@ class WatchSessionService: NSObject, ObservableObject {
             adopt(snapshot)
             return
         }
-        guard appliedSessionId == snapshot.sessionId else { return }
+        // Merge holes even if session IDs don't match, as long as hole metadata is compatible
+        // This handles cases where phone and watch got out of sync on session IDs
+        if appliedSessionId != snapshot.sessionId {
+            // Only adopt if the snapshot has more holes or different setup
+            let hasMoreHoles = snapshot.state.savedEntries.count > holeEntries.count
+            let differentSetup = snapshot.setup.courseName != roundSetup?.courseName 
+                || snapshot.setup.totalHoles != roundSetup?.totalHoles
+            if hasMoreHoles || differentSetup || holeEntries.isEmpty {
+                adopt(snapshot)
+                return
+            }
+            // Otherwise just merge the holes using revision numbers
+        }
         let remoteVersions = snapshot.state.savedEntries.map(\.version)
         mergeSavedEntries(snapshot.state.savedEntries)
         datePlayed = snapshot.datePlayed ?? datePlayed
