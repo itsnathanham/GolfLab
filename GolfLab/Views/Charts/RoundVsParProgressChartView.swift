@@ -287,7 +287,7 @@ struct VsParLineChartView: View {
             series: series,
             color: seriesColor,
             strokeStyle: primaryStrokeStyle,
-            lineWidth: 1.5,
+            lineWidth: 2.5,
             originX: originX,
             originY: originY,
             plotW: plotW,
@@ -326,6 +326,7 @@ struct VsParLineChartView: View {
         let solidPoints = series.solid
         guard !solidPoints.isEmpty else { return }
 
+        // Build line path
         var path = Path()
         if anchorLineAtEvenPar {
             let startX = originX + xPos(xIndex: 0, plotW: plotW)
@@ -339,12 +340,40 @@ struct VsParLineChartView: View {
             path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
         }
 
+        // Draw gradient fill (stock-app style)
+        if strokeStyle == .solid {
+            var fillPath = Path()
+            if anchorLineAtEvenPar {
+                let startX = originX + xPos(xIndex: 0, plotW: plotW)
+                let startY = originY + yPos(0, plotH: plotH, domain: domain)
+                fillPath.move(to: CGPoint(x: startX, y: originY + plotH))
+                fillPath.addLine(to: CGPoint(x: startX, y: startY))
+            } else if let first = solidPoints.first {
+                let pt = plotPoint(for: first, plotW: plotW, plotH: plotH, domain: domain)
+                fillPath.move(to: CGPoint(x: pt.x, y: originY + plotH))
+                fillPath.addLine(to: pt)
+            }
+            for p in linePoints {
+                fillPath.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
+            }
+            if let last = solidPoints.last {
+                let lastPt = plotPoint(for: last, plotW: plotW, plotH: plotH, domain: domain)
+                fillPath.addLine(to: CGPoint(x: lastPt.x, y: originY + plotH))
+            }
+            fillPath.closeSubpath()
+            
+            // Gradient from top (20% opacity) to bottom (0% opacity)
+            ctx.fill(fillPath, with: .color(color.opacity(0.20)))
+        }
+
+        // Draw line
         var lineStroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
         if strokeStyle == .dashed {
             lineStroke.dash = [5, 5]
         }
         ctx.stroke(path, with: .color(color), style: lineStroke)
 
+        // Draw point markers
         if drawMarkers {
             for p in solidPoints {
                 Self.drawSeriesPointMarker(
@@ -407,11 +436,13 @@ struct VsParLineChartView: View {
     }
 
     static func drawSeriesPointMarker(context: GraphicsContext, at p: CGPoint, color: Color) {
-        let coreRadius: CGFloat = 3
+        let coreRadius: CGFloat = 4
+        // Outer glow
         context.fill(
-            Path(ellipseIn: CGRect(x: p.x - 6, y: p.y - 6, width: 12, height: 12)),
-            with: .color(color.opacity(0.12))
+            Path(ellipseIn: CGRect(x: p.x - 7, y: p.y - 7, width: 14, height: 14)),
+            with: .color(color.opacity(0.15))
         )
+        // Core dot
         context.fill(
             Path(ellipseIn: CGRect(x: p.x - coreRadius, y: p.y - coreRadius, width: 2 * coreRadius, height: 2 * coreRadius)),
             with: .color(color)

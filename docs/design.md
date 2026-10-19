@@ -8,130 +8,143 @@ or component patterns without justification.
 
 ## Aesthetic Direction
 
-Light-first, data-rich, analytically precise. The app should feel closer to a
-well-designed financial dashboard than a sports or fitness app. Clean, considered,
-nothing decorative that doesn't earn its place. Approachable but not casual.
+**Dark-only, data-dense, analytically precise.** The app embraces a Robinhood-inspired
+aesthetic: pure black backgrounds with bold green accents, tight spacing, and stock-market
+data clarity. Designed for quick scanning and outdoor OLED readability.
 
-Light mode is the primary and only mode. The app is used outdoors in sunlight —
-legibility on-course takes priority over dark-mode aesthetics.
+Dark mode is the only mode. Pure black (#000000) backgrounds create stunning OLED contrast
+and superior outdoor readability on golf courses in bright sunlight.
 
-Inspired by: precision instruments, high-quality data tools, clean editorial design.
-Not inspired by: gamified fitness apps, sports scoreboards, dark developer tools.
+Inspired by: Robinhood, stock trading apps, Apple Fitness, precision data dashboards.
+Not inspired by: light-mode productivity apps, traditional golf scorecards, pastel themes.
 
 ---
 
 ## Color
 
-All backgrounds use light green-tinted surfaces — not pure white, not neutral gray.
-The tint is subtle and grounds the app in its context without being literal about it.
+Pure black backgrounds (#000000) with vibrant green accents. All surfaces float on black
+with subtle borders for depth. High contrast ratios throughout for outdoor legibility.
 
 ### Background tokens
 
 ```swift
-// Page / screen background
-Color(hex: "#F4F6F4")        // bg-primary
+// Page / screen background — pure black
+Color(hex: "#000000")        // bgPrimary
 
 // Card / panel background
-Color(hex: "#FFFFFF")        // bg-card
+Color(hex: "#1C1C1E")        // bgCard
 
 // Elevated / inactive surfaces (stepper buttons, pill backgrounds)
-Color(hex: "#EAEEEA")        // bg-elevated
+Color(hex: "#2C2C2E")        // bgElevated
 ```
 
 ### Border tokens
 
 ```swift
-// Default border (very subtle)
-Color.black.opacity(0.07)    // border-default
+// Default border (subtle white)
+Color.white.opacity(0.08)    // borderDefault
 
 // Accent border (highlighted panels, active toggles)
-Color(hex: "#19693A").opacity(0.25)  // border-accent
+Color(hex: "#00C805").opacity(0.25)  // borderAccent
 
 // Penalty border
-Color(hex: "#C0412D").opacity(0.28)  // border-penalty
+Color(hex: "#FF453A").opacity(0.28)  // borderPenalty
 ```
 
 ### Text tokens
 
 ```swift
-Color(hex: "#111A13")        // text-primary   (near-black, slight green warmth)
-Color(hex: "#4A6655")        // text-secondary  (muted green-gray)
-Color(hex: "#8FA898")        // text-tertiary   (very muted, labels and captions only)
+Color(hex: "#FFFFFF")        // textPrimary   (pure white, max contrast)
+Color(hex: "#8E8E93")        // textSecondary  (Apple system gray)
+Color(hex: "#636366")        // textTertiary   (muted, labels and captions only)
 ```
 
-### Accent — single brand color
+### Accent — bold green primary
 
 ```swift
-Color(hex: "#19693A")        // accent          (deep forest green — primary)
-Color(hex: "#22874E")        // accent-mid      (slightly lighter, positive deltas)
-Color(hex: "#19693A").opacity(0.08)  // accent-dim      (toggle/panel backgrounds)
-Color(hex: "#19693A").opacity(0.04)  // accent-dimmer   (very subtle fills)
+Color(hex: "#00C805")        // accent          (Robinhood green — primary)
+Color(hex: "#5AC53B")        // accentMid       (lighter green, positive trends)
+Color(hex: "#00C805").opacity(0.12)  // accentDim       (toggle/panel backgrounds)
+Color(hex: "#00C805").opacity(0.06)  // accentDimmer    (very subtle fills)
+Color(hex: "#000000")        // ctaOnAccent     (text on green buttons — black)
 ```
 
-The accent color appears sparingly: active states, key improving metrics, chart
-lines for improving trends, CTAs, the wordmark. Everything else is muted.
-One accent doing all the work is more powerful than many colors competing.
+The accent color is vibrant and used for: CTAs, under-par scores, active states, 
+improving trends. High contrast against pure black creates instant hierarchy.
 
 ### Semantic score colors
 
 Used exclusively for score-vs-par displays. Do not use for general UI.
 
 ```swift
-Color(hex: "#9A7020")        // eagle (−2 or better) — dark gold
-Color(hex: "#19693A")        // birdie (−1) — accent green
-Color(hex: "#8FA898")        // par (E) — neutral tertiary
-Color(hex: "#C05020")        // bogey (+1) — warm orange
-Color(hex: "#C0412D")        // double-bogey or worse (+2 and beyond) — red
+Color(hex: "#5AC53B")        // eagle/birdie (−2, −1) — lighter green
+Color(hex: "#00C805")        // birdie strong emphasis — accent green
+Color(hex: "#636366")        // par (E) — neutral tertiary
+Color(hex: "#FF453A")        // bogey/double+ (+1, +2) — Apple system red
+Color(hex: "#FF375F")        // double-bogey strong — deeper red
 ```
 
 ### Chart line colors
 
-Encode meaning, not identity:
+Encode meaning with high contrast:
 
-- Improving metrics (lower score, more GIR): accent #19693A
-- Neutral / steady metrics: secondary #4A6655
-- Negative trend indicators: bogey #C05020
+- Under-par / improving metrics: accent #00C805
+- Neutral / steady metrics: secondary #8E8E93
+- Over-par / negative trends: red #FF453A
 
-### Weekly goals / streak (habit lane)
+### Extended chart palette (multi-series differentiation)
 
-A **second, sparing palette** for the Home + History **Weekly goals** card and completion
-celebration only. It signals habit momentum (weeks met), not score-vs-par. Do not use these
-tokens for scorecards, charts, or general CTAs.
-
-Progress bars inside the card still use **accent** green — only the week history row and streak
-footer use gold.
+For complex charts with multiple data series, use these Apple Fitness-inspired colors:
 
 ```swift
-Color(hex: "#D4952A")        // streak-success     — met week circle, flame (active streak)
-Color(hex: "#9A7020")        // streak-success-deep — confetti accent (eagle-gold family)
-Color(hex: "#FFFBF3")        // streak-on-success  — checkmark on amber circles
-Color(hex: "#8F6420")        // streak-text-active — streak caption when streak > 0
+Color(hex: "#30D5C8")        // chartCyan     — distance, pace, yardage
+Color(hex: "#FF2D55")        // chartMagenta  — penalty emphasis, hazards
+Color(hex: "#FFD60A")        // chartYellow   — par baseline, neutral
+Color(hex: "#BF5AF2")        // chartPurple   — practice data, putting
+Color(hex: "#FF9F0A")        // chartOrange   — peak performance, best rounds
+```
+
+Each includes a 20% opacity fill variant (e.g., `chartCyanFill`, `chartPurpleFill`) 
+for stock-style gradient area fills under line charts.
+
+**Usage:**
+- Multi-line charts comparing different metrics (distance vs score vs putts)
+- Practice vs round differentiation (purple vs green)
+- Par baseline overlays (yellow for neutral reference line)
+- Peak performance highlights (orange markers for season bests)
+
+All colors tested for OLED contrast against pure black backgrounds.
+
+### Weekly goals / streak
+
+Uses the **same green accent** for consistency. No separate gold/amber palette.
+
+```swift
+Color(hex: "#00C805")        // streakSuccess     — met week circle, flame
+Color(hex: "#5AC53B")        // streakSuccessDeep — confetti accents
+Color(hex: "#000000")        // streakOnSuccess   — checkmark on green circles
+Color(hex: "#00C805")        // streakTextActive  — streak caption
 ```
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
-
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
-| Met (past or current week)              | 28pt circle, `streak-success` fill, `streak-on-success` checkmark |
-| Missed (finished week only)             | 28pt circle, `bg-elevated` fill, `streak-on-success` ×            |
-| In progress (current week, not yet met) | 28pt circle, `bg-elevated` fill, `streak-on-success` `ellipsis`   |
+| Met (past or current week)              | 28pt circle, `accent` fill, black checkmark |
+| Missed (finished week only)             | 28pt circle, `bgElevated` fill, white ×            |
+| In progress (current week, not yet met) | 28pt circle, `bgElevated` fill, white `ellipsis`   |
 
-
-Connectors between nodes: 2pt × 10pt `bg-elevated` bars, vertically aligned to circle centers.
+Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to circle centers.
 Auto-scroll to the newest week on appear.
 
-**Streak footer:** `flame.fill` (`streak-success`, full opacity) + footnote caption (`streak-text-active`).
+**Streak footer:** `flame.fill` (accent green, full opacity) + footnote caption (accent text).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Full-screen confetti (gold / deep gold / `accent-mid` / practice-blue particles) — **off**
-when Reduce Motion is enabled.
-- Top banner: “Weekly goals complete” + short copy that targets were met **this week** (not
-round score). Optional streak line in `streak-text-active`.
+- Full-screen confetti (green particles) — **off** when Reduce Motion is enabled.
+- Top banner: "Weekly goals complete" + short copy that targets were met **this week**.
 - Haptics: `.success` notification, then `.medium` impact ~120ms later.
-- Once per calendar week (`UserDefaults`); queued if a sheet (practice log / end round) or
-background save would hide the overlay until dismiss or foreground.
+- Once per calendar week; queued if a sheet would hide the overlay.
 
 ---
 
@@ -147,91 +160,76 @@ instantly legible at a glance. Do not use Mono for labels, navigation, or prose.
 tab labels, card titles, section headers, body copy, course names, descriptions.
 Sans is the primary reading font. It keeps the app approachable.
 
-```swift
-// In SwiftUI — register as custom fonts or use fallbacks:
-// IBM Plex Mono → fallback: .monospacedSystemFont
-// IBM Plex Sans → fallback: .systemFont (SF Pro)
-```
-
-### Where each font applies
+### Type scale (reduced for data density)
 
 ```
-Mono:  stat values, round scores, averages, yardages, the wordmark,
-       score badges (+14, −1), time displays, axis labels on charts
-
-Sans:  screen titles, section labels, field labels (Score, Putts, GIR),
-       toggle labels, tab bar labels, card header titles, body copy,
-       course names, hole metadata labels, CTA button text, nav labels
-```
-
-### Type scale
-
-```
-Display   — Mono, 34pt, weight 600   — large stat values (round score, season avg)
-Title     — Sans, 22pt, weight 600   — screen headings
-Headline  — Sans, 18pt, weight 500   — card titles, section headers
-Body      — Sans, 16pt, weight 400   — content, descriptions, insight copy
+Display   — Mono, 32pt, weight 600   — large stat values (round score, season avg)
+Title     — Sans, 20pt, weight 600   — screen headings
+Headline  — Sans, 17pt, weight 500   — card titles, section headers
+Body      — Sans, 15pt, weight 400   — content, descriptions
 Subhead   — Sans, 14pt, weight 500   — secondary labels, metadata
 Caption   — Sans, 12pt, weight 500   — field labels (uppercase + tracking)
-Eyebrow   — Sans, 11pt, weight 500   — dense uppercase chrome (custom tab labels, chart card titles)
-Footnote  — Sans, 11pt, weight 400   — tertiary helper lines under controls
+Eyebrow   — Sans, 11pt, weight 500   — dense uppercase chrome (tabs, chart titles)
+Footnote  — Sans, 11pt, weight 400   — tertiary helper lines
 Micro     — Mono, 10pt, weight 500   — badges, compact numeric meta
-Axis      — Mono,  9pt, weight 400   — chart axis ticks (minimal)
-Nav title — Sans, 14pt, weight 600   — centered bar titles (scorecard flows)
+Axis      — Mono,  9pt, weight 400   — chart axis ticks
+Nav title — Sans, 14pt, weight 600   — centered bar titles
 Buttons   — Sans, 14pt, weight 600 / 500 — primary vs ghost CTAs
 ```
 
 ### Label convention
 
 Field labels (Score, Putts, Stats): Sans, 12pt, weight 500, uppercase,
-0.10em letter-spacing, text-tertiary color.
+0.10em letter-spacing, textTertiary color.
 
 Values below those labels: Mono, larger size and weight. The font contrast between
-label (Sans) and value (Mono) creates the analytical feel without making labels feel
-technical. Do not use Mono for the labels themselves.
+label (Sans) and value (Mono) creates the analytical feel.
 
 ---
 
-## Layout & Spacing
+## Layout & Spacing (moderate density)
 
-Consistent horizontal inset: 22pt from screen edges.
-Card internal padding: 14pt vertical, 14pt horizontal.
-Gap between sections: 20–24pt.
-Gap within a card between elements: 8–12pt.
+Tighter spacing for data-dense, stock-app feel:
 
-No decorative dividers. Separation comes from the contrast between white card
-surfaces and the off-white page background, plus 1px borders.
+```
+Horizontal inset: 18pt from screen edges (was 22pt)
+Card internal padding: 12pt vertical, 12pt horizontal (was 14pt)
+Gap between sections: 16–20pt (was 20–24pt)
+Gap within a card: 6–10pt (was 8–12pt)
+```
+
+No decorative dividers. Separation comes from surface contrast (#1C1C1E on #000000)
+plus 1px subtle white borders.
 
 ---
 
 ## Cards & Panels
 
-Cards are data panels — clean and precise, but not cold.
+Cards are data surfaces — clean, high-contrast, data-first.
 
 ```
-Background:    bg-card (#FFFFFF)
-Border:        1px solid, black at 7% opacity
-Border radius: 8pt
-Padding:       14pt × 14pt
+Background:    bgCard (#1C1C1E)
+Border:        1px solid, white at 8% opacity
+Border radius: 12pt (increased for modern feel, was 8pt)
+Padding:       12pt × 12pt (reduced from 14pt)
 ```
 
-No shadows. Cards sit on the slightly tinted page background — the contrast
-is the separation.
+No shadows. Cards float on pure black — the contrast is the depth.
 
-**Accent panel variant** — used for highlighted information (e.g. hole header):
+**Accent panel variant** — used for highlighted information:
 
 ```
 Left border:   3pt, accent color at 60% opacity
-Background:    bg-card
-Border radius: 8pt
+Background:    bgCard
+Border radius: 12pt
 ```
 
 **Data grid variant** — for side-by-side stat displays:
 
 ```
-Cells separated by 1px lines at border-default opacity
-Overall container: 1px border, 8pt radius
-No zebra striping — borders provide the separation
+Cells separated by 1px lines at borderDefault opacity
+Overall container: 1px border, 12pt radius
+Grid gap: 1px (creates hairline rules)
 ```
 
 ---
@@ -241,10 +239,10 @@ No zebra striping — borders provide the separation
 **Primary CTA:**
 
 ```
-Background:    accent (#19693A)
-Text:          #F2F8F4 (near-white)
+Background:    accent (#00C805)
+Text:          #000000 (pure black for max contrast)
 Font:          Sans, 14pt, weight 600, uppercase, 0.08em tracking
-Border radius: 8pt
+Border radius: 12pt
 Height:        ~48pt (full-width preferred)
 ```
 
@@ -254,13 +252,11 @@ One primary button per screen. It should be obvious.
 
 ```
 Background:    transparent
-Border:        1px, border-default
-Text:          text-secondary
+Border:        1px, borderDefault (white at 8%)
+Text:          textSecondary
 Font:          Sans, 14pt, weight 500
-Border radius: 8pt
+Border radius: 12pt
 ```
-
-No pill buttons. No gradient buttons.
 
 ---
 
@@ -269,14 +265,14 @@ No pill buttons. No gradient buttons.
 Used for entering scores and counts.
 
 ```
-Container:     bg-card, 1px border, 8pt radius, full width
-− / + buttons: bg-elevated (#EAEEEA), 56pt × 56pt tap target
-Value:         Mono, 34pt, weight 600, centered, text-primary
-Sub-label:     Sans, 11pt, text-tertiary, uppercase
+Container:     bgCard, 1px border, 12pt radius, full width
+− / + buttons: bgElevated (#2C2C2E), 56pt × 56pt tap target
+Value:         Mono, 32pt, weight 600, centered, textPrimary
+Sub-label:     Sans, 11pt, textTertiary, uppercase
 ```
 
 Buttons must be large enough for one-handed use with a glove.
-Haptic feedback on every increment/decrement (UIImpactFeedbackGenerator, .light).
+Haptic feedback on every increment/decrement (light impact).
 
 ---
 
@@ -286,26 +282,23 @@ Used for per-hole stat entry (GIR, FIR, Penalty).
 
 ```
 Default (off):
-  Background:    bg-card (#FFFFFF)
-  Border:        1px, border-default
-  Border radius: 8pt
+  Background:    bgCard (#1C1C1E)
+  Border:        1px, borderDefault
+  Border radius: 12pt
 
 Active (on) — positive stat (GIR, FIR):
-  Background:    accent at 4% opacity
-  Border:        1px, border-accent (accent at 25% opacity)
-  Label color:   accent (#19693A)
+  Background:    accent at 6% opacity
+  Border:        1px, borderAccent (accent at 25% opacity)
+  Label color:   accent (#00C805)
 
 Active (on) — penalty stat:
-  Background:    #C0412D at 8% opacity
-  Border:        1px, #C0412D at 28% opacity
-  Label color:   #C0412D
+  Background:    #FF453A at 8% opacity
+  Border:        1px, #FF453A at 28% opacity
+  Label color:   #FF453A
 ```
 
 Active indicator: small filled circle (8pt) top-right corner of toggle.
 Transition: 150ms, ease-in-out on background and border color.
-
-Label: Sans, 12pt, weight 600. Labels are navigational, not data — use Sans.
-Sub-label: Sans, 11pt, text-tertiary.
 
 ---
 
@@ -314,42 +307,35 @@ Sub-label: Sans, 11pt, text-tertiary.
 Chart lines:
 
 ```
-Stroke width:  1.5pt
+Stroke width:  2.5pt (increased from 1.5pt for boldness)
 Linecap:       round
 Linejoin:      round
-Terminal dot:  3pt radius, filled; 6pt radius outer ring at 12% opacity
+Terminal dot:  4pt radius, filled
 ```
 
-Area fill below line:
+**Gradient fill below line (stock-app style):**
 
 ```
 Linear gradient, vertical
-Top: line color at 14% opacity
+Top: line color at 20% opacity (increased from 14%)
 Bottom: line color at 0% opacity
+Smooth fade creates depth without distraction
 ```
 
-Grid lines (use sparingly):
+Grid lines (subtle, horizontal only):
 
 ```
-Horizontal only
-Stroke: black at 4% opacity, 1pt
+Stroke: white at 8% opacity, 1pt
+Minimal — use sparingly for readability
 ```
-
-Average reference line:
-
-```
-Stroke: black at 7% opacity, 1pt, dashed (4pt dash, 3pt gap)
-```
-
-Axis labels: Mono, 9pt, black at 18% opacity. Minimal — only min/max values.
 
 Chart card header row:
 
 ```
-Padding:       11pt × 14pt
-Border-bottom: border-default
-Title:         Sans, 11pt, weight 500, uppercase, text-tertiary (NOT Mono)
-Current value: Mono, 11–12pt, weight 600, accent or text-secondary
+Padding:       10pt × 12pt (reduced from 11pt × 14pt)
+Border-bottom: borderDefault
+Title:         Sans, 11pt, weight 500, uppercase, textTertiary
+Current value: Mono, 11–12pt, weight 600, accent or textSecondary
 ```
 
 ---
@@ -360,16 +346,16 @@ Pill-style, not native segmented control:
 
 ```
 Active pill:
-  Background:    accent at 8% opacity
-  Border:        1px, border-accent
+  Background:    accent at 12% opacity
+  Border:        1px, borderAccent
   Text:          accent, Sans, 11pt, weight 600, uppercase, 0.08em tracking
-  Border radius: 6pt
+  Border radius: 8pt
 
 Inactive pill:
   Background:    transparent
-  Border:        1px, border-default
-  Text:          text-tertiary, Sans, 11pt
-  Border radius: 6pt
+  Border:        1px, borderDefault
+  Text:          textTertiary, Sans, 11pt
+  Border radius: 8pt
 ```
 
 ---
@@ -377,12 +363,12 @@ Inactive pill:
 ## Tab Bar
 
 ```
-Background:    bg-card (#FFFFFF)
-Border-top:    1px, border-default
-Tab icons:     18pt × 18pt SVG, 1–1.5pt stroke, no fill
+Background:    bgCard (#1C1C1E)
+Border-top:    1px, borderDefault
+Tab icons:     16pt × 16pt SF Symbols, monochrome
 Active tab:    accent color icon + label, 3pt dot indicator below label
 Inactive tab:  icon + label at 30% opacity
-Label font:    Sans, 11pt, 0.06em tracking (NOT Mono)
+Label font:    Sans, 11pt, 0.06em tracking
 ```
 
 No background highlight on active tab. The icon color and dot do the work.
@@ -391,13 +377,13 @@ No background highlight on active tab. The icon color and dot do the work.
 
 ## Motion & Haptics
 
-Keep animations purposeful and brief. Nothing decorative.
+Keep animations purposeful and brief.
 
 ```
 Chart line draw-in:    stroke-dasharray animation, left to right, 600ms, ease-out
 Toggle state change:   150ms, background + border color transition
 Button press:          scale(0.97), 100ms
-Screen transitions:    SwiftUI default push/pop — no custom overrides
+Screen transitions:    SwiftUI default push/pop
 ```
 
 Haptics:
@@ -405,27 +391,21 @@ Haptics:
 - Stepper increment/decrement: `UIImpactFeedbackGenerator(.light)`
 - Hole save confirm: `UINotificationFeedbackGenerator(.success)`
 - Penalty toggle activation: `UIImpactFeedbackGenerator(.medium)`
-- Weekly goals completed (overlay): `.success` notification, then `.medium` impact
+- Weekly goals completed: `.success` notification, then `.medium` impact
 
 ---
 
 ## What to Avoid
 
-- **No dark backgrounds** — light mode only, always
-- **No pure white page backgrounds** — always use #F4F6F4 for the page surface
-- **No shadows** — separation comes from surface contrast and 1px borders
-- **No pill-shaped buttons or cards** — 8pt radius maximum
-- **No gradients** except the chart area fill (functional, not decorative)
-- **No multiple accent colors** — one deep green for product chrome; **exception:** weekly-goals
-gold tokens (`streak-success` family) on the Weekly goals card and completion overlay only
-- **No system blue** anywhere in the UI
-- **No heavy borders** — 1px at low opacity only
-- **No Mono font for labels** — Sans only for field labels, toggle labels, tab
-labels, section headers, card titles, and navigation. Mono is for numbers
-and the wordmark only.
-- **No SF Pro** — always use IBM Plex Mono or IBM Plex Sans
-- **No decorative icons** — tab bar icons should be simple stroke-only SVGs
-- **No card shadows or elevation effects** — flat surfaces only
+- **No light mode** — dark-only, always pure black backgrounds
+- **No thin borders** — always 1px at 8% white opacity
+- **No small corner radius** — 12pt minimum for modern feel
+- **No heavy shadows or elevation** — flat surfaces only
+- **No decorative gradients** except functional chart fills
+- **No multiple accent colors** — one bold green throughout
+- **No pastel or muted accents** — high contrast required
+- **No Mono font for labels** — Sans only for UI copy
+- **No decorative icons** — simple SF Symbols only
 
 ---
 
@@ -433,25 +413,20 @@ and the wordmark only.
 
 Canonical copies in this repo:
 
-- `**docs/design.md`** — full design brief (this file).
-- `**docs/DESIGN_REFERENCE.md**` — implementation digest (tokens, spacing, component checklist).
+- `docs/design.md` — full design brief (this file).
+- `docs/DESIGN_REFERENCE.md` — implementation digest.
 
 When asking Cursor to build a screen or component:
 
-> "Build [screen name] following the design system in `docs/design.md`.
->  Use the color tokens, typography rules, and component patterns defined there.
->  Do not add any colors, fonts, or visual treatments not specified in the brief."
+> "Build [screen name] following the Robinhood dark theme in `docs/design.md`.
+>  Use pure black backgrounds, bold green accents, and the moderate density spacing."
 
 For specific components:
 
-> "Build a stat card following the card and data grid specs in `docs/design.md`.
->  Use IBM Plex Sans for the label and IBM Plex Mono for the value."
-
-> "Build a numeric stepper following the stepper spec in `docs/design.md`.
->  Include haptic feedback on increment and decrement."
+> "Build a stat card following the dark theme specs in `docs/design.md`.
+>  Use 12pt card padding and 12pt corner radius."
 
 When Cursor drifts from the spec:
 
-> "This doesn't match `docs/design.md` — you used Mono for the field label.
->  Labels use IBM Plex Sans. Fix it to match the spec."
-
+> "This doesn't match `docs/design.md` — you used light backgrounds.
+>  The theme is dark-only with pure black (#000000). Fix it."

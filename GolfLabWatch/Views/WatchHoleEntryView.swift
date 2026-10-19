@@ -248,6 +248,15 @@ struct WatchMetricStepper: View {
     var step: Int = 1
     var valuePointSize: CGFloat = 28
     var buttonSize: CGFloat = 42
+    
+    /// Flash state for haptic feedback animation
+    @State private var flashState: FlashState = .idle
+    
+    private enum FlashState {
+        case idle
+        case minus
+        case plus
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -260,9 +269,10 @@ struct WatchMetricStepper: View {
                 Spacer(minLength: 6)
                 Text("\(value)")
                     .font(.system(size: valuePointSize, weight: .semibold, design: .monospaced))
-                    .foregroundColor(WatchPalette.textPrimary)
+                    .foregroundColor(flashState != .idle ? WatchPalette.accent : WatchPalette.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
+                    .animation(.easeOut(duration: 0.15), value: flashState)
                 Spacer(minLength: 6)
                 stepButton(delta: 1)
             }
@@ -273,22 +283,33 @@ struct WatchMetricStepper: View {
     private func stepButton(delta: Int) -> some View {
         let stepDelta = delta * step
         let canStep = delta < 0 ? value > min : value < max
+        let isFlashing = (delta < 0 && flashState == .minus) || (delta > 0 && flashState == .plus)
+        
         return Button {
             guard canStep else { return }
             value = Swift.min(max, Swift.max(min, value + stepDelta))
-            WKInterfaceDevice.current().play(.click)
+            triggerFlash(delta < 0 ? .minus : .plus)
         } label: {
             Image(systemName: delta < 0 ? "minus" : "plus")
                 .font(.system(size: 17, weight: .bold))
-                .foregroundColor(WatchPalette.textPrimary)
+                .foregroundColor(isFlashing ? Color.black : WatchPalette.textPrimary)
                 .frame(width: buttonSize, height: buttonSize)
                 .contentShape(Circle())
-                .background(canStep ? WatchPalette.elevated : WatchPalette.elevated.opacity(0.55))
+                .background(isFlashing ? WatchPalette.accent : (canStep ? WatchPalette.elevated : WatchPalette.elevated.opacity(0.55)))
                 .clipShape(Circle())
+                .animation(.easeOut(duration: 0.15), value: flashState)
         }
         .buttonStyle(.plain)
         .disabled(!canStep)
         .accessibilityLabel(delta < 0 ? "Decrease \(title)" : "Increase \(title)")
+    }
+    
+    private func triggerFlash(_ state: FlashState) {
+        WKInterfaceDevice.current().play(.click)
+        flashState = state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            flashState = .idle
+        }
     }
 }
 
