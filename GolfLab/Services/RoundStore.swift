@@ -353,13 +353,19 @@ class RoundStore: ObservableObject {
         // Apply currentHoleIndex from watch so both devices advance together when one saves
         guard var round = activeRound else { return }
         let holeCount = round.holes.count
+        let indexChanged = holeCount > 0 && round.currentHoleIndex != snapshot.state.currentHoleIndex
         if holeCount > 0 {
             round.currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
             activeRound = round
             persistActiveRoundDraft()
         }
         
-        replyIfWatchIsBehind(remote: versions)
+        // Only reply if we have actual hole progress the watch lacks
+        // Don't reply just because we updated our currentHoleIndex to match watch's
+        // This prevents ping-pong effect where devices keep overwriting each other
+        if !indexChanged {
+            replyIfWatchIsBehind(remote: versions)
+        }
     }
 
     private func applyWatchHoleVersions(_ entries: [WatchHoleEntry]) -> Bool {
