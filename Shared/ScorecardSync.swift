@@ -53,6 +53,17 @@ enum ScorecardSync {
         return false
     }
 
+    /// The hole both devices should show after a save: the hole after the newest saved version, clamped to the last hole.
+    /// Derived from hole data so a stale or replayed snapshot can never move it. Nil when nothing is saved.
+    static func nextIndexAfterNewestSave(saved: [HoleVersion], holeNumbers: [Int]) -> Int? {
+        let newest = saved.filter(\.isSaved).max { lhs, rhs in
+            if lhs.revision != rhs.revision { return lhs.revision < rhs.revision }
+            return lhs.editedAt < rhs.editedAt
+        }
+        guard let newest, let index = holeNumbers.firstIndex(of: newest.holeNumber) else { return nil }
+        return min(index + 1, holeNumbers.count - 1)
+    }
+
     /// Forward is allowed when the current hole is saved, or when a later hole is already saved.
     /// An unsaved gap must not hide holes that were logged after it.
     static func canReviewForward(currentIndex: Int, isSaved: [Bool]) -> Bool {
