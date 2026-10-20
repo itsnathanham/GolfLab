@@ -149,6 +149,39 @@ func fuzz(_ variant: Variant, trials: Int) -> (failures: Int, example: String) {
     return (failures, example)
 }
 
+func walkthroughEditEarlierHole(savedHole3On: String) {
+    var w = World(variant: .derivedCursor)
+    func show(_ step: String) {
+        print("  \(step.padding(toLength: 52, withPad: " ", startingAt: 0)) phone: hole \(w.phone.cursor + 1)   watch: hole \(w.watch.cursor + 1)")
+    }
+    for n in 1...2 {
+        w.phone.save(holeNumber: n)
+        w.deliver(w.phone.snapshot, toPhone: false)
+    }
+    show("holes 1-2 saved")
+    if savedHole3On == "phone" {
+        w.phone.save(holeNumber: 3)
+        w.deliver(w.phone.snapshot, toPhone: false)
+    } else {
+        w.watch.save(holeNumber: 3)
+        w.deliver(w.watch.snapshot, toPhone: true)
+    }
+    show("hole 3 saved on \(savedHole3On)")
+    w.phone.cursor = 1
+    w.deliver(w.phone.snapshot, toPhone: false)
+    show("phone navigates back to hole 2 (view only)")
+    w.phone.save(holeNumber: 2)
+    w.deliver(w.phone.snapshot, toPhone: false)
+    show("phone saves edited hole 2")
+}
+
+print("\nEdit an earlier hole (derived cursor)")
+for device in ["phone", "watch"] {
+    print(" Case: hole 3 saved on \(device)")
+    walkthroughEditEarlierHole(savedHole3On: device)
+}
+print()
+
 var anyFailure = false
 print("Cursor index shown after saving hole 1 (0 = still on hole 1, 1 = hole 2 is correct)\n")
 for v in Variant.allCases {
