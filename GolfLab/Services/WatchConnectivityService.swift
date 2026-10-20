@@ -56,15 +56,8 @@ class WatchConnectivityService: NSObject, ObservableObject {
         } catch {
             // The next live send or a later context update still carries the card.
         }
-        guard WCSession.default.isReachable else {
-            // Watch is not reachable - queue the message for delivery when it becomes active
-            WCSession.default.transferUserInfo(payload)
-            return
-        }
-        WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: { _ in
-            // Live message failed - queue it instead
-            WCSession.default.transferUserInfo(payload)
-        })
+        guard WCSession.default.isReachable else { return }
+        WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil)
     }
 
     func clearEntries() {

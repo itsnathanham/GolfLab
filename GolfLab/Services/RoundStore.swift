@@ -261,7 +261,10 @@ class RoundStore: ObservableObject {
         round.holes[index] = saved
 
         if index < round.holes.count - 1 {
-            round.currentHoleIndex = index + 1
+            round.currentHoleIndex = ScorecardSync.nextIndexAfterFurthestSave(
+                saved: round.holes.map(\.version),
+                holeNumbers: round.holes.map(\.holeNumber)
+            ) ?? index + 1
             activeRound = round
             pushCompanionSnapshotToWatch()
             return .advancedToNextHole
@@ -314,7 +317,7 @@ class RoundStore: ObservableObject {
         replyIfWatchIsBehind(remote: versions)
     }
 
-    /// Merges a watch scorecard. Does not move the phone cursor.
+    /// Merges a watch scorecard. The cursor only moves when a watch hole version wins the merge (see `applyWatchHoleVersions`).
     /// When the phone has no round and this session was not discarded, adopts the watch card.
     func applyWatchScorecard(_ snapshot: WatchCompanionSnapshot) {
         if snapshot.tombstone {
@@ -330,53 +333,23 @@ class RoundStore: ObservableObject {
         if ActiveRoundDraftStore.isTombstoned(snapshot.sessionId), !snapshot.replacesSession {
             return
         }
-        // If we have no active round, adopt the watch scorecard
-        if !isRoundActive {
+        guard isRoundActive, companionSessionId == snapshot.sessionId else {
+            guard !isRoundActive else { return }
             adoptWatchScorecard(snapshot)
             return
         }
-        // If we have an active round but session IDs don't match, be lenient and merge if compatible
-        if companionSessionId != snapshot.sessionId {
-            // Check if the rounds are compatible (same course, same hole count)
-            guard let round = activeRound else { return }
-            let sameSetup = round.setup.courseName == snapshot.setup.courseName 
-                && round.holes.count == snapshot.setup.holeSetups.count
-            if !sameSetup {
-                // Incompatible rounds - don't merge
-                return
-            }
-            // Compatible rounds - merge the holes using revision numbers
-        }
         let versions = snapshot.state.savedEntries.map(\.version)
         _ = applyWatchHoleVersions(snapshot.state.savedEntries)
-        
-        // Apply currentHoleIndex from watch so both devices advance together when one saves
-        guard var round = activeRound else { return }
-        let holeCount = round.holes.count
-        let indexChanged = holeCount > 0 && round.currentHoleIndex != snapshot.state.currentHoleIndex
-        if holeCount > 0 {
-            round.currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
-            activeRound = round
-            persistActiveRoundDraft()
-        }
-        
-        // Only reply if we have actual hole progress the watch lacks
-        // Don't reply just because we updated our currentHoleIndex to match watch's
-        // This prevents ping-pong effect where devices keep overwriting each other
-        if !indexChanged {
-            replyIfWatchIsBehind(remote: versions)
-        }
+        replyIfWatchIsBehind(remote: versions)
     }
 
     private func applyWatchHoleVersions(_ entries: [WatchHoleEntry]) -> Bool {
         guard var round = activeRound else { return false }
         var changed = false
         for entry in entries {
-            // Skip if the entry is from a tombstoned session
+            if let sessionId = entry.sessionId, sessionId != companionSessionId { continue }
             if let sessionId = entry.sessionId, ActiveRoundDraftStore.isTombstoned(sessionId) { continue }
-            // Find the matching hole by hole number
             guard let index = round.holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }) else { continue }
-            // Only apply if remote version is newer
             let remote = entry.version
             guard ScorecardSync.prefersRemote(local: round.holes[index].version, remote: remote) else { continue }
             round.holes[index].score = entry.score
@@ -391,6 +364,14 @@ class RoundStore: ObservableObject {
             changed = true
         }
         if changed {
+            // The cursor follows saves, and only when a hole version actually won the merge.
+            // A stale or replayed snapshot changes no hole, so it cannot move the cursor.
+            if let next = ScorecardSync.nextIndexAfterFurthestSave(
+                saved: round.holes.map(\.version),
+                holeNumbers: round.holes.map(\.holeNumber)
+            ) {
+                round.currentHoleIndex = next
+            }
             activeRound = round
             persistActiveRoundDraft()
         }

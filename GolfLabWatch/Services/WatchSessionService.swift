@@ -77,46 +77,31 @@ class WatchSessionService: NSObject, ObservableObject {
             adopt(snapshot)
             return
         }
-        // Merge holes even if session IDs don't match, as long as hole metadata is compatible
-        // This handles cases where phone and watch got out of sync on session IDs
-        if appliedSessionId != snapshot.sessionId {
-            // Only adopt if the snapshot has more holes or different setup
-            let hasMoreHoles = snapshot.state.savedEntries.count > holeEntries.count
-            let differentSetup = snapshot.setup.courseName != roundSetup?.courseName 
-                || snapshot.setup.totalHoles != roundSetup?.totalHoles
-            if hasMoreHoles || differentSetup || holeEntries.isEmpty {
-                adopt(snapshot)
-                return
-            }
-            // Otherwise just merge the holes using revision numbers
-        }
+        guard appliedSessionId == snapshot.sessionId else { return }
         let remoteVersions = snapshot.state.savedEntries.map(\.version)
-        mergeSavedEntries(snapshot.state.savedEntries)
+        let changed = mergeSavedEntries(snapshot.state.savedEntries)
         datePlayed = snapshot.datePlayed ?? datePlayed
         userId = snapshot.userId ?? userId
         if snapshot.setup.holeSetups.count == (roundSetup?.holeSetups.count ?? 0) {
             roundSetup = snapshot.setup
         }
-        
-        // Apply currentHoleIndex from phone so both devices advance together when one saves
-        let holeCount = roundSetup?.holeSetups.count ?? 0
-        let indexChanged = holeCount > 0 && currentHoleIndex != snapshot.state.currentHoleIndex
-        if holeCount > 0 {
-            currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
+        if changed {
+            // The cursor follows the newest save, and only when a hole version actually won the merge.
+            // A stale or replayed snapshot changes no hole, so it cannot move the cursor or wipe the form.
+            if let setup = roundSetup,
+               let next = ScorecardSync.nextIndexAfterFurthestSave(
+                   saved: holeEntries.map(\.version),
+                   holeNumbers: setup.holeSetups.map(\.holeNumber)
+               ) {
+                currentHoleIndex = next
+            }
+            syncGeneration += 1
         }
-        
-        syncGeneration += 1
         persistLocalScorecard(awaitingPhoneSave: false)
         syncComplication()
-        
-        // Only republish if we have actual hole progress the phone lacks
-        // Don't republish just because we updated our currentHoleIndex to match phone's
-        // This prevents ping-pong effect where devices keep overwriting each other
-        if !indexChanged {
-            let localVersions = holeEntries.map(\.version)
-            if ScorecardSync.localHasProgressRemoteLacks(local: localVersions, remote: remoteVersions) {
-                republishLocalContext()
-            }
+        let localVersions = holeEntries.map(\.version)
+        if ScorecardSync.localHasProgressRemoteLacks(local: localVersions, remote: remoteVersions) {
+            republishLocalContext()
         }
     }
 
@@ -201,18 +186,24 @@ class WatchSessionService: NSObject, ObservableObject {
         syncComplication()
     }
 
-    private func mergeSavedEntries(_ remote: [WatchHoleEntry]) {
+    /// Returns true when at least one remote hole version replaced or added to the local card.
+    @discardableResult
+    private func mergeSavedEntries(_ remote: [WatchHoleEntry]) -> Bool {
+        var changed = false
         for entry in remote {
             holeClock = max(holeClock, entry.revision)
             if let index = holeEntries.firstIndex(where: { $0.holeNumber == entry.holeNumber }) {
                 if ScorecardSync.prefersRemote(local: holeEntries[index].version, remote: entry.version) {
                     holeEntries[index] = entry
+                    changed = true
                 }
             } else {
                 holeEntries.append(entry)
+                changed = true
             }
         }
         holeEntries.sort { $0.holeNumber < $1.holeNumber }
+        return changed
     }
 
     private func applyApplicationContextIfPresent() {

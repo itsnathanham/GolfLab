@@ -53,6 +53,16 @@ enum ScorecardSync {
         return false
     }
 
+    /// The hole both devices should show after a save: the hole after the furthest saved hole, clamped to the last hole.
+    /// A forward save lands on the next hole. Saving an edit to an earlier hole resumes at the first hole not yet played
+    /// instead of stopping on an already-saved one. Derived from hole data so a stale or replayed snapshot can never move it.
+    /// Nil when nothing is saved.
+    static func nextIndexAfterFurthestSave(saved: [HoleVersion], holeNumbers: [Int]) -> Int? {
+        let savedNumbers = Set(saved.filter(\.isSaved).map(\.holeNumber))
+        guard let furthest = holeNumbers.lastIndex(where: { savedNumbers.contains($0) }) else { return nil }
+        return min(furthest + 1, holeNumbers.count - 1)
+    }
+
     /// Forward is allowed when the current hole is saved, or when a later hole is already saved.
     /// An unsaved gap must not hide holes that were logged after it.
     static func canReviewForward(currentIndex: Int, isSaved: [Bool]) -> Bool {
