@@ -330,13 +330,35 @@ class RoundStore: ObservableObject {
         if ActiveRoundDraftStore.isTombstoned(snapshot.sessionId), !snapshot.replacesSession {
             return
         }
-        guard isRoundActive, companionSessionId == snapshot.sessionId else {
-            guard !isRoundActive else { return }
+        // If we have no active round, adopt the watch scorecard
+        if !isRoundActive {
             adoptWatchScorecard(snapshot)
             return
         }
+        // If we have an active round but session IDs don't match, be lenient and merge if compatible
+        if companionSessionId != snapshot.sessionId {
+            // Check if the rounds are compatible (same course, same hole count)
+            guard let round = activeRound else { return }
+            let sameSetup = round.setup.courseName == snapshot.setup.courseName 
+                && round.holes.count == snapshot.setup.holeSetups.count
+            if !sameSetup {
+                // Incompatible rounds - don't merge
+                return
+            }
+            // Compatible rounds - merge the holes using revision numbers
+        }
         let versions = snapshot.state.savedEntries.map(\.version)
         _ = applyWatchHoleVersions(snapshot.state.savedEntries)
+        
+        // Apply currentHoleIndex from watch so both devices advance together when one saves
+        guard var round = activeRound else { return }
+        let holeCount = round.holes.count
+        if holeCount > 0 {
+            round.currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
+            activeRound = round
+            persistActiveRoundDraft()
+        }
+        
         replyIfWatchIsBehind(remote: versions)
     }
 
@@ -344,9 +366,11 @@ class RoundStore: ObservableObject {
         guard var round = activeRound else { return false }
         var changed = false
         for entry in entries {
-            if let sessionId = entry.sessionId, sessionId != companionSessionId { continue }
+            // Skip if the entry is from a tombstoned session
             if let sessionId = entry.sessionId, ActiveRoundDraftStore.isTombstoned(sessionId) { continue }
+            // Find the matching hole by hole number
             guard let index = round.holes.firstIndex(where: { $0.holeNumber == entry.holeNumber }) else { continue }
+            // Only apply if remote version is newer
             let remote = entry.version
             guard ScorecardSync.prefersRemote(local: round.holes[index].version, remote: remote) else { continue }
             round.holes[index].score = entry.score

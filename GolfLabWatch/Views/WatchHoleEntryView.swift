@@ -56,7 +56,10 @@ struct WatchHoleEntryView: View {
                 scrollToTop(using: proxy)
             }
             .onChange(of: session.syncGeneration) { _, _ in
-                guard !formDirty else { return }
+                // Always reload from saved state when sync occurs
+                // This implements "save overwrites unsaved edits" - if other device saves,
+                // this device's unsaved edits are discarded and replaced with saved values
+                formDirty = false
                 loadFormFromSavedHole()
             }
             .onChange(of: score) { _, _ in markFormDirty() }
