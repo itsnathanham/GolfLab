@@ -349,6 +349,16 @@ class RoundStore: ObservableObject {
         }
         let versions = snapshot.state.savedEntries.map(\.version)
         _ = applyWatchHoleVersions(snapshot.state.savedEntries)
+        
+        // Apply currentHoleIndex from watch so both devices advance together when one saves
+        guard var round = activeRound else { return }
+        let holeCount = round.holes.count
+        if holeCount > 0 {
+            round.currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
+            activeRound = round
+            persistActiveRoundDraft()
+        }
+        
         replyIfWatchIsBehind(remote: versions)
     }
 

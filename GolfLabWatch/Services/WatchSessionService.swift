@@ -97,6 +97,13 @@ class WatchSessionService: NSObject, ObservableObject {
         if snapshot.setup.holeSetups.count == (roundSetup?.holeSetups.count ?? 0) {
             roundSetup = snapshot.setup
         }
+        
+        // Apply currentHoleIndex from phone so both devices advance together when one saves
+        let holeCount = roundSetup?.holeSetups.count ?? 0
+        if holeCount > 0 {
+            currentHoleIndex = min(max(0, snapshot.state.currentHoleIndex), holeCount - 1)
+        }
+        
         syncGeneration += 1
         persistLocalScorecard(awaitingPhoneSave: false)
         syncComplication()
