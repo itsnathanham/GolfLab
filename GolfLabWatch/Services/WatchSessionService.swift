@@ -89,7 +89,7 @@ class WatchSessionService: NSObject, ObservableObject {
             // The cursor follows the newest save, and only when a hole version actually won the merge.
             // A stale or replayed snapshot changes no hole, so it cannot move the cursor or wipe the form.
             if let setup = roundSetup,
-               let next = ScorecardSync.nextIndexAfterNewestSave(
+               let next = ScorecardSync.nextIndexAfterFurthestSave(
                    saved: holeEntries.map(\.version),
                    holeNumbers: setup.holeSetups.map(\.holeNumber)
                ) {

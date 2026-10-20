@@ -261,7 +261,10 @@ class RoundStore: ObservableObject {
         round.holes[index] = saved
 
         if index < round.holes.count - 1 {
-            round.currentHoleIndex = index + 1
+            round.currentHoleIndex = ScorecardSync.nextIndexAfterFurthestSave(
+                saved: round.holes.map(\.version),
+                holeNumbers: round.holes.map(\.holeNumber)
+            ) ?? index + 1
             activeRound = round
             pushCompanionSnapshotToWatch()
             return .advancedToNextHole
@@ -361,9 +364,9 @@ class RoundStore: ObservableObject {
             changed = true
         }
         if changed {
-            // The cursor follows the newest save, and only when a hole version actually won the merge.
+            // The cursor follows saves, and only when a hole version actually won the merge.
             // A stale or replayed snapshot changes no hole, so it cannot move the cursor.
-            if let next = ScorecardSync.nextIndexAfterNewestSave(
+            if let next = ScorecardSync.nextIndexAfterFurthestSave(
                 saved: round.holes.map(\.version),
                 holeNumbers: round.holes.map(\.holeNumber)
             ) {

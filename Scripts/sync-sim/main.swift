@@ -30,8 +30,7 @@ struct Device {
         clock += 1
         date += 10
         holes[holeNumber] = HoleVersion(holeNumber: holeNumber, isSaved: true, revision: clock, editedAt: date)
-        let idx = holeNumbers.firstIndex(of: holeNumber)!
-        cursor = min(idx + 1, holeNumbers.count - 1)
+        cursor = ScorecardSync.nextIndexAfterFurthestSave(saved: Array(holes.values), holeNumbers: holeNumbers)!
     }
 
     /// Returns a snapshot to publish back when this device holds progress the sender lacks.
@@ -57,7 +56,7 @@ struct Device {
             cursorChanged = cursor != s.cursor
             cursor = s.cursor
         case .derivedCursor:
-            if changed, let next = ScorecardSync.nextIndexAfterNewestSave(saved: Array(holes.values), holeNumbers: holeNumbers) {
+            if changed, let next = ScorecardSync.nextIndexAfterFurthestSave(saved: Array(holes.values), holeNumbers: holeNumbers) {
                 cursor = next
             }
         }
@@ -149,6 +148,8 @@ func fuzz(_ variant: Variant, trials: Int) -> (failures: Int, example: String) {
     return (failures, example)
 }
 
+var ok = true
+
 func walkthroughEditEarlierHole(savedHole3On: String) {
     var w = World(variant: .derivedCursor)
     func show(_ step: String) {
@@ -173,6 +174,30 @@ func walkthroughEditEarlierHole(savedHole3On: String) {
     w.phone.save(holeNumber: 2)
     w.deliver(w.phone.snapshot, toPhone: false)
     show("phone saves edited hole 2")
+    ok = ok && w.phone.cursor == 3 && w.watch.cursor == 3
+}
+
+func scenarioPhoneSavesWatchAwake() -> Bool {
+    var w = World(variant: .derivedCursor)
+    w.phone.save(holeNumber: 1)
+    w.deliver(w.phone.snapshot, toPhone: false)
+    print("  phone saves 1, watch awake:           phone: hole \(w.phone.cursor + 1)   watch: hole \(w.watch.cursor + 1)")
+    return w.phone.cursor == 1 && w.watch.cursor == 1
+}
+
+func scenarioPhoneSavesWatchClosed(saves: Int) -> Bool {
+    var w = World(variant: .derivedCursor)
+    var latest = w.phone.snapshot
+    for n in 1...saves {
+        w.phone.save(holeNumber: n)
+        latest = w.phone.snapshot
+    }
+    print("  phone saves \(saves) hole(s), watch closed:   phone: hole \(w.phone.cursor + 1)   watch: hole \(w.watch.cursor + 1) (not delivered yet)")
+    let staleWake = w.watch.snapshot
+    w.deliver(staleWake, toPhone: true)
+    w.deliver(latest, toPhone: false)
+    print("    watch wakes (publishes stale card, then receives latest context): phone: hole \(w.phone.cursor + 1)   watch: hole \(w.watch.cursor + 1)")
+    return w.phone.cursor == saves && w.watch.cursor == saves
 }
 
 print("\nEdit an earlier hole (derived cursor)")
@@ -180,9 +205,13 @@ for device in ["phone", "watch"] {
     print(" Case: hole 3 saved on \(device)")
     walkthroughEditEarlierHole(savedHole3On: device)
 }
+print("\nWatch awake vs closed when the phone saves")
+let awake = scenarioPhoneSavesWatchAwake()
+let closed1 = scenarioPhoneSavesWatchClosed(saves: 1)
+let closed3 = scenarioPhoneSavesWatchClosed(saves: 3)
 print()
 
-var anyFailure = false
+var anyFailure = !(ok && awake && closed1 && closed3)
 print("Cursor index shown after saving hole 1 (0 = still on hole 1, 1 = hole 2 is correct)\n")
 for v in Variant.allCases {
     let a = scenarioStaleForeground(v)
