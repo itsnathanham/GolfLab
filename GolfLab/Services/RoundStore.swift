@@ -672,6 +672,7 @@ class RoundStore: ObservableObject {
 
         for entry in entries {
             let insert = PracticeSessionInsert(
+                id: entry.id,
                 userId: userId,
                 sessionDate: entry.sessionDate,
                 practicedRange: entry.practicedRange,

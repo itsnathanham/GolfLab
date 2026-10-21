@@ -234,7 +234,11 @@ final class SwiftDataGolfLabStore: GolfLabStore {
 
     func insertPracticeSession(_ insert: PracticeSessionInsert) async throws -> PracticeSession {
         let context = try requireContext()
+        if let id = insert.id, let existing = try findPractice(id: id) {
+            return existing.asPracticeSession()
+        }
         let model = SDPracticeSession(
+            id: insert.id ?? UUID(),
             userId: insert.userId,
             sessionDate: insert.sessionDate,
             practicedRange: insert.practicedRange,

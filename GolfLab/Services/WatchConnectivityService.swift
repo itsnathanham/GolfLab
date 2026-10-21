@@ -101,6 +101,9 @@ class WatchConnectivityService: NSObject, ObservableObject {
 
     private func handlePracticeEntry(from dict: [String: Any]) {
         guard let entry = WatchPracticeEntry.from(dictionary: dict) else { return }
+        // Drop a second copy that is still waiting to be saved. A copy that arrives after
+        // the first save is collapsed by `insertPracticeSession` using this id.
+        if pendingPracticeEntries.contains(where: { $0.id == entry.id }) { return }
         pendingPracticeEntries.append(entry)
         receivedPracticeEntriesRevision += 1
     }

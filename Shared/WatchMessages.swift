@@ -227,6 +227,8 @@ extension WatchHoleEntry {
 
 /// Watch → iPhone practice log payload (today's session by default on Watch).
 struct WatchPracticeEntry: Codable, Equatable {
+    /// Stable for one tap of Save. The phone inserts this id once.
+    let id: UUID
     let sessionDate: String
     let practicedRange: Bool
     let practicedChipping: Bool
@@ -234,11 +236,49 @@ struct WatchPracticeEntry: Codable, Equatable {
     let rangeBallsHit: Int?
 
     enum CodingKeys: String, CodingKey {
+        case id
         case sessionDate = "session_date"
         case practicedRange = "practiced_range"
         case practicedChipping = "practiced_chipping"
         case practicedPutting = "practiced_putting"
         case rangeBallsHit = "range_balls_hit"
+    }
+
+    init(
+        id: UUID = UUID(),
+        sessionDate: String,
+        practicedRange: Bool,
+        practicedChipping: Bool,
+        practicedPutting: Bool,
+        rangeBallsHit: Int?
+    ) {
+        self.id = id
+        self.sessionDate = sessionDate
+        self.practicedRange = practicedRange
+        self.practicedChipping = practicedChipping
+        self.practicedPutting = practicedPutting
+        self.rangeBallsHit = rangeBallsHit
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Queued payloads from before ids existed still decode. They cannot be collapsed.
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        sessionDate = try container.decode(String.self, forKey: .sessionDate)
+        practicedRange = try container.decode(Bool.self, forKey: .practicedRange)
+        practicedChipping = try container.decode(Bool.self, forKey: .practicedChipping)
+        practicedPutting = try container.decode(Bool.self, forKey: .practicedPutting)
+        rangeBallsHit = try container.decodeIfPresent(Int.self, forKey: .rangeBallsHit)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(sessionDate, forKey: .sessionDate)
+        try container.encode(practicedRange, forKey: .practicedRange)
+        try container.encode(practicedChipping, forKey: .practicedChipping)
+        try container.encode(practicedPutting, forKey: .practicedPutting)
+        try container.encodeIfPresent(rangeBallsHit, forKey: .rangeBallsHit)
     }
 }
 

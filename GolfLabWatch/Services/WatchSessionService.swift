@@ -136,10 +136,12 @@ class WatchSessionService: NSObject, ObservableObject {
     }
 
     func sendPracticeEntry(_ entry: WatchPracticeEntry) {
+        // One transport. `alwaysQueue` also live-sends when the phone is reachable, and each
+        // delivery would insert its own practice row. The entry id still collapses a replay.
         sendLiveOrQueued([
             WatchMessageKey.type: WatchMessageType.practiceEntry.rawValue,
             WatchMessageKey.practiceData: entry.toDictionary()
-        ], alwaysQueue: true)
+        ], alwaysQueue: false)
     }
 
     func advanceHole() {
