@@ -24,6 +24,8 @@ struct PracticeSession: Codable, Identifiable, Equatable {
 }
 
 struct PracticeSessionInsert: Encodable {
+    /// Set for a watch save so a second delivery of that save returns the existing row.
+    var id: UUID? = nil
     let userId: UUID
     let sessionDate: String
     let practicedRange: Bool
@@ -32,6 +34,7 @@ struct PracticeSessionInsert: Encodable {
     let rangeBallsHit: Int?
 
     enum CodingKeys: String, CodingKey {
+        case id
         case userId = "user_id"
         case sessionDate = "session_date"
         case practicedRange = "practiced_range"
