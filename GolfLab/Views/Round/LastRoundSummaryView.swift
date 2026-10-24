@@ -288,6 +288,7 @@ struct LastRoundSummaryView: View {
     }
 }
 
+@MainActor
 enum RoundSeasonComparison {
     struct Row: Identifiable {
         let title: String
