@@ -42,6 +42,8 @@ extension Color {
     
     static var accentDim: Color { Color(hex: "#00C805").opacity(0.12) }
     static var accentDimmer: Color { Color(hex: "#00C805").opacity(0.06) }
+    /// Progress fills: weekly goals, avg score by par, in-round hole progress.
+    static var accentTrack: Color { accent.opacity(0.45) }
     
     /// Text on primary accent button — pure black for max contrast.
     static let ctaOnAccent = Color(hex: "#000000")

@@ -71,7 +71,7 @@ struct WeeklyGoalsStreakSection: View {
                             .fill(Color.bgElevated)
                             .frame(height: progressBarHeight)
                         Capsule()
-                            .fill(Color.accent.opacity(0.45))
+                            .fill(Color.accentTrack)
                             .frame(width: max(4, geo.size.width * frac), height: progressBarHeight)
                     }
                 }

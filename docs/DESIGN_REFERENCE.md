@@ -31,6 +31,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `accentMid` | `#5AC53B` | Positive trends, lighter accent |
 | `accentDim` | `#00C805` @ 12% | Active panels, filter bg |
 | `accentDimmer` | `#00C805` @ 6% | Subtle fills |
+| `accentTrack` | `#00C805` @ 45% | Goal, par, and hole progress bars |
 | `ctaOnAccent` | `#000000` | Text on green button (black) |
 | **Score-only** | | *Never use for general chrome* |
 | `chartPositive` | `#00C805` | Under-par series |

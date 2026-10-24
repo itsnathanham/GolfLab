@@ -66,6 +66,7 @@ Color(hex: "#00C805")        // accent          (Robinhood green — primary)
 Color(hex: "#5AC53B")        // accentMid       (lighter green, positive trends)
 Color(hex: "#00C805").opacity(0.12)  // accentDim       (toggle/panel backgrounds)
 Color(hex: "#00C805").opacity(0.06)  // accentDimmer    (very subtle fills)
+Color(hex: "#00C805").opacity(0.45)  // accentTrack     (goal, par, and hole progress bars)
 Color(hex: "#000000")        // ctaOnAccent     (text on green buttons — black)
 ```
 

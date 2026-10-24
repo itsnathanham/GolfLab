@@ -202,7 +202,7 @@ struct HoleEntryView: View {
                         .fill(Color.borderDefault)
                         .frame(height: 3)
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accent.opacity(0.45))
+                        .fill(Color.accentTrack)
                         .frame(width: geo.size.width * progress, height: 3)
                 }
                 .animation(.easeOut(duration: 0.24), value: progress)
