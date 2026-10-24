@@ -107,7 +107,7 @@ extension Color {
     
     /// Second hierarchy color — round dots and the chart after scoring.
     static var hierarchySecondary: Color { chartCyan }
-    /// Third hierarchy color — practice dots, streak marks, and the next chart.
+    /// Third hierarchy color — practice dots and the next chart.
     static var hierarchyTertiary: Color { chartOrange }
     /// Season-best badges. Distinct from green, cyan, and orange.
     static var seasonBest: Color { chartPurple }

@@ -42,7 +42,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartCyan` | `#30D5C8` | Distance, pace, yardage trends |
 | `chartMagenta` | `#FF2D55` | Penalty emphasis, focus metrics |
 | `chartYellow` | `#FFD60A` | Par baseline, neutral trends |
-| `chartPurple` | `#BF5AF2` | Practice data, putting stats |
+| `chartPurple` | `#BF5AF2` | Streak marks, season-best badges, GIR line |
 | `chartOrange` | `#FF9F0A` | Peak performance, best rounds |
 | **Weekly goals** | | *Consistent with main accent* |
 | `streakSuccess` | `#00C805` | Celebration and confetti |
@@ -51,7 +51,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `streakTextActive` | `#00C805` | Celebration caption |
 | **Calendar** | | |
 | `hierarchySecondary` | `#30D5C8` | Round dots, second chart |
-| `hierarchyTertiary` | `#FF9F0A` | Practice dots, streak marks, third chart |
+| `hierarchyTertiary` | `#FF9F0A` | Practice dots, third chart |
 | `seasonBest` | `#BF5AF2` | Season-best badges |
 | `calendarRoundDot` | `#30D5C8` | Round completion |
 | `calendarPracticeDot` | `#FF9F0A` | Practice session |
