@@ -166,7 +166,7 @@ struct HistoryView: View {
     // MARK: - Top bar
 
     private var historyTopBar: some View {
-        GLHubRootTopBar(screenTitle: "History")
+        GLHubRootTopBar { EmptyView() }
     }
 
     // MARK: - Scope pills

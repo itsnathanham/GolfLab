@@ -3,7 +3,6 @@ import SwiftUI
 // Manages which Round sub-screen is visible
 struct RoundTabView: View {
     @EnvironmentObject private var roundStore: RoundStore
-    @Binding var selectedTab: Int
 
     var body: some View {
         NavigationStack {
@@ -17,7 +16,7 @@ struct RoundTabView: View {
             } else if roundStore.allRounds.isEmpty {
                 RoundSetupView()
             } else {
-                LastRoundSummaryView(selectedTab: $selectedTab)
+                LastRoundSummaryView()
             }
         }
     }

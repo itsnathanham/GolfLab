@@ -81,7 +81,7 @@ struct GLSecondaryGhostButton: View {
                 .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
                 .overlay(
                     RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                        .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+                        .stroke(Color.accent, lineWidth: GLCardMetrics.strokeWidth)
                 )
         }
         .buttonStyle(.plain)

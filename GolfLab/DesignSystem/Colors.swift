@@ -27,8 +27,10 @@ extension Color {
     // MARK: - Text
     
     static let textPrimary = Color(hex: "#FFFFFF")
-    static let textSecondary = Color(hex: "#8E8E93")
-    static let textTertiary = Color(hex: "#636366")
+    /// One step lighter than system gray so secondary copy holds up on pure black and cards.
+    static let textSecondary = Color(hex: "#AEAEB2")
+    /// Former secondary gray, kept a step behind body secondary.
+    static let textTertiary = Color(hex: "#8E8E93")
     
     // MARK: - Accent
     
@@ -101,10 +103,19 @@ extension Color {
     
     // MARK: - History calendar (completed rounds vs logged practice)
     
-    /// Round completion dots — bold green.
-    static var calendarRoundDot: Color { accent }
-    /// Practice session dots — muted gray (subdued vs rounds).
-    static let calendarPracticeDot = Color(hex: "#636366")
+    /// Second hierarchy color — round dots, streak marks, the chart after scoring.
+    static var hierarchySecondary: Color { chartCyan }
+    /// Third hierarchy color — practice dots, the chart after the secondary series.
+    static var hierarchyTertiary: Color { chartOrange }
+    /// Season-best badges. Purple sits after cyan and orange so the badge is not green and not a calendar dot.
+    static var seasonBest: Color { chartPurple }
+    static var seasonBestDim: Color { chartPurple.opacity(0.16) }
+    static var seasonBestBorder: Color { chartPurple.opacity(0.40) }
+
+    /// Round completion dots — hierarchy secondary.
+    static var calendarRoundDot: Color { hierarchySecondary }
+    /// Practice session dots — hierarchy tertiary.
+    static var calendarPracticeDot: Color { hierarchyTertiary }
     static var calendarPracticeDim: Color { calendarPracticeDot.opacity(0.10) }
     static var calendarPracticeBorder: Color { calendarPracticeDot.opacity(0.30) }
     

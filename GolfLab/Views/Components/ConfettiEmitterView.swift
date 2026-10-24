@@ -32,7 +32,7 @@ struct ConfettiEmitterView: UIViewRepresentable {
             UIColor(Color.streakSuccessDeep),
             UIColor(Color.accentMid),
             UIColor(Color.streakOnSuccess),
-            UIColor(Color.calendarPracticeDot)
+            UIColor(Color.accent)
         ]
 
         emitter.emitterCells = colors.map { color in

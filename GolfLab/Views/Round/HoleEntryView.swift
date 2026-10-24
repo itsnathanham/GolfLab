@@ -275,10 +275,9 @@ struct StepperField: View {
                 Spacer(minLength: 0)
                 Text("\(value)")
                     .font(GLFonts.mono(size: 32, weight: .semibold))
-                    .foregroundColor(flashState != .idle ? .accent : .textPrimary)
+                    .foregroundColor(.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                    .animation(.easeOut(duration: 0.15), value: flashState)
                 if !label.isEmpty {
                     Text(label.uppercased())
                         .font(.glEyebrow)

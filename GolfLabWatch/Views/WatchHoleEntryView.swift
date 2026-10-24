@@ -272,10 +272,9 @@ struct WatchMetricStepper: View {
                 Spacer(minLength: 6)
                 Text("\(value)")
                     .font(.system(size: valuePointSize, weight: .semibold, design: .monospaced))
-                    .foregroundColor(flashState != .idle ? WatchPalette.accent : WatchPalette.textPrimary)
+                    .foregroundColor(WatchPalette.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
-                    .animation(.easeOut(duration: 0.15), value: flashState)
                 Spacer(minLength: 6)
                 stepButton(delta: 1)
             }

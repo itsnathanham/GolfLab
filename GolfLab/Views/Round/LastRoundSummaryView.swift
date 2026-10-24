@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct LastRoundSummaryView: View {
-    @Binding var selectedTab: Int
     @EnvironmentObject private var roundStore: RoundStore
 
     private var lastRound: Round? { roundStore.allRounds.first }
@@ -30,12 +29,6 @@ struct LastRoundSummaryView: View {
             }
         }
         return result
-    }
-
-    private var seasonPenaltiesByRoundId: [UUID: Int] {
-        Dictionary(uniqueKeysWithValues: seasonHolesByRoundId.map { id, holes in
-            (id, holes.aggregatedRoundTotals.penalties)
-        })
     }
 
     var body: some View {
@@ -72,11 +65,20 @@ struct LastRoundSummaryView: View {
                                 .padding(.bottom, 12)
                         }
 
-                        vsAverageRow(round: round)
+                        RoundVsSeasonComparisonCard(
+                            rows: RoundSeasonComparison.rows(
+                                round: round,
+                                holes: holes,
+                                roundStore: roundStore,
+                                seasonYear: Calendar.current.component(.year, from: Date())
+                            )
+                        )
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 20)
 
-                        ctaButtons
+                        GLPrimaryCTAButton(title: "+ Start round") {
+                            roundStore.requestRoundSetupFromHome()
+                        }
                             .padding(.horizontal, GLLayout.horizontalInset)
                     }
             }
@@ -174,113 +176,12 @@ struct LastRoundSummaryView: View {
         )
     }
 
-    private func vsAverageRow(round: Round) -> some View {
-        let rows: [(title: String, round: Double?, season: Double?, roundFormat: (Double) -> String, seasonFormat: (Double) -> String, betterHigh: Bool)] = [
-            (
-                "Score",
-                roundScoreVsPar(round: round),
-                seasonAverageScoreVsParMatchingHome(),
-                GLMetricFormat.vsParRound,
-                GLMetricFormat.vsParRound,
-                false
-            ),
-            (
-                "GIR %",
-                roundGirPct(round: round),
-                seasonGirPctMatchingHome(),
-                { String(format: "%.0f", $0) },
-                { String(format: "%.0f", $0) },
-                true
-            ),
-            (
-                "FIR %",
-                roundFirPct(round: round),
-                seasonFirPctMatchingHome(),
-                { String(format: "%.0f", $0) },
-                { String(format: "%.0f", $0) },
-                true
-            ),
-            (
-                "Putts / hole",
-                roundPuttsPerHole(round: round),
-                seasonPuttsPerHoleMatchingHome(),
-                GLMetricFormat.puttsPerHole,
-                GLMetricFormat.puttsPerHole,
-                false
-            ),
-            (
-                "Penalties / round",
-                roundPenaltiesPerRound(round: round),
-                seasonPenaltiesPerRoundMatchingHome(),
-                { String(format: "%.0f", $0) },
-                { String(format: "%.0f", $0) },
-                false
-            )
-        ]
-
-        return VStack(spacing: 0) {
-            HStack(alignment: .center) {
-                Text("This round vs season")
-                    .font(.glEyebrow)
-                    .foregroundColor(.textTertiary)
-                    .tracking(0.06 * 11)
-                    .textCase(.uppercase)
-                Spacer()
-                HStack(spacing: 32) {
-                    Text("Round")
-                    Text("Season")
-                }
-                .font(GLFonts.mono(size: 10, weight: .medium))
-                .foregroundColor(.textTertiary)
-                .tracking(0.08 * 10)
-                .textCase(.uppercase)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.borderDefault).frame(height: 1)
-            }
-
-            VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
-                    metricVsSeasonRow(
-                        title: row.title,
-                        roundValue: row.round,
-                        baselineValue: row.season,
-                        roundFormat: row.roundFormat,
-                        baselineFormat: row.seasonFormat,
-                        higherRoundIsBetter: row.betterHigh,
-                        showDivider: idx < rows.count - 1
-                    )
-                }
-            }
-        }
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-    }
-
     /// Strokes vs par for the round on this screen (same as Home SCORE card for one round).
     private func roundScoreVsPar(round: Round) -> Double? {
         guard let score = round.totalScore,
               let par = seasonParByRoundId[round.id]
         else { return nil }
         return Double(score - par)
-    }
-
-    /// Mean of (gross − par) over season rounds that have par loaded — matches Home **Season** SCORE stat.
-    private func seasonAverageScoreVsParMatchingHome() -> Double? {
-        let deltas: [Double] = homeSeasonRounds.compactMap { r in
-            guard let score = r.totalScore,
-                  let par = seasonParByRoundId[r.id]
-            else { return nil }
-            return Double(score - par)
-        }
-        guard !deltas.isEmpty else { return nil }
-        return deltas.reduce(0, +) / Double(deltas.count)
     }
 
     private var homeSeasonRounds: [Round] {
@@ -316,114 +217,6 @@ struct LastRoundSummaryView: View {
             return holes.firHitPercentage
         }
         return seasonHolesByRoundId[round.id]?.firHitPercentage
-    }
-
-    private func seasonGirPctMatchingHome() -> Double? {
-        aggregateGirPct(over: homeSeasonRounds)
-    }
-
-    private func seasonPuttsPerHoleMatchingHome() -> Double? {
-        aggregatePuttsPerHole(over: homeSeasonRounds)
-    }
-    
-    private func seasonFirPctMatchingHome() -> Double? {
-        SeasonHolesFetch.flattenedCompletedHoles(
-            seasonRounds: homeSeasonRounds,
-            holesByRoundId: seasonHolesByRoundId,
-            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
-        ).firHitPercentage
-    }
-
-    private func roundPenaltiesPerRound(round _: Round) -> Double? {
-        guard !holes.isEmpty else { return nil }
-        return Double(displayAggregates()?.penalties ?? 0)
-    }
-
-    /// Mean penalty count per round over season rounds with loaded hole rows.
-    private func seasonPenaltiesPerRoundMatchingHome() -> Double? {
-        let counts: [Double] = homeSeasonRounds.compactMap { r in
-            guard let n = seasonPenaltiesByRoundId[r.id] else { return nil }
-            return Double(n)
-        }
-        guard !counts.isEmpty else { return nil }
-        return counts.reduce(0, +) / Double(counts.count)
-    }
-
-    private func aggregateGirPct(over rounds: [Round]) -> Double? {
-        let holeSum = rounds.reduce(0) { $0 + $1.holes }
-        guard holeSum > 0 else { return nil }
-        let girSum = rounds.reduce(0) { $0 + ($1.totalGir ?? 0) }
-        return Double(girSum) / Double(holeSum) * 100
-    }
-
-    private func aggregatePuttsPerHole(over rounds: [Round]) -> Double? {
-        let holeSum = rounds.reduce(0) { $0 + $1.holes }
-        guard holeSum > 0 else { return nil }
-        let puttSum = rounds.reduce(0) { $0 + ($1.totalPutts ?? 0) }
-        return Double(puttSum) / Double(holeSum)
-    }
-
-    private var ctaButtons: some View {
-        VStack(spacing: 12) {
-            GLPrimaryCTAButton(title: "+ Start round") {
-                roundStore.requestRoundSetupFromHome()
-            }
-
-            GLSecondaryGhostButton(title: "View stats →") {
-                selectedTab = 2
-            }
-        }
-    }
-
-    private func metricVsSeasonRow(
-        title: String,
-        roundValue: Double?,
-        baselineValue: Double?,
-        roundFormat: (Double) -> String,
-        baselineFormat: (Double) -> String,
-        higherRoundIsBetter _: Bool,
-        showDivider: Bool
-    ) -> some View {
-        HStack(alignment: .center) {
-            Text(title)
-                .font(.glSubhead)
-                .foregroundColor(.textSecondary)
-            Spacer()
-            if let r = roundValue, let a = baselineValue {
-                HStack(spacing: 32) {
-                    Text(roundFormat(r))
-                        .font(GLFonts.mono(size: 15, weight: .semibold))
-                        .foregroundColor(.textPrimary)
-                        .frame(minWidth: 48, alignment: .trailing)
-                    Text(baselineFormat(a))
-                        .font(GLFonts.mono(size: 14, weight: .regular))
-                        .foregroundColor(.textTertiary)
-                        .frame(minWidth: 48, alignment: .trailing)
-                }
-            } else if let r = roundValue {
-                HStack(spacing: 32) {
-                    Text(roundFormat(r))
-                        .font(GLFonts.mono(size: 15, weight: .semibold))
-                        .foregroundColor(.textPrimary)
-                        .frame(minWidth: 48, alignment: .trailing)
-                    Text("—")
-                        .font(GLFonts.mono(size: 14, weight: .regular))
-                        .foregroundColor(.textTertiary)
-                        .frame(minWidth: 48, alignment: .trailing)
-                }
-            } else {
-                Text("—")
-                    .font(GLFonts.mono(size: 15, weight: .semibold))
-                    .foregroundColor(.textTertiary)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) {
-            if showDivider {
-                Rectangle().fill(Color.borderDefault).frame(height: 1)
-            }
-        }
     }
 
     private func roundMetaLine(_ round: Round) -> String {
@@ -492,5 +285,187 @@ struct LastRoundSummaryView: View {
         dc.month = m
         dc.day = d
         return Calendar.current.date(from: dc)
+    }
+}
+
+enum RoundSeasonComparison {
+    struct Row: Identifiable {
+        let title: String
+        let roundText: String?
+        let seasonText: String?
+        var id: String { title }
+    }
+
+    static func rows(
+        round: Round,
+        holes: [Hole],
+        roundStore: RoundStore,
+        seasonYear: Int
+    ) -> [Row] {
+        let seasonRounds = SeasonHolesFetch.calendarYearRounds(from: roundStore.allRounds, year: seasonYear)
+            .filter { $0.holes == round.holes }
+        let holesByRoundId = Dictionary(uniqueKeysWithValues: seasonRounds.compactMap { seasonRound -> (UUID, [Hole])? in
+            let cached = seasonRound.id == round.id && !holes.isEmpty
+                ? holes
+                : roundStore.holes(for: seasonRound.id)
+            guard !cached.isEmpty else { return nil }
+            return (seasonRound.id, cached)
+        })
+
+        let score = scoreVsPar(round: round, holes: holes, roundStore: roundStore)
+        let seasonScore = average(seasonRounds.compactMap { candidate in
+            scoreVsPar(
+                round: candidate,
+                holes: holesByRoundId[candidate.id] ?? [],
+                roundStore: roundStore
+            )
+        })
+
+        let gir = percent(hits: holes.isEmpty ? (round.totalGir ?? 0) : holes.aggregatedRoundTotals.gir, over: round.holes)
+        let seasonGir = percent(
+            hits: seasonRounds.reduce(0) { $0 + ($1.totalGir ?? 0) },
+            over: seasonRounds.reduce(0) { $0 + $1.holes }
+        )
+
+        let fir = holes.isEmpty
+            ? holesByRoundId[round.id]?.firHitPercentage
+            : holes.firHitPercentage
+        let seasonFir = SeasonHolesFetch.flattenedCompletedHoles(
+            seasonRounds: seasonRounds,
+            holesByRoundId: holesByRoundId,
+            holeRowCountByRoundId: roundStore.holeRowCountByRoundId
+        ).firHitPercentage
+
+        let putts = perHole(
+            total: holes.isEmpty ? (round.totalPutts ?? 0) : holes.aggregatedRoundTotals.putts,
+            holes: round.holes
+        )
+        let seasonPutts = perHole(
+            total: seasonRounds.reduce(0) { $0 + ($1.totalPutts ?? 0) },
+            holes: seasonRounds.reduce(0) { $0 + $1.holes }
+        )
+
+        let penalties: Double? = holes.isEmpty ? nil : Double(holes.aggregatedRoundTotals.penalties)
+        let penaltyCounts = seasonRounds.compactMap { candidate -> Double? in
+            guard let cached = holesByRoundId[candidate.id] else { return nil }
+            return Double(cached.aggregatedRoundTotals.penalties)
+        }
+        let seasonPenalties = average(penaltyCounts)
+
+        return [
+            row("Score", score, seasonScore, GLMetricFormat.vsParRound),
+            row("GIR %", gir, seasonGir) { String(format: "%.0f", $0) },
+            row("FIR %", fir, seasonFir) { String(format: "%.0f", $0) },
+            row("Putts / hole", putts, seasonPutts, GLMetricFormat.puttsPerHole),
+            row("Penalties / round", penalties, seasonPenalties) { String(format: "%.0f", $0) }
+        ]
+    }
+
+    private static func row(
+        _ title: String,
+        _ roundValue: Double?,
+        _ seasonValue: Double?,
+        _ format: (Double) -> String
+    ) -> Row {
+        Row(
+            title: title,
+            roundText: roundValue.map(format),
+            seasonText: seasonValue.map(format)
+        )
+    }
+
+    private static func scoreVsPar(round: Round, holes: [Hole], roundStore: RoundStore) -> Double? {
+        let par = holes.isEmpty ? roundStore.totalParSumByRoundId[round.id] : holes.totalParFromHoles
+        guard let score = round.totalScore, let par else { return nil }
+        return Double(score - par)
+    }
+
+    private static func percent(hits: Int, over holes: Int) -> Double? {
+        guard holes > 0 else { return nil }
+        return Double(hits) / Double(holes) * 100
+    }
+
+    private static func perHole(total: Int, holes: Int) -> Double? {
+        guard holes > 0 else { return nil }
+        return Double(total) / Double(holes)
+    }
+
+    private static func average(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+}
+
+struct RoundVsSeasonComparisonCard: View {
+    let rows: [RoundSeasonComparison.Row]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Text("This round vs season")
+                    .font(.glEyebrow)
+                    .foregroundColor(.textTertiary)
+                    .tracking(0.06 * 11)
+                    .textCase(.uppercase)
+                Spacer()
+                HStack(spacing: 32) {
+                    Text("Round")
+                    Text("Season")
+                }
+                .font(GLFonts.mono(size: 10, weight: .medium))
+                .foregroundColor(.textTertiary)
+                .tracking(0.08 * 10)
+                .textCase(.uppercase)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.borderDefault).frame(height: 1)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    comparisonRow(row, showDivider: index < rows.count - 1)
+                }
+            }
+        }
+        .background(Color.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
+                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        )
+    }
+
+    private func comparisonRow(_ row: RoundSeasonComparison.Row, showDivider: Bool) -> some View {
+        HStack(alignment: .center) {
+            Text(row.title)
+                .font(.glSubhead)
+                .foregroundColor(.textSecondary)
+            Spacer()
+            if let roundText = row.roundText {
+                HStack(spacing: 32) {
+                    Text(roundText)
+                        .font(GLFonts.mono(size: 15, weight: .semibold))
+                        .foregroundColor(.textPrimary)
+                        .frame(minWidth: 48, alignment: .trailing)
+                    Text(row.seasonText ?? "—")
+                        .font(GLFonts.mono(size: 14, weight: .regular))
+                        .foregroundColor(.textTertiary)
+                        .frame(minWidth: 48, alignment: .trailing)
+                }
+            } else {
+                Text("—")
+                    .font(GLFonts.mono(size: 15, weight: .semibold))
+                    .foregroundColor(.textTertiary)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            if showDivider {
+                Rectangle().fill(Color.borderDefault).frame(height: 1)
+            }
+        }
     }
 }

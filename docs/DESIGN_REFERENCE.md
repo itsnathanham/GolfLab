@@ -25,8 +25,8 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `borderAccent` | `#00C805` @ 25% | Active accent borders |
 | `borderPenalty` | `#FF453A` @ 28% | Penalty borders |
 | `textPrimary` | `#FFFFFF` | Primary text (pure white) |
-| `textSecondary` | `#8E8E93` | Secondary text (Apple gray) |
-| `textTertiary` | `#636366` | Labels, captions (muted) |
+| `textSecondary` | `#AEAEB2` | Secondary text |
+| `textTertiary` | `#8E8E93` | Labels, captions |
 | `accent` | `#00C805` | Brand / CTAs / under-par (Robinhood green) |
 | `accentMid` | `#5AC53B` | Positive trends, lighter accent |
 | `accentDim` | `#00C805` @ 12% | Active panels, filter bg |
@@ -36,7 +36,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPositive` | `#00C805` | Under-par series |
 | `chartNegative` | `#FF453A` | Over-par series (Apple red) |
 | `chartNegativeStrong` | `#FF375F` | Double-bogey+ |
-| `chartNeutral` | `#8E8E93` | Steady series |
+| `chartNeutral` | `#AEAEB2` | Steady series |
 | **Extended chart palette** | | *Multi-series, data emphasis* |
 | `chartCyan` | `#30D5C8` | Distance, pace, yardage trends |
 | `chartMagenta` | `#FF2D55` | Penalty emphasis, focus metrics |
@@ -49,8 +49,11 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `streakOnSuccess` | `#000000` | Checkmark on green circles (black) |
 | `streakTextActive` | `#00C805` | Streak footer (green) |
 | **Calendar** | | |
-| `calendarRoundDot` | `#00C805` | Round completion (green) |
-| `calendarPracticeDot` | `#636366` | Practice session (muted gray) |
+| `hierarchySecondary` | `#30D5C8` | Round dots, streak marks, second chart |
+| `hierarchyTertiary` | `#FF9F0A` | Practice dots, third chart |
+| `seasonBest` | `#BF5AF2` | Season-best badges |
+| `calendarRoundDot` | `#30D5C8` | Round completion |
+| `calendarPracticeDot` | `#FF9F0A` | Practice session |
 
 ---
 
@@ -93,8 +96,6 @@ Implement in `GolfLab/DesignSystem/Typography.swift`: `Font.gl*` tokens.
 | Intra-card gap | **6–10pt** | Reduced from 8–12pt |
 | Card / button / stepper / toggle radius | **12pt** | Increased from 8pt for modern feel |
 | Filter pill radius | **8pt** | Increased from 6pt |
-| Tab bar content top padding | **10pt** | Reduced from 12pt |
-| Tab bar scroll bottom margin | **16pt** | Reduced from 20pt |
 | Sheet content bottom padding | **28pt** | Reduced from 32pt |
 
 No decorative dividers; separation = surface contrast + **1px** borders. **No shadows.**
@@ -114,7 +115,7 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | Stat toggles | Toggles | On-state fills + borders; 8pt dot; 150ms ease; 12pt radius |
 | Charts | Charts | 2.5pt stroke, 20% gradient fill (stock-app style) |
 | Filters | Filters | Custom pills, 8pt radius |
-| Tab bar | Tab Bar | #1C1C1E bar, SF Symbol icons, green dot active |
+| Tab bar | Tab Bar | System tab bar (Liquid Glass on iOS 26), accent tint |
 
 ### 5.1 SwiftUI central components (`GolfLab/DesignSystem`)
 

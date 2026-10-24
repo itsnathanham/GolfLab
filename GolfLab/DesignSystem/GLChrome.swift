@@ -67,17 +67,6 @@ struct GLHubRootTopBar<Trailing: View>: View {
     }
 }
 
-extension GLHubRootTopBar where Trailing == Text {
-    /// Stats / History-style hub title on the trailing side.
-    init(screenTitle: String) {
-        self.init {
-            Text(screenTitle)
-                .font(.glSubhead)
-                .foregroundColor(.textTertiary)
-        }
-    }
-}
-
 /// Leading control on pushed surfaces (`ProfileView`, `RoundDetailView`, sheets) — circle + chevron, `docs/design.md` hairline.
 struct GLCircleBackButton: View {
     let action: () -> Void

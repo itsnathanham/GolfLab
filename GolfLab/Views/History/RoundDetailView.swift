@@ -51,6 +51,17 @@ struct RoundDetailView: View {
                     )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.top, 16)
+
+                    RoundVsSeasonComparisonCard(
+                        rows: RoundSeasonComparison.rows(
+                            round: round,
+                            holes: displayHoles,
+                            roundStore: roundStore,
+                            seasonYear: Self.seasonYear(of: round)
+                        )
+                    )
+                        .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.top, 16)
                 }
             }
         }
@@ -373,6 +384,10 @@ struct RoundDetailView: View {
                 courseNameSaveError = "Couldn't save. Check your connection and try again."
             }
         }
+    }
+
+    private static func seasonYear(of round: Round) -> Int {
+        Int(round.datePlayed.prefix(4)) ?? Calendar.current.component(.year, from: Date())
     }
 
     private static func ymdDate(_ ymd: String) -> Date? {

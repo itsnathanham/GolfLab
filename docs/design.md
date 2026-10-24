@@ -55,8 +55,8 @@ Color(hex: "#FF453A").opacity(0.28)  // borderPenalty
 
 ```swift
 Color(hex: "#FFFFFF")        // textPrimary   (pure white, max contrast)
-Color(hex: "#8E8E93")        // textSecondary  (Apple system gray)
-Color(hex: "#636366")        // textTertiary   (muted, labels and captions only)
+Color(hex: "#AEAEB2")        // textSecondary  (one step above system gray)
+Color(hex: "#8E8E93")        // textTertiary   (labels and captions)
 ```
 
 ### Accent — bold green primary
@@ -89,7 +89,7 @@ Color(hex: "#FF375F")        // double-bogey strong — deeper red
 Encode meaning with high contrast:
 
 - Under-par / improving metrics: accent #00C805
-- Neutral / steady metrics: secondary #8E8E93
+- Neutral / steady metrics: secondary #AEAEB2
 - Over-par / negative trends: red #FF453A
 
 ### Extended chart palette (multi-series differentiation)
@@ -117,27 +117,27 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Uses the **same green accent** for consistency. No separate gold/amber palette.
+Progress bars stay accent green. Met-week circles, the flame, and the streak caption use hierarchy secondary (cyan). Confetti stays green.
 
 ```swift
-Color(hex: "#00C805")        // streakSuccess     — met week circle, flame
-Color(hex: "#5AC53B")        // streakSuccessDeep — confetti accents
-Color(hex: "#000000")        // streakOnSuccess   — checkmark on green circles
-Color(hex: "#00C805")        // streakTextActive  — streak caption
+Color(hex: "#30D5C8")        // hierarchySecondary — met week circle, flame, streak caption
+Color(hex: "#00C805")        // streakSuccess      — celebration / confetti green
+Color(hex: "#5AC53B")        // streakSuccessDeep  — confetti accents
+Color(hex: "#000000")        // streakOnSuccess    — checkmark on secondary circles
 ```
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
-| Met (past or current week)              | 28pt circle, `accent` fill, black checkmark |
+| Met (past or current week)              | 28pt circle, hierarchy secondary fill, black checkmark |
 | Missed (finished week only)             | 28pt circle, `bgElevated` fill, white ×            |
 | In progress (current week, not yet met) | 28pt circle, `bgElevated` fill, white `ellipsis`   |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to circle centers.
 Auto-scroll to the newest week on appear.
 
-**Streak footer:** `flame.fill` (accent green, full opacity) + footnote caption (accent text).
+**Streak footer:** `flame.fill` (hierarchy secondary) + footnote caption (hierarchy secondary).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
@@ -316,10 +316,10 @@ Terminal dot:  4pt radius, filled
 **Gradient fill below line (stock-app style):**
 
 ```
-Linear gradient, vertical
-Top: line color at 20% opacity (increased from 14%)
+Linear gradient, vertical, under solid lines except vs-par progression charts (line only)
+Top of the plot: line color at 50% opacity
+Mid: line color at 18%, then 4%
 Bottom: line color at 0% opacity
-Smooth fade creates depth without distraction
 ```
 
 Grid lines (subtle, horizontal only):

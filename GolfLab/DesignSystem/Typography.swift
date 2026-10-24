@@ -41,22 +41,6 @@ enum GLLayout {
     /// Tighter horizontal inset for data density.
     static let horizontalInset: CGFloat = 18
 
-    enum TabBar {
-        static let borderHeight: CGFloat = 1
-        static let contentTopPadding: CGFloat = 10
-        static let contentBottomPadding: CGFloat = 4
-        static let itemSpacing: CGFloat = 3
-        static let iconPointSize: CGFloat = 16
-        static let activeDotSize: CGFloat = 3
-        /// Icon + spacing + eyebrow label + dot in `MainTabView.tabButton`.
-        static let itemStackHeight: CGFloat = iconPointSize + itemSpacing + 11 + itemSpacing + activeDotSize
-        static var occupiedHeight: CGFloat {
-            borderHeight + contentTopPadding + itemStackHeight + contentBottomPadding
-        }
-    }
-
-    /// Bottom scroll margin for tab roots (and pushed destinations). Applied in `MainTabView.tabRoot`.
-    static let tabRootScrollBottomMargin: CGFloat = TabBar.occupiedHeight + 16
     static let sheetContentBottomPadding: CGFloat = 28
 }
 
@@ -200,19 +184,19 @@ struct GLSeasonBestBadge: View {
         HStack(spacing: 4) {
             Image(systemName: "star.fill")
                 .font(.system(size: 10))
-                .foregroundColor(.streakSuccess)
+                .foregroundColor(.seasonBest)
             Text("Season best")
                 .font(GLFonts.mono(size: 10, weight: .semibold))
-                .foregroundColor(.streakTextActive)
+                .foregroundColor(.seasonBest)
                 .tracking(0.06 * 10)
                 .textCase(.uppercase)
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
-        .background(Color.streakSuccessDim)
+        .background(Color.seasonBestDim)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.borderStreak, lineWidth: 1)
+                .stroke(Color.seasonBestBorder, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .accessibilityLabel("Season best")
@@ -425,7 +409,7 @@ struct GLStatTrendCard<ChartContent: View>: View {
             GLTrendCardHeader(title: title)
 
             chartContent()
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 4)
                 .padding(.top, 10)
                 .padding(.bottom, 12)
         }

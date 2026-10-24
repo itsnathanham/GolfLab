@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Series
 
@@ -67,9 +68,8 @@ struct VsParLineChartSeries {
 
 enum GLTrendChartMetrics {
     static let chartHeight: CGFloat = 168
-    static let axisLabelForeground = Color.black.opacity(0.18)
-    static let defaultYAxisLeadingMargin: CGFloat = 36
-    static let wideYAxisLeadingMargin: CGFloat = 48
+    static let axisLabelForeground = Color.textSecondary
+    static let defaultYAxisLeadingMargin: CGFloat = 16
 }
 
 enum VsParLineChartGridStyle: Equatable {
@@ -103,15 +103,25 @@ struct VsParLineChartView: View {
     var lastValueFormatter: ((Double) -> String)? = nil
     var seriesColor: Color = .accent
     var primaryStrokeStyle: VsParLineStrokeStyle = .solid
+    var showsAreaGradient: Bool = true
+
+    @State private var selectedPointIndex: Int?
+    @State private var gestureActive = false
+    @State private var touchAnchorIndex: Int?
+    @State private var hoverPointIndex: Int?
 
     private let plotHeight = GLTrendChartMetrics.chartHeight
-    private let horizontalPlotTrailing: CGFloat = 12
-    private let horizontalPlotTrailingWithLabel: CGFloat = 28
+    private let horizontalPlotTrailing: CGFloat = 6
+    private let horizontalPlotTrailingWithLabel: CGFloat = 16
     private let verticalMarginTop: CGFloat = 8
     private let verticalMarginBottom: CGFloat = 22
 
     private var plotTrailingInset: CGFloat {
         showLastValueLabel ? horizontalPlotTrailingWithLabel : horizontalPlotTrailing
+    }
+
+    private var activePointIndex: Int? {
+        hoverPointIndex ?? selectedPointIndex
     }
 
     var body: some View {
@@ -136,9 +146,9 @@ struct VsParLineChartView: View {
 
                 axisLabels(width: w, height: h, plotH: plotH, domain: domain)
 
-                if showLastValueLabel, let last = series.solid.last {
+                if showLastValueLabel, let last = series.solid.last, activePointIndex == nil {
                     let pt = plotPoint(for: last, plotW: plotW, plotH: plotH, domain: domain)
-                    let labelText = lastValueFormatter?(last.value) ?? Self.formatVsPar(last.value)
+                    let labelText = formattedValue(last.value)
                     Text(labelText)
                         .font(.glAxis)
                         .foregroundColor(seriesColor)
@@ -147,9 +157,107 @@ struct VsParLineChartView: View {
                             y: max(12, pt.y - 12)
                         )
                 }
+
+                if let index = activePointIndex, series.solid.indices.contains(index) {
+                    let point = series.solid[index]
+                    let plotted = plotPoint(for: point, plotW: plotW, plotH: plotH, domain: domain)
+                    pointCallout(text: formattedValue(point.value), at: plotted, width: w)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(scrubGesture(plotW: plotW, plotH: plotH, domain: domain))
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    hoverPointIndex = nearestSolidIndex(
+                        atX: location.x,
+                        plotW: plotW,
+                        plotH: plotH,
+                        domain: domain
+                    )
+                case .ended:
+                    hoverPointIndex = nil
+                @unknown default:
+                    hoverPointIndex = nil
+                }
             }
         }
         .frame(height: plotHeight)
+        .accessibilityLabel(yAxisLabel)
+    }
+
+    private func formattedValue(_ value: Double) -> String {
+        lastValueFormatter?(value) ?? Self.formatVsPar(value)
+    }
+
+    private func pointCallout(text: String, at point: CGPoint, width: CGFloat) -> some View {
+        Text(text)
+            .font(GLFonts.mono(size: 12, weight: .semibold))
+            .foregroundColor(.textPrimary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Color.bgElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(seriesColor.opacity(0.55), lineWidth: 1)
+            )
+            .fixedSize()
+            .position(x: min(max(point.x, 28), width - 28), y: max(14, point.y - 22))
+            .allowsHitTesting(false)
+    }
+
+    private func scrubGesture(
+        plotW: CGFloat,
+        plotH: CGFloat,
+        domain: (lo: Double, hi: Double)
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if !gestureActive {
+                    gestureActive = true
+                    touchAnchorIndex = selectedPointIndex
+                }
+                let index = nearestSolidIndex(
+                    atX: value.location.x,
+                    plotW: plotW,
+                    plotH: plotH,
+                    domain: domain
+                )
+                guard index != selectedPointIndex else { return }
+                if index != nil {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                selectedPointIndex = index
+            }
+            .onEnded { value in
+                let travel = hypot(value.translation.width, value.translation.height)
+                if travel < 10, selectedPointIndex == touchAnchorIndex {
+                    selectedPointIndex = nil
+                }
+                gestureActive = false
+                touchAnchorIndex = nil
+            }
+    }
+
+    private func nearestSolidIndex(
+        atX x: CGFloat,
+        plotW: CGFloat,
+        plotH: CGFloat,
+        domain: (lo: Double, hi: Double)
+    ) -> Int? {
+        guard !series.solid.isEmpty else { return nil }
+        var bestIndex = 0
+        var bestDistance = CGFloat.greatestFiniteMagnitude
+        for (index, point) in series.solid.enumerated() {
+            let plotted = plotPoint(for: point, plotW: plotW, plotH: plotH, domain: domain)
+            let distance = abs(plotted.x - x)
+            if distance < bestDistance {
+                bestDistance = distance
+                bestIndex = index
+            }
+        }
+        return bestIndex
     }
 
     private func plotPoint(
@@ -278,7 +386,8 @@ struct VsParLineChartView: View {
                 plotW: plotW,
                 plotH: plotH,
                 domain: domain,
-                drawMarkers: overlay.showPointMarkers
+                drawMarkers: overlay.showPointMarkers,
+                showsAreaGradient: false
             )
         }
 
@@ -293,7 +402,8 @@ struct VsParLineChartView: View {
             plotW: plotW,
             plotH: plotH,
             domain: domain,
-            drawMarkers: true
+            drawMarkers: true,
+            showsAreaGradient: showsAreaGradient
         )
 
         if let tail = series.dottedTail, !tail.isEmpty, let join = series.solid.last {
@@ -321,7 +431,8 @@ struct VsParLineChartView: View {
         plotW: CGFloat,
         plotH: CGFloat,
         domain: (lo: Double, hi: Double),
-        drawMarkers: Bool
+        drawMarkers: Bool,
+        showsAreaGradient: Bool
     ) {
         let solidPoints = series.solid
         guard !solidPoints.isEmpty else { return }
@@ -340,8 +451,7 @@ struct VsParLineChartView: View {
             path.addLine(to: plotPoint(for: p, plotW: plotW, plotH: plotH, domain: domain))
         }
 
-        // Draw gradient fill (stock-app style)
-        if strokeStyle == .solid {
+        if strokeStyle == .solid && showsAreaGradient {
             var fillPath = Path()
             if anchorLineAtEvenPar {
                 let startX = originX + xPos(xIndex: 0, plotW: plotW)
@@ -361,9 +471,20 @@ struct VsParLineChartView: View {
                 fillPath.addLine(to: CGPoint(x: lastPt.x, y: originY + plotH))
             }
             fillPath.closeSubpath()
-            
-            // Gradient from top (20% opacity) to bottom (0% opacity)
-            ctx.fill(fillPath, with: .color(color.opacity(0.20)))
+
+            ctx.fill(
+                fillPath,
+                with: .linearGradient(
+                    Gradient(stops: [
+                        .init(color: color.opacity(0.50), location: 0),
+                        .init(color: color.opacity(0.18), location: 0.42),
+                        .init(color: color.opacity(0.04), location: 0.75),
+                        .init(color: color.opacity(0), location: 1)
+                    ]),
+                    startPoint: CGPoint(x: originX + plotW / 2, y: originY),
+                    endPoint: CGPoint(x: originX + plotW / 2, y: originY + plotH)
+                )
+            )
         }
 
         // Draw line
@@ -405,24 +526,13 @@ struct VsParLineChartView: View {
 
     private func axisLabels(width: CGFloat, height: CGFloat, plotH: CGFloat, domain: (lo: Double, hi: Double)) -> some View {
         let originY = verticalMarginTop
-        let yLabelX = yAxisLeadingMargin * 0.44
         return ZStack(alignment: .topLeading) {
-            Text(yAxisLabel)
-                .font(.glAxis)
-                .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: plotH, height: yAxisLeadingMargin - 6, alignment: .center)
-                .rotationEffect(.degrees(-90))
-                .position(x: yLabelX, y: originY + plotH / 2)
-
             if case .vsParStrokes = gridStyle, domain.lo <= 0, domain.hi >= 0 {
                 Text("E")
                     .font(.glAxis)
                     .foregroundColor(GLTrendChartMetrics.axisLabelForeground)
                     .position(
-                        x: yAxisLeadingMargin - 10,
+                        x: 8,
                         y: originY + yPos(0, plotH: plotH, domain: domain)
                     )
             }
@@ -526,7 +636,8 @@ struct RoundVsParProgressCard: View {
                         totalXSlots: totalHoles,
                         xAxisLabel: "Hole",
                         yAxisLabel: "Score",
-                        overlaySeries: overlays
+                        overlaySeries: overlays,
+                        showsAreaGradient: false
                     )
                     if !overlays.isEmpty {
                         VsParProgressionChartLegend(items: [
@@ -569,11 +680,12 @@ struct AvgVsParProgressionCard: View {
                         xAxisLabel: "Hole",
                         yAxisLabel: "Score",
                         anchorLineAtEvenPar: true,
-                        seriesColor: .accentMid,
-                        primaryStrokeStyle: .dashed
+                        seriesColor: .chartCyan,
+                        primaryStrokeStyle: .dashed,
+                        showsAreaGradient: false
                     )
                     VsParProgressionChartLegend(items: [
-                        .init(label: "Average", color: .accentMid, strokeStyle: .dashed),
+                        .init(label: "Average", color: .chartCyan, strokeStyle: .dashed),
                     ])
                 }
             } else {

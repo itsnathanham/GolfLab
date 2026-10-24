@@ -7,7 +7,7 @@ struct CoachView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    GLHubRootTopBar(screenTitle: Self.screenTitle)
+                    GLHubRootTopBar { EmptyView() }
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 14)

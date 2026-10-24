@@ -42,6 +42,7 @@ struct StatsView: View {
                             values: firSeries,
                             yAxisLabel: "FIR %",
                             gridStep: 5,
+                            seriesColor: .chartOrange,
                             valueFormatter: { String(format: "%.0f%%", $0) }
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
@@ -52,6 +53,7 @@ struct StatsView: View {
                             values: girSeries,
                             yAxisLabel: "GIR %",
                             gridStep: 5,
+                            seriesColor: .chartPurple,
                             valueFormatter: { String(format: "%.0f%%", $0) }
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
@@ -62,9 +64,8 @@ struct StatsView: View {
                             values: puttsPerHoleSeries,
                             yAxisLabel: "Putts / hole",
                             gridStep: 0.25,
-                            seriesColor: .textSecondary,
-                            valueFormatter: GLMetricFormat.puttsPerHole,
-                            yAxisLeadingMargin: GLTrendChartMetrics.wideYAxisLeadingMargin
+                            seriesColor: .chartYellow,
+                            valueFormatter: GLMetricFormat.puttsPerHole
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
@@ -74,8 +75,8 @@ struct StatsView: View {
                             values: penaltiesPerRoundSeries,
                             yAxisLabel: "Penalties / round",
                             gridStep: 0.5,
-                            valueFormatter: { String(format: "%.0f", $0) },
-                            yAxisLeadingMargin: GLTrendChartMetrics.wideYAxisLeadingMargin
+                            seriesColor: .chartNegativeStrong,
+                            valueFormatter: { String(format: "%.0f", $0) }
                         )
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 12)
@@ -105,10 +106,10 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - Top bar (reference: wordmark + screen title)
+    // MARK: - Top bar
 
     private var statsTopBar: some View {
-        GLHubRootTopBar(screenTitle: "Stats")
+        GLHubRootTopBar { EmptyView() }
     }
 
     // MARK: - Pills
@@ -275,7 +276,7 @@ struct StatsView: View {
                         .fill(Color.bgElevated)
                         .frame(height: progressBarHeight)
                     Capsule()
-                        .fill(Color.accent.opacity(0.45))
+                        .fill(Color.chartMagenta)
                         .frame(width: max(4, geo.size.width * widthFrac), height: progressBarHeight)
                 }
             }

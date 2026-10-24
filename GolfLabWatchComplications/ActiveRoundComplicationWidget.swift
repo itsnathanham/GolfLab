@@ -28,21 +28,27 @@ struct ActiveRoundComplicationView: View {
     let entry: ActiveRoundComplicationEntry
 
     var body: some View {
-        if let holeNumber = entry.holeNumber {
-            Text("\(holeNumber)")
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .minimumScaleFactor(0.6)
-        } else {
-            GLComplicationIcon()
+        Group {
+            if let holeNumber = entry.holeNumber {
+                Text("\(holeNumber)")
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .minimumScaleFactor(0.6)
+            } else {
+                GLComplicationIcon()
+            }
         }
+        .foregroundStyle(Color.white)
     }
 }
 
 struct ActiveRoundComplicationWidget: Widget {
+    /// Sampled from the phone and watch app icon background.
+    static let iconGreen = Color(red: 8 / 255, green: 86 / 255, blue: 46 / 255)
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WatchComplicationStore.widgetKind, provider: ActiveRoundComplicationProvider()) { entry in
             ActiveRoundComplicationView(entry: entry)
-                .containerBackground(Color(red: 25 / 255, green: 105 / 255, blue: 58 / 255), for: .widget)
+                .containerBackground(Self.iconGreen, for: .widget)
         }
         .configurationDisplayName("Current Hole")
         .description("Shows the active hole number.")
