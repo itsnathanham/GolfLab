@@ -103,11 +103,11 @@ extension Color {
     
     // MARK: - History calendar (completed rounds vs logged practice)
     
-    /// Second hierarchy color — round dots, streak marks, the chart after scoring.
+    /// Second hierarchy color — round dots and the chart after scoring.
     static var hierarchySecondary: Color { chartCyan }
-    /// Third hierarchy color — practice dots, the chart after the secondary series.
+    /// Third hierarchy color — practice dots, streak marks, and the next chart.
     static var hierarchyTertiary: Color { chartOrange }
-    /// Season-best badges. Purple sits after cyan and orange so the badge is not green and not a calendar dot.
+    /// Season-best badges. Distinct from green, cyan, and orange.
     static var seasonBest: Color { chartPurple }
     static var seasonBestDim: Color { chartPurple.opacity(0.16) }
     static var seasonBestBorder: Color { chartPurple.opacity(0.40) }
@@ -129,9 +129,6 @@ extension Color {
     static let streakOnSuccess = Color(hex: "#000000")
     /// Active streak footer caption.
     static var streakTextActive: Color { accent }
-    /// Season-best badge fill.
-    static var streakSuccessDim: Color { accent.opacity(0.12) }
-    static var borderStreak: Color { accent.opacity(0.28) }
     
     // MARK: - Legacy palette (deprecated, use semantic tokens above)
     

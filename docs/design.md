@@ -117,27 +117,27 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Progress bars stay accent green. Met-week circles, the flame, and the streak caption use hierarchy secondary (cyan). Confetti stays green.
+Progress bars stay accent green. Met-week circles, the flame, and the streak caption use hierarchy tertiary (orange). Confetti stays green.
 
 ```swift
-Color(hex: "#30D5C8")        // hierarchySecondary — met week circle, flame, streak caption
+Color(hex: "#FF9F0A")        // hierarchyTertiary — met week circle, flame, streak caption
 Color(hex: "#00C805")        // streakSuccess      — celebration / confetti green
 Color(hex: "#5AC53B")        // streakSuccessDeep  — confetti accents
-Color(hex: "#000000")        // streakOnSuccess    — checkmark on secondary circles
+Color(hex: "#000000")        // streakOnSuccess    — checkmark on orange circles
 ```
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
-| Met (past or current week)              | 28pt circle, hierarchy secondary fill, black checkmark |
+| Met (past or current week)              | 28pt circle, hierarchy tertiary fill, black checkmark |
 | Missed (finished week only)             | 28pt circle, `bgElevated` fill, white ×            |
 | In progress (current week, not yet met) | 28pt circle, `bgElevated` fill, white `ellipsis`   |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to circle centers.
 Auto-scroll to the newest week on appear.
 
-**Streak footer:** `flame.fill` (hierarchy secondary) + footnote caption (hierarchy secondary).
+**Streak footer:** `flame.fill` (hierarchy tertiary) + footnote caption (hierarchy tertiary).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 

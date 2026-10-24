@@ -276,7 +276,7 @@ struct StatsView: View {
                         .fill(Color.bgElevated)
                         .frame(height: progressBarHeight)
                     Capsule()
-                        .fill(Color.chartMagenta)
+                        .fill(Color.accent.opacity(0.45))
                         .frame(width: max(4, geo.size.width * widthFrac), height: progressBarHeight)
                 }
             }

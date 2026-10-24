@@ -44,13 +44,13 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPurple` | `#BF5AF2` | Practice data, putting stats |
 | `chartOrange` | `#FF9F0A` | Peak performance, best rounds |
 | **Weekly goals** | | *Consistent with main accent* |
-| `streakSuccess` | `#00C805` | Met week circle, flame (green) |
+| `streakSuccess` | `#00C805` | Celebration and confetti |
 | `streakSuccessDeep` | `#5AC53B` | Confetti particles |
-| `streakOnSuccess` | `#000000` | Checkmark on green circles (black) |
-| `streakTextActive` | `#00C805` | Streak footer (green) |
+| `streakOnSuccess` | `#000000` | Checkmark on streak circles |
+| `streakTextActive` | `#00C805` | Celebration caption |
 | **Calendar** | | |
-| `hierarchySecondary` | `#30D5C8` | Round dots, streak marks, second chart |
-| `hierarchyTertiary` | `#FF9F0A` | Practice dots, third chart |
+| `hierarchySecondary` | `#30D5C8` | Round dots, second chart |
+| `hierarchyTertiary` | `#FF9F0A` | Practice dots, streak marks, third chart |
 | `seasonBest` | `#BF5AF2` | Season-best badges |
 | `calendarRoundDot` | `#30D5C8` | Round completion |
 | `calendarPracticeDot` | `#FF9F0A` | Practice session |

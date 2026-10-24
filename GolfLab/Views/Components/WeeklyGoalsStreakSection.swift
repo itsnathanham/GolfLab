@@ -151,7 +151,7 @@ struct WeeklyGoalsStreakSection: View {
         switch outcome {
         case .complete:
             weekCircle(
-                fill: .hierarchySecondary,
+                fill: .hierarchyTertiary,
                 systemImage: "checkmark",
                 iconSize: 12,
                 iconWeight: .bold
@@ -193,10 +193,10 @@ struct WeeklyGoalsStreakSection: View {
         HStack(spacing: 6) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.hierarchySecondary)
+                .foregroundColor(.hierarchyTertiary)
             Text(Self.streakCaption(weeks: streakWeeks))
                 .font(.glFootnote)
-                .foregroundColor(.hierarchySecondary)
+                .foregroundColor(.hierarchyTertiary)
         }
     }
 
