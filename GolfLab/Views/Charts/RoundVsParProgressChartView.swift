@@ -107,9 +107,7 @@ struct VsParLineChartView: View {
 
     @State private var selectedPointIndex: Int?
     @State private var gestureActive = false
-    @State private var touchAnchorIndex: Int?
     @State private var hoverPointIndex: Int?
-    @State private var initialDragLocation: CGPoint?
 
     private let plotHeight = GLTrendChartMetrics.chartHeight
     private let horizontalPlotTrailing: CGFloat = 6
@@ -166,30 +164,29 @@ struct VsParLineChartView: View {
                 }
             }
             .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
+            .onTapGesture(coordinateSpace: .local) { location in
+                let index = nearestSolidIndex(
+                    atX: location.x,
+                    plotW: plotW,
+                    plotH: plotH,
+                    domain: domain
+                )
+                
+                if selectedPointIndex == index {
+                    selectedPointIndex = nil
+                } else {
+                    selectedPointIndex = index
+                    if index != nil {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                }
+            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 20)
                     .onChanged { value in
-                        let deltaX = abs(value.translation.width)
-                        let deltaY = abs(value.translation.height)
-                        
-                        if !gestureActive && initialDragLocation == nil {
-                            initialDragLocation = value.startLocation
-                        }
-                        
                         if !gestureActive {
-                            if deltaY > 15 && deltaY > deltaX * 1.5 {
-                                return
-                            }
-                            
-                            if deltaX > 10 || (deltaX > 5 && deltaX > deltaY) {
-                                gestureActive = true
-                                touchAnchorIndex = selectedPointIndex
-                            } else if deltaX < 5 && deltaY < 5 {
-                                return
-                            }
+                            gestureActive = true
                         }
-                        
-                        guard gestureActive else { return }
                         
                         let index = nearestSolidIndex(
                             atX: value.location.x,
@@ -203,22 +200,8 @@ struct VsParLineChartView: View {
                         }
                         selectedPointIndex = index
                     }
-                    .onEnded { value in
-                        defer {
-                            gestureActive = false
-                            touchAnchorIndex = nil
-                            initialDragLocation = nil
-                        }
-                        
-                        guard gestureActive else { return }
-                        
-                        let travel = hypot(value.translation.width, value.translation.height)
-                        
-                        if travel < 10 {
-                            if selectedPointIndex == touchAnchorIndex {
-                                selectedPointIndex = nil
-                            }
-                        }
+                    .onEnded { _ in
+                        gestureActive = false
                     }
             )
             .onContinuousHover { phase in
