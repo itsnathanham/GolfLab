@@ -109,6 +109,7 @@ struct VsParLineChartView: View {
     @State private var gestureActive = false
     @State private var touchAnchorIndex: Int?
     @State private var hoverPointIndex: Int?
+    @State private var initialDragLocation: CGPoint?
 
     private let plotHeight = GLTrendChartMetrics.chartHeight
     private let horizontalPlotTrailing: CGFloat = 6
@@ -215,9 +216,25 @@ struct VsParLineChartView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 if !gestureActive {
-                    gestureActive = true
-                    touchAnchorIndex = selectedPointIndex
+                    if initialDragLocation == nil {
+                        initialDragLocation = value.startLocation
+                    }
+                    
+                    let deltaX = abs(value.translation.width)
+                    let deltaY = abs(value.translation.height)
+                    
+                    if deltaY > deltaX && deltaY > 10 {
+                        return
+                    }
+                    
+                    if deltaX > 8 || (deltaX > deltaY && deltaX > 3) {
+                        gestureActive = true
+                        touchAnchorIndex = selectedPointIndex
+                    }
                 }
+                
+                guard gestureActive else { return }
+                
                 let index = nearestSolidIndex(
                     atX: value.location.x,
                     plotW: plotW,
@@ -231,12 +248,21 @@ struct VsParLineChartView: View {
                 selectedPointIndex = index
             }
             .onEnded { value in
-                let travel = hypot(value.translation.width, value.translation.height)
-                if travel < 10, selectedPointIndex == touchAnchorIndex {
-                    selectedPointIndex = nil
+                defer {
+                    gestureActive = false
+                    touchAnchorIndex = nil
+                    initialDragLocation = nil
                 }
-                gestureActive = false
-                touchAnchorIndex = nil
+                
+                guard gestureActive else { return }
+                
+                let travel = hypot(value.translation.width, value.translation.height)
+                
+                if travel < 10 {
+                    if selectedPointIndex == touchAnchorIndex {
+                        selectedPointIndex = nil
+                    }
+                }
             }
     }
 
