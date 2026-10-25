@@ -166,7 +166,61 @@ struct VsParLineChartView: View {
                 }
             }
             .contentShape(Rectangle())
-            .gesture(scrubGesture(plotW: plotW, plotH: plotH, domain: domain))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let deltaX = abs(value.translation.width)
+                        let deltaY = abs(value.translation.height)
+                        
+                        if !gestureActive && initialDragLocation == nil {
+                            initialDragLocation = value.startLocation
+                        }
+                        
+                        if !gestureActive {
+                            if deltaY > 15 && deltaY > deltaX * 1.5 {
+                                return
+                            }
+                            
+                            if deltaX > 10 || (deltaX > 5 && deltaX > deltaY) {
+                                gestureActive = true
+                                touchAnchorIndex = selectedPointIndex
+                            } else if deltaX < 5 && deltaY < 5 {
+                                return
+                            }
+                        }
+                        
+                        guard gestureActive else { return }
+                        
+                        let index = nearestSolidIndex(
+                            atX: value.location.x,
+                            plotW: plotW,
+                            plotH: plotH,
+                            domain: domain
+                        )
+                        guard index != selectedPointIndex else { return }
+                        if index != nil {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        selectedPointIndex = index
+                    }
+                    .onEnded { value in
+                        defer {
+                            gestureActive = false
+                            touchAnchorIndex = nil
+                            initialDragLocation = nil
+                        }
+                        
+                        guard gestureActive else { return }
+                        
+                        let travel = hypot(value.translation.width, value.translation.height)
+                        
+                        if travel < 10 {
+                            if selectedPointIndex == touchAnchorIndex {
+                                selectedPointIndex = nil
+                            }
+                        }
+                    }
+            )
             .onContinuousHover { phase in
                 switch phase {
                 case .active(let location):
@@ -206,64 +260,6 @@ struct VsParLineChartView: View {
             .fixedSize()
             .position(x: min(max(point.x, 28), width - 28), y: max(14, point.y - 22))
             .allowsHitTesting(false)
-    }
-
-    private func scrubGesture(
-        plotW: CGFloat,
-        plotH: CGFloat,
-        domain: (lo: Double, hi: Double)
-    ) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                if !gestureActive {
-                    if initialDragLocation == nil {
-                        initialDragLocation = value.startLocation
-                    }
-                    
-                    let deltaX = abs(value.translation.width)
-                    let deltaY = abs(value.translation.height)
-                    
-                    if deltaY > deltaX && deltaY > 10 {
-                        return
-                    }
-                    
-                    if deltaX > 8 || (deltaX > deltaY && deltaX > 3) {
-                        gestureActive = true
-                        touchAnchorIndex = selectedPointIndex
-                    }
-                }
-                
-                guard gestureActive else { return }
-                
-                let index = nearestSolidIndex(
-                    atX: value.location.x,
-                    plotW: plotW,
-                    plotH: plotH,
-                    domain: domain
-                )
-                guard index != selectedPointIndex else { return }
-                if index != nil {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
-                selectedPointIndex = index
-            }
-            .onEnded { value in
-                defer {
-                    gestureActive = false
-                    touchAnchorIndex = nil
-                    initialDragLocation = nil
-                }
-                
-                guard gestureActive else { return }
-                
-                let travel = hypot(value.translation.width, value.translation.height)
-                
-                if travel < 10 {
-                    if selectedPointIndex == touchAnchorIndex {
-                        selectedPointIndex = nil
-                    }
-                }
-            }
     }
 
     private func nearestSolidIndex(
