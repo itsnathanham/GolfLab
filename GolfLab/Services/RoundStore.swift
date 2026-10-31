@@ -661,12 +661,12 @@ class RoundStore: ObservableObject {
         profileDisplayName = profile.displayName
     }
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
-    func upsertPracticeSession(_ session: PracticeSession) {
+    func upsertPracticeSession(_ session: PracticeSession, fromWatch: Bool = false) {
         let goalsBefore = weeklyGoalsSnapshot()
         var next = allPracticeSessions.filter { $0.id != session.id }
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
-        queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore)
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore, sendToWatch: fromWatch)
     }
 
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
@@ -686,7 +686,7 @@ class RoundStore: ObservableObject {
             )
             do {
                 let inserted = try await GolfLabData.store.insertPracticeSession(insert)
-                upsertPracticeSession(inserted)
+                upsertPracticeSession(inserted, fromWatch: true)
             } catch {
                 continue
             }
@@ -720,12 +720,20 @@ class RoundStore: ObservableObject {
         weeklyGoalCelebration = pending
     }
 
-    private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot) {
+    private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot, sendToWatch: Bool = false) {
         let after = weeklyGoalsSnapshot()
         guard let presentation = WeeklyGoalCelebration.presentationIfNewlyCompleted(before: before, after: after) else {
             return
         }
-        weeklyGoalCelebrationPending = presentation
+        
+        if sendToWatch {
+            WatchConnectivityService.shared.sendWeeklyGoalCelebration(
+                completedWeeksStreak: presentation.completedWeeksStreak
+            )
+            WeeklyGoalCelebration.markCelebrated(weekStartYMD: presentation.weekStartYMD)
+        } else {
+            weeklyGoalCelebrationPending = presentation
+        }
     }
 
     /// Gross score average for holes of this par in the **same calendar season as the Stats season picker** (`StatsSeasonFilter.seasonYearAlignedWithStatsPicker`).

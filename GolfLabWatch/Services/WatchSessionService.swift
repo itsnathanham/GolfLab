@@ -20,6 +20,8 @@ class WatchSessionService: NSObject, ObservableObject {
     @Published private(set) var syncGeneration: UInt64 = 0
     /// The watch already asked the phone to save. The card is still on disk until the phone confirms.
     @Published private(set) var isWaitingForPhoneToSave = false
+    /// Weekly goal celebration triggered by practice logged on this Watch.
+    @Published var weeklyGoalCelebration: WatchWeeklyGoalCelebration?
 
     private var appliedSessionId: UUID?
     private var holeClock: UInt64 = 0
@@ -404,6 +406,11 @@ extension WatchSessionService: WCSessionDelegate {
         case .companionSnapshot, .companionEnded:
             if let snapshot = WatchCompanionSnapshot.from(message: payload) {
                 applyCompanionSnapshot(snapshot)
+            }
+        case .weeklyGoalCelebration:
+            if let celebrationDict = payload[WatchMessageKey.celebrationData] as? [String: Any],
+               let celebration = WatchWeeklyGoalCelebration.from(dictionary: celebrationDict) {
+                weeklyGoalCelebration = celebration
             }
         case .holeEntry, .endRound, .syncRequest, .practiceEntry:
             break

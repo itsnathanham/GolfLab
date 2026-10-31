@@ -16,7 +16,7 @@ struct WeeklyGoalCelebrationOverlay: View {
             Color.black.opacity(0.12)
                 .ignoresSafeArea()
 
-            ConfettiEmitterView()
+            GolfFireworkEmitterView()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -96,15 +96,24 @@ struct WeeklyGoalCelebrationOverlay: View {
             parts.append(streakLine)
         }
         if reduceMotion {
-            parts.append("Confetti animations are off.")
+            parts.append("Firework animations are off.")
         }
         return parts.joined(separator: " ")
     }
 
     private func playCelebrationHaptics() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 }

@@ -22,6 +22,14 @@ struct WatchRootView: View {
                 session.requestCompanionSyncFromPhone()
             }
         }
+        .overlay {
+            if let celebration = session.weeklyGoalCelebration {
+                WatchWeeklyGoalCelebrationView(
+                    completedWeeksStreak: celebration.completedWeeksStreak,
+                    onDismiss: { session.weeklyGoalCelebration = nil }
+                )
+            }
+        }
     }
 }
 

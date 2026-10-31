@@ -24,6 +24,7 @@ enum WatchMessageKey {
     static let syncRequest       = "syncRequest"
     static let sessionId         = "sessionId"
     static let revision          = "revision"
+    static let celebrationData   = "celebrationData"
 }
 
 enum WatchMessageType: String {
@@ -33,6 +34,7 @@ enum WatchMessageType: String {
     case endRound           = "endRound"
     case companionEnded     = "companionEnded"
     case syncRequest        = "syncRequest"
+    case weeklyGoalCelebration = "weeklyGoalCelebration"
 }
 
 /// Scorecard replicated between iPhone and Watch.
@@ -289,5 +291,18 @@ extension WatchPracticeEntry {
 
     static func from(dictionary: [String: Any]) -> WatchPracticeEntry? {
         WatchCodablePayload.decode(WatchPracticeEntry.self, from: dictionary)
+    }
+}
+
+/// iPhone → Watch weekly goal celebration notification.
+struct WatchWeeklyGoalCelebration: Codable, Equatable {
+    let completedWeeksStreak: Int
+    
+    func toDictionary() -> [String: Any] {
+        WatchCodablePayload.dictionary(self)
+    }
+    
+    static func from(dictionary: [String: Any]) -> WatchWeeklyGoalCelebration? {
+        WatchCodablePayload.decode(WatchWeeklyGoalCelebration.self, from: dictionary)
     }
 }

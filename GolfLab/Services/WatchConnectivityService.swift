@@ -70,6 +70,18 @@ class WatchConnectivityService: NSObject, ObservableObject {
         return entries
     }
 
+    func sendWeeklyGoalCelebration(completedWeeksStreak: Int) {
+        guard WCSession.isSupported(), WCSession.default.isReachable else { return }
+        
+        let celebration = WatchWeeklyGoalCelebration(completedWeeksStreak: completedWeeksStreak)
+        let payload: [String: Any] = [
+            WatchMessageKey.type: WatchMessageType.weeklyGoalCelebration.rawValue,
+            WatchMessageKey.celebrationData: celebration.toDictionary()
+        ]
+        
+        WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+    }
+
     private func notifyActivationIfNeeded() {
         guard roundStore != nil, !didNotifyActivation else { return }
         didNotifyActivation = true
