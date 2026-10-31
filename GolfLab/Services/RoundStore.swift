@@ -442,7 +442,7 @@ class RoundStore: ObservableObject {
         }
         guard isRoundActive, activeRound != nil else { return }
         do {
-            _ = try await saveActiveRound()
+            _ = try await saveActiveRound(fromWatch: true)
         } catch RoundError.noActiveRound {
             // Already finished (e.g. duplicate end message).
         } catch {
@@ -465,7 +465,7 @@ class RoundStore: ObservableObject {
 
     // MARK: - Save round
 
-    func saveActiveRound() async throws -> UUID {
+    func saveActiveRound(fromWatch: Bool = false) async throws -> UUID {
         let goalsBeforeSave = weeklyGoalsSnapshot()
         mergePendingWatchHoleEntries()
         persistUnsavedCurrentHoleIfEligible()
@@ -519,7 +519,7 @@ class RoundStore: ObservableObject {
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
         await loadRounds()
-        queueWeeklyGoalCelebrationIfNeeded(before: goalsBeforeSave)
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBeforeSave, sendToWatch: fromWatch)
         return newId
     }
 
