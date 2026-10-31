@@ -19,6 +19,8 @@ struct RoundSetupView: View {
     @State private var pendingUserId: UUID?
 
     @State private var userProfile: UserProfile?
+    @State private var courseMatches: [CourseCache.CachedCourse] = []
+    @State private var showAutocomplete = false
 
     var body: some View {
         ScrollView {
@@ -32,9 +34,17 @@ struct RoundSetupView: View {
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.bottom, 8)
 
-                courseCard
-                    .padding(.horizontal, GLLayout.horizontalInset)
-                    .padding(.bottom, 24)
+                VStack(spacing: 8) {
+                    courseCard
+                    
+                    if showAutocomplete {
+                        CourseAutocompleteDropdown(matches: courseMatches) { course in
+                            selectCourse(course)
+                        }
+                    }
+                }
+                .padding(.horizontal, GLLayout.horizontalInset)
+                .padding(.bottom, 24)
 
                 photoCTA
                     .padding(.horizontal, GLLayout.horizontalInset)
@@ -89,6 +99,7 @@ struct RoundSetupView: View {
         }
         .onAppear { buildDefaultHoles() }
         .onChange(of: totalHoles) { _, _ in buildDefaultHoles() }
+        .onChange(of: courseName) { _, newValue in updateCourseAutocomplete(newValue) }
         .task { await loadProfile() }
         .alert("Replace in-progress round?", isPresented: $showReplaceActiveRoundAlert) {
             Button("Replace", role: .destructive) {
@@ -373,13 +384,21 @@ struct RoundSetupView: View {
         guard !isStartDisabled else { return }
         dismissCourseNameKeyboard()
         isStarting = true
+        let trimmedCourseName = courseName.trimmingCharacters(in: .whitespaces)
         let setup = RoundSetup(
-            courseName: courseName.trimmingCharacters(in: .whitespaces),
+            courseName: trimmedCourseName,
             tee: nil,
             totalHoles: totalHoles,
             datePlayed: datePlayed,
             holeSetups: holeSetups
         )
+        
+        roundStore.courseCache.updateCourseTemplate(
+            courseName: trimmedCourseName,
+            totalHoles: totalHoles,
+            holePars: holeSetups.map(\.par)
+        )
+        
         Task {
             if let uid = AccountService.shared.currentUserId {
                 await MainActor.run {
@@ -411,6 +430,37 @@ struct RoundSetupView: View {
         df.locale = Locale.current
         df.setLocalizedDateFormatFromTemplate("MMM d, yyyy")
         return df.string(from: date)
+    }
+
+    private func updateCourseAutocomplete(_ query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            showAutocomplete = false
+            courseMatches = []
+        } else {
+            courseMatches = roundStore.courseCache.coursesMatching(query: trimmed)
+            showAutocomplete = !courseMatches.isEmpty
+        }
+    }
+
+    private func selectCourse(_ course: CourseCache.CachedCourse) {
+        courseName = course.displayName
+        totalHoles = course.totalHoles
+        
+        if course.holePars.count == course.totalHoles {
+            holeSetups = course.holePars.enumerated().map { index, par in
+                HoleSetup(holeNumber: index + 1, par: par)
+            }
+        } else {
+            holeSetups = (1...course.totalHoles).map { holeNum in
+                let par = course.holePars.indices.contains(holeNum - 1) ? course.holePars[holeNum - 1] : 4
+                return HoleSetup(holeNumber: holeNum, par: par)
+            }
+        }
+        
+        showAutocomplete = false
+        courseMatches = []
+        dismissCourseNameKeyboard()
     }
 
 }

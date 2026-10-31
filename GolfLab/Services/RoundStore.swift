@@ -46,6 +46,8 @@ class RoundStore: ObservableObject {
     @Published var weeklyPracticeTarget: Int = 2
     /// Goal history for streak math (past weeks use targets that were active then).
     @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
+    /// Course cache for autocomplete and filtering.
+    let courseCache = CourseCache()
 
     var avatarInitials: String {
         Self.initials(from: profileDisplayName)
@@ -78,6 +80,7 @@ class RoundStore: ObservableObject {
     private var outboundReplacesSession = false
 
     init() {
+        courseCache.restoreFromUserDefaults()
         restoreActiveRoundFromDraftIfNeeded()
         WatchConnectivityService.shared.attach(self)
     }
@@ -584,6 +587,7 @@ class RoundStore: ObservableObject {
 
             allPracticeSessions = (try? await fetchedPractice) ?? []
             replaceHolesCache(holesByRound)
+            courseCache.rebuild(from: allRounds, holesByRoundId: holesByRound)
         } catch {
             roundStoreLogger.error("Error loading rounds: \(error.localizedDescription)")
             allPracticeSessions = []
