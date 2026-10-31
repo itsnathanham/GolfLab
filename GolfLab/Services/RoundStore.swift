@@ -46,6 +46,8 @@ class RoundStore: ObservableObject {
     @Published var weeklyPracticeTarget: Int = 2
     /// Goal history for streak math (past weeks use targets that were active then).
     @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
+    /// Course cache for autocomplete and filtering.
+    let courseCache = CourseCache()
 
     var avatarInitials: String {
         Self.initials(from: profileDisplayName)
@@ -78,6 +80,7 @@ class RoundStore: ObservableObject {
     private var outboundReplacesSession = false
 
     init() {
+        courseCache.restoreFromUserDefaults()
         restoreActiveRoundFromDraftIfNeeded()
         WatchConnectivityService.shared.attach(self)
     }
@@ -439,7 +442,7 @@ class RoundStore: ObservableObject {
         }
         guard isRoundActive, activeRound != nil else { return }
         do {
-            _ = try await saveActiveRound()
+            _ = try await saveActiveRound(fromWatch: true)
         } catch RoundError.noActiveRound {
             // Already finished (e.g. duplicate end message).
         } catch {
@@ -462,7 +465,7 @@ class RoundStore: ObservableObject {
 
     // MARK: - Save round
 
-    func saveActiveRound() async throws -> UUID {
+    func saveActiveRound(fromWatch: Bool = false) async throws -> UUID {
         let goalsBeforeSave = weeklyGoalsSnapshot()
         mergePendingWatchHoleEntries()
         persistUnsavedCurrentHoleIfEligible()
@@ -516,7 +519,7 @@ class RoundStore: ObservableObject {
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
         await loadRounds()
-        queueWeeklyGoalCelebrationIfNeeded(before: goalsBeforeSave)
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBeforeSave, sendToWatch: fromWatch)
         return newId
     }
 
@@ -584,6 +587,7 @@ class RoundStore: ObservableObject {
 
             allPracticeSessions = (try? await fetchedPractice) ?? []
             replaceHolesCache(holesByRound)
+            courseCache.rebuild(from: allRounds, holesByRoundId: holesByRound)
         } catch {
             roundStoreLogger.error("Error loading rounds: \(error.localizedDescription)")
             allPracticeSessions = []
@@ -657,12 +661,12 @@ class RoundStore: ObservableObject {
         profileDisplayName = profile.displayName
     }
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
-    func upsertPracticeSession(_ session: PracticeSession) {
+    func upsertPracticeSession(_ session: PracticeSession, fromWatch: Bool = false) {
         let goalsBefore = weeklyGoalsSnapshot()
         var next = allPracticeSessions.filter { $0.id != session.id }
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
-        queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore)
+        queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore, sendToWatch: fromWatch)
     }
 
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
@@ -682,7 +686,7 @@ class RoundStore: ObservableObject {
             )
             do {
                 let inserted = try await GolfLabData.store.insertPracticeSession(insert)
-                upsertPracticeSession(inserted)
+                upsertPracticeSession(inserted, fromWatch: true)
             } catch {
                 continue
             }
@@ -716,12 +720,20 @@ class RoundStore: ObservableObject {
         weeklyGoalCelebration = pending
     }
 
-    private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot) {
+    private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot, sendToWatch: Bool = false) {
         let after = weeklyGoalsSnapshot()
         guard let presentation = WeeklyGoalCelebration.presentationIfNewlyCompleted(before: before, after: after) else {
             return
         }
-        weeklyGoalCelebrationPending = presentation
+        
+        if sendToWatch {
+            WatchConnectivityService.shared.sendWeeklyGoalCelebration(
+                completedWeeksStreak: presentation.completedWeeksStreak
+            )
+            WeeklyGoalCelebration.markCelebrated(weekStartYMD: presentation.weekStartYMD)
+        } else {
+            weeklyGoalCelebrationPending = presentation
+        }
     }
 
     /// Gross score average for holes of this par in the **same calendar season as the Stats season picker** (`StatsSeasonFilter.seasonYearAlignedWithStatsPicker`).

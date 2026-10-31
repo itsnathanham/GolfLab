@@ -5,6 +5,7 @@ struct StatsView: View {
     @State private var timeRange: TimeRange = .season
     @State private var selectedSeasonYear = Calendar.current.component(.year, from: Date())
     @State private var holeFilter: HoleFilter = .all
+    @State private var selectedCourse: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -18,9 +19,13 @@ struct StatsView: View {
                     if filteredRounds.count < 2 {
                         insufficientDataView
                     } else {
-                        HStack(spacing: 8) {
-                            holeFilterPicker
-                            timeRangePicker
+                        VStack(spacing: 8) {
+                            courseFilterPicker
+                            
+                            HStack(spacing: 8) {
+                                holeFilterPicker
+                                timeRangePicker
+                            }
                         }
                         .padding(.horizontal, GLLayout.horizontalInset)
                         .padding(.bottom, 18)
@@ -113,6 +118,56 @@ struct StatsView: View {
     }
 
     // MARK: - Pills
+
+    private var courseFilterPicker: some View {
+        let courses = roundStore.courseCache.courses
+        
+        return Menu {
+            Button {
+                selectedCourse = nil
+            } label: {
+                if selectedCourse == nil {
+                    Label("All Courses", systemImage: "checkmark")
+                } else {
+                    Text("All Courses")
+                }
+            }
+            
+            ForEach(courses) { course in
+                Button {
+                    selectedCourse = course.normalizedKey
+                } label: {
+                    if selectedCourse == course.normalizedKey {
+                        Label("\(course.displayName) (\(course.playCount))", systemImage: "checkmark")
+                    } else {
+                        Text("\(course.displayName) (\(course.playCount))")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(selectedCourseDisplayName)
+                    .font(GLFonts.sans(size: 14, weight: .medium))
+                    .foregroundColor(.textPrimary)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.textSecondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.borderDefault, lineWidth: 1)
+            )
+        }
+    }
+
+    private var selectedCourseDisplayName: String {
+        guard let selectedCourse else { return "All Courses" }
+        return roundStore.courseCache.courses.first { $0.normalizedKey == selectedCourse }?.displayName ?? "All Courses"
+    }
 
     private var holeFilterPicker: some View {
         HoleFilterPicker(selectedFilter: $holeFilter, availableRounds: roundStore.allRounds)
@@ -412,7 +467,17 @@ struct StatsView: View {
         case .allTime:
             timeFiltered = roundStore.allRounds
         }
-        return HoleFilterState.filteredRounds(timeFiltered, filter: holeFilter)
+        
+        let courseFiltered: [Round]
+        if let selectedCourse {
+            courseFiltered = timeFiltered.filter { round in
+                CourseCache.normalizeCourseName(round.courseName) == selectedCourse
+            }
+        } else {
+            courseFiltered = timeFiltered
+        }
+        
+        return HoleFilterState.filteredRounds(courseFiltered, filter: holeFilter)
     }
 
     private var availableSeasonYears: [Int] {
