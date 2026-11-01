@@ -38,14 +38,6 @@ struct HomeView: View {
 
                         scoringTrendPanel
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 22)
-
-                        recentSectionHeader
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 10)
-
-                        recentRoundsGroupedList
-                            .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 24)
 
                         homeRoundActionButtons
@@ -208,38 +200,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Recent rounds
-
-    private var recentSectionHeader: some View {
-        GLFormFieldLabel(text: "Recent rounds")
-    }
-
-    private var recentRoundsGroupedList: some View {
-        let recent = roundStore.allRounds.lastRoundsByDatePlayed(3)
-        return VStack(spacing: 0) {
-            ForEach(Array(recent.enumerated()), id: \.element.id) { index, round in
-                NavigationLink {
-                    RoundDetailView(round: round)
-                } label: {
-                    RoundListRowView(round: round)
-                }
-                .buttonStyle(.plain)
-                .navigationLinkIndicatorVisibility(.hidden)
-
-                if index < recent.count - 1 {
-                    Rectangle()
-                        .fill(Color.borderDefault)
-                        .frame(height: 1)
-                }
-            }
-        }
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-    }
+    // MARK: - Actions
 
     private var startRoundButton: some View {
         GLPrimaryCTAButton(title: "+ Start round") {
@@ -295,79 +256,6 @@ struct HomeView: View {
     private func statPercentText(_ value: Double?) -> String {
         if let value { return String(format: "%.0f", value) }
         return "—"
-    }
-}
-
-// MARK: - Round summary bubble (History list)
-
-struct RoundSummaryBubbleCard: View {
-    @EnvironmentObject private var roundStore: RoundStore
-    var caption: String?
-    let round: Round
-    /// When true, shows the coral “Incomplete round” line when stored hole rows are fewer than `round.holes`.
-    var showIncompleteBadge: Bool = false
-    /// History list: chevron inside the bubble (pair with `navigationLinkIndicatorVisibility(.hidden)` on the `List`).
-    var showsListChevron: Bool = false
-
-    private var vsPar: (text: String, color: Color) {
-        round.vsParHeadline(totalParFromStoredHoles: roundStore.totalParSumByRoundId[round.id])
-    }
-
-    private var shouldShowIncomplete: Bool {
-        guard showIncompleteBadge,
-              let n = roundStore.holeRowCountByRoundId[round.id]
-        else { return false }
-        return round.isScorecardIncomplete(storedHoleRows: n)
-    }
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
-                if let caption {
-                    GLFormFieldLabel(text: caption)
-                }
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(round.courseName)
-                            .font(.glHeadline)
-                            .foregroundColor(.textPrimary)
-                        Text(round.datePlayedDisplay)
-                            .font(.glSubhead)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer(minLength: 8)
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(vsPar.text)
-                            .font(GLFonts.mono(size: 28, weight: .semibold))
-                            .foregroundColor(vsPar.color)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.55)
-                        if let score = round.totalScore {
-                            Text("\(score) total")
-                                .font(.glSubhead)
-                                .foregroundColor(.textSecondary)
-                        }
-                    }
-                }
-                if shouldShowIncomplete {
-                    HStack(spacing: 5) {
-                        Image(systemName: "flag.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("Incomplete round")
-                            .font(.glCaption)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.chartNegative)
-                }
-            }
-            if showsListChevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-        .glCardSurface()
     }
 }
 
