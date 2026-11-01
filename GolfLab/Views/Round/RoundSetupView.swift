@@ -19,10 +19,17 @@ struct RoundSetupView: View {
     @State private var pendingUserId: UUID?
 
     @State private var userProfile: UserProfile?
-    @State private var courseMatches: [CourseCache.CachedCourse] = []
-    @State private var showAutocomplete = false
     /// Name applied from the cache (or home course); keeps the dropdown closed until the user edits the field again.
     @State private var appliedCourseName: String?
+
+    private var courseMatches: [CourseCache.CachedCourse] {
+        roundStore.courseCache.coursesMatching(query: courseName)
+    }
+
+    /// Derived, not stored: the list can only be open while the field has focus and the text is not an applied course.
+    private var showsCourseSuggestions: Bool {
+        isCourseNameFieldFocused && appliedCourseName != courseName && !courseMatches.isEmpty
+    }
 
     var body: some View {
         ScrollView {
@@ -39,7 +46,7 @@ struct RoundSetupView: View {
                 VStack(spacing: 8) {
                     courseCard
                     
-                    if showAutocomplete {
+                    if showsCourseSuggestions {
                         CourseAutocompleteDropdown(matches: courseMatches) { course in
                             selectCourse(course)
                         }
@@ -103,9 +110,9 @@ struct RoundSetupView: View {
             if holeSetups.isEmpty { buildDefaultHoles() }
         }
         .onChange(of: courseName) { _, newValue in
-            if let appliedCourseName, newValue == appliedCourseName { return }
-            appliedCourseName = nil
-            updateCourseAutocomplete(newValue)
+            if let appliedCourseName, newValue != appliedCourseName {
+                self.appliedCourseName = nil
+            }
         }
         .task { await loadProfile() }
         .alert("Replace in-progress round?", isPresented: $showReplaceActiveRoundAlert) {
@@ -279,6 +286,8 @@ struct RoundSetupView: View {
         .foregroundColor(.textPrimary)
         .tint(.accent)
         .focused($isCourseNameFieldFocused)
+        .autocorrectionDisabled()
+        .textInputAutocapitalization(.words)
         .submitLabel(.done)
         .onSubmit { dismissCourseNameKeyboard() }
         .padding(.horizontal, 16)
@@ -452,17 +461,6 @@ struct RoundSetupView: View {
         return df.string(from: date)
     }
 
-    private func updateCourseAutocomplete(_ query: String) {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            showAutocomplete = false
-            courseMatches = []
-        } else {
-            courseMatches = roundStore.courseCache.coursesMatching(query: trimmed)
-            showAutocomplete = !courseMatches.isEmpty
-        }
-    }
-
     private func selectCourse(_ course: CourseCache.CachedCourse) {
         applyCourse(course)
         dismissCourseNameKeyboard()
@@ -480,8 +478,6 @@ struct RoundSetupView: View {
             let par = course.holePars.indices.contains(index) ? course.holePars[index] : 4
             return HoleSetup(holeNumber: holeNumber, par: par)
         }
-        showAutocomplete = false
-        courseMatches = []
     }
 
 }

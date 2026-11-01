@@ -59,6 +59,8 @@
 		A2CK15AF066B312B2326D1 /* ICloudRequiredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CK05AF066B312B2326D1 /* ICloudRequiredView.swift */; };
 		A64A3D13E2EDC2BFF5CCE3DA /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */; };
 		35B35336D2FFDA3DBCC6BE07 /* HoleFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */; };
+		8E7409D87230B11911EB9D80 /* TimeRangeFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967AB33AFBBE660CAD40B1BE /* TimeRangeFilterPicker.swift */; };
+		2BF64515D8E3075813FD8319 /* GLFilterMenuPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A43B8CB7D49ED3BB81504B /* GLFilterMenuPill.swift */; };
 		37F942D92421AD16AF466F34 /* CourseFilterPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91AB6DA9005F81B2921B630E /* CourseFilterPicker.swift */; };
 		C49BCA78AACD7269BB8087EC /* GLLoadingIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80851B3FCE027F7BE18BCAB /* GLLoadingIcon.swift */; };
 		A6982260202120C6AA3D28B5 /* IBMPlexMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9C9F28C3179D5BD945164DAF /* IBMPlexMono-SemiBold.ttf */; };
@@ -203,6 +205,8 @@
 		C7E1EB249D58CA8A3DD377DB /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoleFilterPicker.swift; sourceTree = "<group>"; };
+		967AB33AFBBE660CAD40B1BE /* TimeRangeFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRangeFilterPicker.swift; sourceTree = "<group>"; };
+		D4A43B8CB7D49ED3BB81504B /* GLFilterMenuPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLFilterMenuPill.swift; sourceTree = "<group>"; };
 		91AB6DA9005F81B2921B630E /* CourseFilterPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseFilterPicker.swift; sourceTree = "<group>"; };
 		B80851B3FCE027F7BE18BCAB /* GLLoadingIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLLoadingIcon.swift; sourceTree = "<group>"; };
 		D28894252BC3053ADE60BF1B /* GolfLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GolfLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -290,6 +294,8 @@
 				404BA498477C9F7BA379A825 /* StatToggle.swift */,
 				CCDC94DFA426BFAF38EA6FC4 /* Typography.swift */,
 				9A7F80DA0D3A0C6E5ADB9248 /* HoleFilterPicker.swift */,
+				967AB33AFBBE660CAD40B1BE /* TimeRangeFilterPicker.swift */,
+				D4A43B8CB7D49ED3BB81504B /* GLFilterMenuPill.swift */,
 				B80851B3FCE027F7BE18BCAB /* GLLoadingIcon.swift */,
 			);
 			path = DesignSystem;
@@ -735,6 +741,8 @@
 				A2CK15AF066B312B2326D1 /* ICloudRequiredView.swift in Sources */,
 				A64A3D13E2EDC2BFF5CCE3DA /* Typography.swift in Sources */,
 				35B35336D2FFDA3DBCC6BE07 /* HoleFilterPicker.swift in Sources */,
+				8E7409D87230B11911EB9D80 /* TimeRangeFilterPicker.swift in Sources */,
+				2BF64515D8E3075813FD8319 /* GLFilterMenuPill.swift in Sources */,
 				37F942D92421AD16AF466F34 /* CourseFilterPicker.swift in Sources */,
 				C49BCA78AACD7269BB8087EC /* GLLoadingIcon.swift in Sources */,
 				3718A3C1AF066B312B232611 /* UserProfile.swift in Sources */,
