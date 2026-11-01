@@ -18,7 +18,6 @@ struct RoundSetupView: View {
     @State private var pendingSetup: RoundSetup?
     @State private var pendingUserId: UUID?
 
-    @State private var userProfile: UserProfile?
     /// Name applied from the cache (or home course); keeps the dropdown closed until the user edits the field again.
     @State private var appliedCourseName: String?
 
@@ -396,8 +395,8 @@ struct RoundSetupView: View {
 
     private func loadProfile() async {
         guard let userId = AccountService.shared.currentUserId else { return }
-        userProfile = try? await GolfLabData.store.fetchProfile(userId: userId)
-        guard let name = userProfile?.homeCourseName, !name.isEmpty else { return }
+        let profile = try? await GolfLabData.store.fetchProfile(userId: userId)
+        guard let name = profile?.homeCourseName, !name.isEmpty else { return }
         await MainActor.run {
             guard courseName.isEmpty else { return }
             if let course = roundStore.courseCache.course(named: name) {
