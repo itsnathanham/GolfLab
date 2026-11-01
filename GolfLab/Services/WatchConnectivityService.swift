@@ -167,6 +167,8 @@ class WatchConnectivityService: NSObject, ObservableObject {
             if let data = payload[WatchMessageKey.companionSnapshot] as? Data {
                 handleScorecardData(data)
             }
+        case .weeklyGoalCelebration:
+            break
         }
     }
 
