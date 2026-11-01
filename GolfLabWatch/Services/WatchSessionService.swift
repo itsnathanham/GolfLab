@@ -225,7 +225,7 @@ class WatchSessionService: NSObject, ObservableObject {
                let snapshot = WatchCompanionSnapshot.decode(from: data) {
                 applyCompanionSnapshot(snapshot)
             }
-        case .holeEntry, .endRound, .syncRequest, .practiceEntry:
+        case .holeEntry, .endRound, .syncRequest, .practiceEntry, .weeklyGoalCelebration:
             break
         }
     }
