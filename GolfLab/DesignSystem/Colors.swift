@@ -125,7 +125,7 @@ extension Color {
     
     /// Met week circle + flame — green theme consistent with brand.
     static var streakSuccess: Color { accent }
-    /// Confetti particles + deep accents.
+    /// Firework particles + deep accents.
     static var streakSuccessDeep: Color { accentMid }
     /// Checkmark on met week circles.
     static let streakOnSuccess = Color(hex: "#000000")
