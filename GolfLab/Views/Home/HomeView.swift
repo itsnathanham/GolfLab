@@ -38,14 +38,6 @@ struct HomeView: View {
 
                         scoringTrendPanel
                             .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 22)
-
-                        recentSectionHeader
-                            .padding(.horizontal, GLLayout.horizontalInset)
-                            .padding(.bottom, 10)
-
-                        recentRoundsGroupedList
-                            .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 24)
 
                         homeRoundActionButtons
@@ -208,38 +200,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Recent rounds
-
-    private var recentSectionHeader: some View {
-        GLFormFieldLabel(text: "Recent rounds")
-    }
-
-    private var recentRoundsGroupedList: some View {
-        let recent = roundStore.allRounds.lastRoundsByDatePlayed(3)
-        return VStack(spacing: 0) {
-            ForEach(Array(recent.enumerated()), id: \.element.id) { index, round in
-                NavigationLink {
-                    RoundDetailView(round: round)
-                } label: {
-                    RoundListRowView(round: round)
-                }
-                .buttonStyle(.plain)
-                .navigationLinkIndicatorVisibility(.hidden)
-
-                if index < recent.count - 1 {
-                    Rectangle()
-                        .fill(Color.borderDefault)
-                        .frame(height: 1)
-                }
-            }
-        }
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-    }
+    // MARK: - Actions
 
     private var startRoundButton: some View {
         GLPrimaryCTAButton(title: "+ Start round") {
