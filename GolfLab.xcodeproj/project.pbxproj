@@ -26,6 +26,7 @@
 		4229C626D0E0BD601E007AEA /* GLFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAB0B845CE6E4D63353F0EAF /* GLFonts.swift */; };
 		499416C627C02BD621D7A7D0 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EB49FC0F7CD8080C975EE1 /* Colors.swift */; };
 		4BB63645AF5E9A31CD0E10B0 /* WatchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A5007B516AC096AA30F6635 /* WatchRootView.swift */; };
+		71D20106C3B90FB8523DF679 /* WatchWeeklyGoalCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93E08DC2C8CD27CB611AA6A2 /* WatchWeeklyGoalCelebrationView.swift */; };
 		0A729FB043C40635A0BD5EFD /* GLComplicationIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573218C04C1B974319B9966B /* GLComplicationIcon.swift */; };
 		B931C1DC5753E4D9E0B8AD2F /* GLComplicationIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573218C04C1B974319B9966B /* GLComplicationIcon.swift */; };
 		4D33160937859E8DE3F2A41A /* RoundVsParProgressChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193D2052419D826D8DC60A28 /* RoundVsParProgressChartView.swift */; };
@@ -157,6 +158,7 @@
 		52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMessages.swift; sourceTree = "<group>"; };
 		A0C001AF066B312B2326D1AA /* ScorecardSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScorecardSync.swift; sourceTree = "<group>"; };
 		5A5007B516AC096AA30F6635 /* WatchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRootView.swift; sourceTree = "<group>"; };
+		93E08DC2C8CD27CB611AA6A2 /* WatchWeeklyGoalCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWeeklyGoalCelebrationView.swift; sourceTree = "<group>"; };
 		573218C04C1B974319B9966B /* GLComplicationIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLComplicationIcon.swift; sourceTree = "<group>"; };
 		5E60441036AA2A749FC58294 /* GLCalendarISO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLCalendarISO.swift; sourceTree = "<group>"; };
 		5EF97F1E35B52025033449D2 /* RoundDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundDetailView.swift; sourceTree = "<group>"; };
@@ -469,6 +471,7 @@
 				F85BEC47BB1FC6F7E802D99D /* WatchHoleEntryView.swift */,
 				WATCHPRAC002AF066B312B2326D1 /* WatchPracticeLogView.swift */,
 				5A5007B516AC096AA30F6635 /* WatchRootView.swift */,
+				93E08DC2C8CD27CB611AA6A2 /* WatchWeeklyGoalCelebrationView.swift */,
 				573218C04C1B974319B9966B /* GLComplicationIcon.swift */,
 			);
 			path = Views;
@@ -662,6 +665,7 @@
 				GLCAL001AF066B312B2326D1 /* GLCalendarISO.swift in Sources */,
 				B2CA61B262034F69E4317724 /* WatchPalette.swift in Sources */,
 				4BB63645AF5E9A31CD0E10B0 /* WatchRootView.swift in Sources */,
+				71D20106C3B90FB8523DF679 /* WatchWeeklyGoalCelebrationView.swift in Sources */,
 				0A729FB043C40635A0BD5EFD /* GLComplicationIcon.swift in Sources */,
 				26CCBC62B877A1E7A0EF5DD9 /* WatchSessionService.swift in Sources */,
 				W1C001AF066B312B2326D1 /* WatchComplicationStore.swift in Sources */,
