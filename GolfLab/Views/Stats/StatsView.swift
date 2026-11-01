@@ -16,20 +16,12 @@ struct StatsView: View {
                         .padding(.top, GLTopBarMetrics.screenRootTopPadding)
                         .padding(.bottom, 14)
 
+                    filterRow
+                        .padding(.bottom, 18)
+
                     if filteredRounds.count < 2 {
                         insufficientDataView
                     } else {
-                        VStack(spacing: 8) {
-                            courseFilterPicker
-                            
-                            HStack(spacing: 8) {
-                                holeFilterPicker
-                                timeRangePicker
-                            }
-                        }
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.bottom, 18)
-
                         statsFourUpGrid
                             .padding(.horizontal, GLLayout.horizontalInset)
                             .padding(.bottom, 16)
@@ -105,6 +97,9 @@ struct StatsView: View {
             if holeFilter != restored && !HoleFilterState.hasRounds(for: holeFilter, in: roundStore.allRounds) {
                 holeFilter = restored
             }
+            if let selectedCourse, !roundStore.courseCache.courses.contains(where: { $0.normalizedKey == selectedCourse }) {
+                self.selectedCourse = nil
+            }
         }
         .onChange(of: selectedSeasonYear) { _, newYear in
             StatsSeasonFilter.persistStatsSeasonPickerYear(newYear)
@@ -119,54 +114,20 @@ struct StatsView: View {
 
     // MARK: - Pills
 
-    private var courseFilterPicker: some View {
-        let courses = roundStore.courseCache.courses
-        
-        return Menu {
-            Button {
-                selectedCourse = nil
-            } label: {
-                if selectedCourse == nil {
-                    Label("All Courses", systemImage: "checkmark")
-                } else {
-                    Text("All Courses")
-                }
+    /// One scrolling line so every filter stays reachable, including when the current selection leaves too few rounds.
+    private var filterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                holeFilterPicker
+                timeRangePicker
+                courseFilterPicker
             }
-            
-            ForEach(courses) { course in
-                Button {
-                    selectedCourse = course.normalizedKey
-                } label: {
-                    if selectedCourse == course.normalizedKey {
-                        Label("\(course.displayName) (\(course.playCount))", systemImage: "checkmark")
-                    } else {
-                        Text("\(course.displayName) (\(course.playCount))")
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Text(selectedCourseDisplayName)
-                    .font(GLFonts.sans(size: 14, weight: .medium))
-                    .foregroundColor(.textPrimary)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.textSecondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Color.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.borderDefault, lineWidth: 1)
-            )
+            .padding(.horizontal, GLLayout.horizontalInset)
         }
     }
 
-    private var selectedCourseDisplayName: String {
-        guard let selectedCourse else { return "All Courses" }
-        return roundStore.courseCache.courses.first { $0.normalizedKey == selectedCourse }?.displayName ?? "All Courses"
+    private var courseFilterPicker: some View {
+        CourseFilterPicker(selectedCourseKey: $selectedCourse, courses: roundStore.courseCache.courses)
     }
 
     private var holeFilterPicker: some View {
@@ -354,10 +315,21 @@ struct StatsView: View {
                 .font(.glHeadline)
                 .foregroundColor(.textPrimary)
                 .multilineTextAlignment(.center)
+            if filtersNarrowRounds {
+                Text("Or widen the filters above to include more rounds.")
+                    .font(.glFootnote)
+                    .foregroundColor(.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 60)
+        .padding(.top, 40)
         .padding(.horizontal, GLLayout.horizontalInset)
+    }
+
+    /// True when the active filters hide rounds that exist, so the empty state can point at the filter row.
+    private var filtersNarrowRounds: Bool {
+        filteredRounds.count < roundStore.allRounds.count
     }
 
     // MARK: - Series (chronological)

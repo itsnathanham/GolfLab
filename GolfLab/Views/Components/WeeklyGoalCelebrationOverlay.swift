@@ -9,7 +9,8 @@ struct WeeklyGoalCelebrationOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var bannerVisible = false
 
-    private let autoDismissSeconds: TimeInterval = 4.2
+    /// Lets the last burst fade before the overlay goes away.
+    private let autoDismissSeconds: TimeInterval = GolfFireworkEmitterView.showDuration
 
     var body: some View {
         ZStack {
@@ -101,19 +102,23 @@ struct WeeklyGoalCelebrationOverlay: View {
         return parts.joined(separator: " ")
     }
 
+    /// `.success` on appear, a light tap as each shell launches, and a medium thump on each burst.
     private func playCelebrationHaptics() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.0) {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let launchTap = UIImpactFeedbackGenerator(style: .light)
+        let burstThump = UIImpactFeedbackGenerator(style: .medium)
+        launchTap.prepare()
+        burstThump.prepare()
+
+        for (launch, burst) in zip(GolfFireworkEmitterView.launchDelays, GolfFireworkEmitterView.burstTimes) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + launch) {
+                launchTap.impactOccurred(intensity: 0.6)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + burst) {
+                burstThump.impactOccurred()
+                burstThump.prepare()
+            }
         }
     }
 }

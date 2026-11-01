@@ -70,16 +70,26 @@ class WatchConnectivityService: NSObject, ObservableObject {
         return entries
     }
 
-    func sendWeeklyGoalCelebration(completedWeeksStreak: Int) {
-        guard WCSession.isSupported(), WCSession.default.isReachable else { return }
-        
+    /// Live-only: a celebration must land while the user is still looking at the watch, so it is never queued.
+    /// `onUndeliverable` runs on the main actor when the watch is unreachable or the send fails, so the phone can show it instead.
+    func sendWeeklyGoalCelebration(completedWeeksStreak: Int, onUndeliverable: @escaping @MainActor () -> Void) {
+        guard WCSession.isSupported(),
+              WCSession.default.activationState == .activated,
+              WCSession.default.isReachable
+        else {
+            onUndeliverable()
+            return
+        }
+
         let celebration = WatchWeeklyGoalCelebration(completedWeeksStreak: completedWeeksStreak)
         let payload: [String: Any] = [
             WatchMessageKey.type: WatchMessageType.weeklyGoalCelebration.rawValue,
             WatchMessageKey.celebrationData: celebration.toDictionary()
         ]
-        
-        WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+
+        WCSession.default.sendMessage(payload, replyHandler: nil) { _ in
+            Task { @MainActor in onUndeliverable() }
+        }
     }
 
     private func notifyActivationIfNeeded() {

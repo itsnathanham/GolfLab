@@ -45,8 +45,8 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPurple` | `#BF5AF2` | Streak marks, season-best badges, GIR line |
 | `chartOrange` | `#FF9F0A` | Peak performance, best rounds |
 | **Weekly goals** | | *Consistent with main accent* |
-| `streakSuccess` | `#00C805` | Celebration and confetti |
-| `streakSuccessDeep` | `#5AC53B` | Confetti particles |
+| `streakSuccess` | `#00C805` | Celebration and fireworks |
+| `streakSuccessDeep` | `#5AC53B` | Firework particles |
 | `streakOnSuccess` | `#000000` | Checkmark on streak circles |
 | `streakTextActive` | `#00C805` | Celebration caption |
 | **Calendar** | | |
@@ -131,7 +131,7 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | `GLTrendCardHeader` | `Typography.swift` | 11pt uppercase chart title + hairline. |
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value. |
 | `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: round/practice bars (green), week scroll row (green circles). |
-| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: banner + green confetti. |
+| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: banner + golf fireworks (`GolfFireworkEmitterView`). |
 
 **Navigation split:** Tab roots use **hidden** `NavigationStack` chrome and the components above. Pushed editors may use visible `navigationTitle` / toolbar.
 

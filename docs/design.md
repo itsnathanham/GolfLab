@@ -118,12 +118,12 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Progress bars stay accent green. Met-week circles, the flame, and the streak caption use chart purple. Confetti stays green.
+Progress bars stay accent green. Met-week circles, the flame, and the streak caption use chart purple. Fireworks lead with green.
 
 ```swift
 Color(hex: "#BF5AF2")        // chartPurple — met week circle, flame, streak caption
-Color(hex: "#00C805")        // streakSuccess      — celebration / confetti green
-Color(hex: "#5AC53B")        // streakSuccessDeep  — confetti accents
+Color(hex: "#00C805")        // streakSuccess      — celebration / firework green
+Color(hex: "#5AC53B")        // streakSuccessDeep  — firework accents
 Color(hex: "#000000")        // streakOnSuccess    — checkmark on purple circles
 ```
 
@@ -142,10 +142,11 @@ Auto-scroll to the newest week on appear.
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Full-screen confetti (green particles) — **off** when Reduce Motion is enabled.
+- Golf fireworks: three shells climb from the bottom edge and burst into mini golf balls, flags, or tees (one kind per burst; order, launch x, apex height, and particle count are randomized) — **off** when Reduce Motion is enabled.
 - Top banner: "Weekly goals complete" + short copy that targets were met **this week**.
-- Haptics: `.success` notification, then `.medium` impact ~120ms later.
+- Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst.
 - Once per calendar week; queued if a sheet would hide the overlay.
+- Shown on the device that saved the completing event: a save made on the watch celebrates on the watch (`WatchWeeklyGoalCelebrationView`, two small bursts + card); the phone only steps in when the watch is unreachable.
 
 ---
 
