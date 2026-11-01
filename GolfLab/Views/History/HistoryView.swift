@@ -172,38 +172,14 @@ struct HistoryView: View {
     // MARK: - Scope pills
 
     private var scopePills: some View {
-        HStack(spacing: 6) {
-            if isSeasonYearSelectable {
-                Menu {
-                    ForEach(availableSeasonYears, id: \.self) { year in
-                        Button {
-                            selectedSeasonYear = year
-                            scope = .season
-                        } label: {
-                            if year == resolvedSeasonYear {
-                                Label(String(year), systemImage: "checkmark")
-                            } else {
-                                Text(String(year))
-                            }
-                        }
-                    }
-                } label: {
-                    GLSelectionPillLabel(
-                        title: "\(resolvedSeasonYear) v",
-                        isSelected: scope == .season
-                    )
-                }
-            } else {
-                GLSelectionPill(title: String(resolvedSeasonYear), isSelected: scope == .season) {
-                    scope = .season
-                }
-            }
-
-            ForEach([TimeRange.last10, TimeRange.allTime], id: \.self) { range in
-                GLSelectionPill(title: range.pillTitle, isSelected: scope == range) {
-                    scope = range
-                }
-            }
+        HStack {
+            TimeRangeFilterPicker(
+                timeRange: $scope,
+                selectedSeasonYear: $selectedSeasonYear,
+                availableSeasonYears: availableSeasonYears,
+                resolvedSeasonYear: resolvedSeasonYear
+            )
+            Spacer(minLength: 0)
         }
     }
 
@@ -222,10 +198,6 @@ struct HistoryView: View {
             return current
         }
         return availableSeasonYears.first ?? current
-    }
-
-    private var isSeasonYearSelectable: Bool {
-        availableSeasonYears.count > 1
     }
 
     private func normalizeSelectedSeasonYear() {

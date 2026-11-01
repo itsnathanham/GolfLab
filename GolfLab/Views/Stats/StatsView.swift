@@ -135,39 +135,12 @@ struct StatsView: View {
     }
 
     private var timeRangePicker: some View {
-        HStack(spacing: 6) {
-            if isSeasonYearSelectable {
-                Menu {
-                    ForEach(availableSeasonYears, id: \.self) { year in
-                        Button {
-                            selectedSeasonYear = year
-                            timeRange = .season
-                        } label: {
-                            if year == resolvedSeasonYearValue {
-                                Label(String(year), systemImage: "checkmark")
-                            } else {
-                                Text(String(year))
-                            }
-                        }
-                    }
-                } label: {
-                    GLSelectionPillLabel(
-                        title: "\(resolvedSeasonYearValue) v",
-                        isSelected: timeRange == .season
-                    )
-                }
-            } else {
-                GLSelectionPill(title: String(resolvedSeasonYearValue), isSelected: timeRange == .season) {
-                    timeRange = .season
-                }
-            }
-
-            ForEach([TimeRange.last10, TimeRange.allTime], id: \.self) { range in
-                GLSelectionPill(title: range.pillTitle, isSelected: timeRange == range) {
-                    timeRange = range
-                }
-            }
-        }
+        TimeRangeFilterPicker(
+            timeRange: $timeRange,
+            selectedSeasonYear: $selectedSeasonYear,
+            availableSeasonYears: availableSeasonYears,
+            resolvedSeasonYear: resolvedSeasonYearValue
+        )
     }
 
     // MARK: - 2×2 stat strip
@@ -458,10 +431,6 @@ struct StatsView: View {
 
     private var resolvedSeasonYearValue: Int {
         StatsSeasonFilter.resolvedSeasonYear(rounds: roundStore.allRounds, selectedSeasonYear: selectedSeasonYear)
-    }
-
-    private var isSeasonYearSelectable: Bool {
-        availableSeasonYears.count > 1
     }
 
     private func normalizeSelectedSeasonYear() {

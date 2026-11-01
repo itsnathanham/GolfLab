@@ -121,40 +121,6 @@ extension View {
     }
 }
 
-// MARK: - Selection pills (time range, year chips)
-
-struct GLSelectionPill: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            GLSelectionPillLabel(title: title, isSelected: isSelected)
-        }
-    }
-}
-
-struct GLSelectionPillLabel: View {
-    let title: String
-    let isSelected: Bool
-
-    var body: some View {
-        Text(title.uppercased())
-            .font(isSelected ? .glFilterActive : .glFilterInactive)
-            .tracking(0.08 * 11)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.accentDim : Color.clear)
-            .foregroundColor(isSelected ? Color.accent : Color.textTertiary)
-            .cornerRadius(6)
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(isSelected ? Color.borderAccent : Color.borderDefault, lineWidth: 1)
-            )
-    }
-}
-
 // MARK: - Chart / table card header (`design.md` — chart card header row)
 
 /// 9pt uppercase tertiary title + bottom hairline; pairs with inset chart or table body.
