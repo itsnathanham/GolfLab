@@ -17,8 +17,8 @@ struct WatchRootView: View {
         .onAppear {
             session.requestCompanionSyncFromPhone()
         }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active {
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
                 session.requestCompanionSyncFromPhone()
             }
         }
