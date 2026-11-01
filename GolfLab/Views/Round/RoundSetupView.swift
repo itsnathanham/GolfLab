@@ -21,6 +21,8 @@ struct RoundSetupView: View {
     @State private var userProfile: UserProfile?
     @State private var courseMatches: [CourseCache.CachedCourse] = []
     @State private var showAutocomplete = false
+    /// Name applied from the cache (or home course); keeps the dropdown closed until the user edits the field again.
+    @State private var appliedCourseName: String?
 
     var body: some View {
         ScrollView {
@@ -97,9 +99,14 @@ struct RoundSetupView: View {
             .preferredColorScheme(.light)
             .presentationDetents([.medium, .large])
         }
-        .onAppear { buildDefaultHoles() }
-        .onChange(of: totalHoles) { _, _ in buildDefaultHoles() }
-        .onChange(of: courseName) { _, newValue in updateCourseAutocomplete(newValue) }
+        .onAppear {
+            if holeSetups.isEmpty { buildDefaultHoles() }
+        }
+        .onChange(of: courseName) { _, newValue in
+            if let appliedCourseName, newValue == appliedCourseName { return }
+            appliedCourseName = nil
+            updateCourseAutocomplete(newValue)
+        }
         .task { await loadProfile() }
         .alert("Replace in-progress round?", isPresented: $showReplaceActiveRoundAlert) {
             Button("Replace", role: .destructive) {
@@ -172,7 +179,7 @@ struct RoundSetupView: View {
             courseNameRow
             divider
             inlineRow(label: "Holes", value: totalHoles == 18 ? "18 holes" : "9 holes") {
-                totalHoles = totalHoles == 18 ? 9 : 18
+                setTotalHoles(totalHoles == 18 ? 9 : 18)
             }
             divider
             dateRow
@@ -370,12 +377,25 @@ struct RoundSetupView: View {
         holeSetups = (1...totalHoles).map { HoleSetup(holeNumber: $0, par: 4) }
     }
 
+    /// Manual 9 ↔ 18 toggle: keep the pars already on the card and pad new holes with par 4.
+    private func setTotalHoles(_ count: Int) {
+        totalHoles = count
+        holeSetups = (1...count).map { holeNumber in
+            HoleSetup(holeNumber: holeNumber, par: holeSetups.first { $0.holeNumber == holeNumber }?.par ?? 4)
+        }
+    }
+
     private func loadProfile() async {
         guard let userId = AccountService.shared.currentUserId else { return }
         userProfile = try? await GolfLabData.store.fetchProfile(userId: userId)
-        if let profile = userProfile {
-            await MainActor.run {
-                if courseName.isEmpty, let name = profile.homeCourseName { courseName = name }
+        guard let name = userProfile?.homeCourseName, !name.isEmpty else { return }
+        await MainActor.run {
+            guard courseName.isEmpty else { return }
+            if let course = roundStore.courseCache.course(named: name) {
+                applyCourse(course)
+            } else {
+                appliedCourseName = name
+                courseName = name
             }
         }
     }
@@ -444,23 +464,24 @@ struct RoundSetupView: View {
     }
 
     private func selectCourse(_ course: CourseCache.CachedCourse) {
+        applyCourse(course)
+        dismissCourseNameKeyboard()
+    }
+
+    /// Fills name, hole count, and pars from the cached template in one pass. Safe to call repeatedly when the
+    /// user switches between courses: every field is replaced, nothing is merged with the previous selection.
+    private func applyCourse(_ course: CourseCache.CachedCourse) {
+        let holeCount = course.totalHoles > 0 ? course.totalHoles : 18
+        appliedCourseName = course.displayName
         courseName = course.displayName
-        totalHoles = course.totalHoles
-        
-        if course.holePars.count == course.totalHoles {
-            holeSetups = course.holePars.enumerated().map { index, par in
-                HoleSetup(holeNumber: index + 1, par: par)
-            }
-        } else {
-            holeSetups = (1...course.totalHoles).map { holeNum in
-                let par = course.holePars.indices.contains(holeNum - 1) ? course.holePars[holeNum - 1] : 4
-                return HoleSetup(holeNumber: holeNum, par: par)
-            }
+        totalHoles = holeCount
+        holeSetups = (1...holeCount).map { holeNumber in
+            let index = holeNumber - 1
+            let par = course.holePars.indices.contains(index) ? course.holePars[index] : 4
+            return HoleSetup(holeNumber: holeNumber, par: par)
         }
-        
         showAutocomplete = false
         courseMatches = []
-        dismissCourseNameKeyboard()
     }
 
 }

@@ -72,6 +72,11 @@ final class CourseCache: ObservableObject {
         persistToUserDefaults()
     }
     
+    /// Exact (normalized) lookup, e.g. to pre-fill the profile's home course.
+    func course(named name: String) -> CachedCourse? {
+        normalizedLookup[Self.normalizeCourseName(name)]
+    }
+
     func coursesMatching(query: String) -> [CachedCourse] {
         let normalized = Self.normalizeCourseName(query)
         guard !normalized.isEmpty else { return [] }
