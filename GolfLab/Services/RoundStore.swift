@@ -712,7 +712,7 @@ class RoundStore: ObservableObject {
         weeklyGoalCelebration = nil
     }
 
-    /// Call after the practice log sheet closes so confetti is not hidden behind the sheet.
+    /// Call after the practice log / end-round sheet closes so the fireworks are not hidden behind the sheet.
     func presentPendingWeeklyGoalCelebrationIfNeeded() {
         guard weeklyGoalCelebration == nil, let pending = weeklyGoalCelebrationPending else { return }
         weeklyGoalCelebrationPending = nil
@@ -720,19 +720,26 @@ class RoundStore: ObservableObject {
         weeklyGoalCelebration = pending
     }
 
+    /// The device that saved the completing event celebrates. A watch-origin save is marked celebrated up front so a
+    /// later phone save in the same week cannot double up; if the watch cannot be reached the phone shows it instead.
     private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot, sendToWatch: Bool = false) {
         let after = weeklyGoalsSnapshot()
         guard let presentation = WeeklyGoalCelebration.presentationIfNewlyCompleted(before: before, after: after) else {
             return
         }
-        
-        if sendToWatch {
-            WatchConnectivityService.shared.sendWeeklyGoalCelebration(
-                completedWeeksStreak: presentation.completedWeeksStreak
-            )
-            WeeklyGoalCelebration.markCelebrated(weekStartYMD: presentation.weekStartYMD)
-        } else {
+
+        guard sendToWatch else {
             weeklyGoalCelebrationPending = presentation
+            return
+        }
+
+        WeeklyGoalCelebration.markCelebrated(weekStartYMD: presentation.weekStartYMD)
+        WatchConnectivityService.shared.sendWeeklyGoalCelebration(
+            completedWeeksStreak: presentation.completedWeeksStreak
+        ) { [weak self] in
+            guard let self else { return }
+            self.weeklyGoalCelebrationPending = presentation
+            self.presentPendingWeeklyGoalCelebrationIfNeeded()
         }
     }
 
