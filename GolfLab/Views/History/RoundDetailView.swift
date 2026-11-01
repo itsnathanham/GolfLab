@@ -99,6 +99,15 @@ struct RoundDetailView: View {
                             .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
                     )
 
+                    if !renameSuggestions.isEmpty {
+                        Text("Pick an existing course to group this round with it.")
+                            .font(.glFootnote)
+                            .foregroundColor(.textTertiary)
+                        CourseAutocompleteDropdown(matches: renameSuggestions) { course in
+                            courseNameDraft = course.displayName
+                        }
+                    }
+
                     if let courseNameSaveError {
                         Text(courseNameSaveError)
                             .font(.glFootnote)
@@ -361,6 +370,15 @@ struct RoundDetailView: View {
     private func loadHoles() async {
         let fetched = await roundStore.ensureHolesCached(roundId: round.id)
         holes = fetched
+    }
+
+    /// Known courses matching the draft, minus whatever the draft already names exactly (so a picked or
+    /// unchanged name closes the list on its own).
+    private var renameSuggestions: [CourseCache.CachedCourse] {
+        let trimmed = courseNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        let draftKey = CourseCache.normalizeCourseName(trimmed)
+        return roundStore.courseCache.coursesMatching(query: trimmed).filter { $0.normalizedKey != draftKey }
     }
 
     private func saveCourseNameEdit() async {

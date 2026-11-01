@@ -13,11 +13,15 @@ struct CourseAutocompleteDropdown: View {
                             Button {
                                 onSelect(course)
                             } label: {
-                                HStack {
+                                HStack(alignment: .firstTextBaseline) {
                                     Text(course.displayName)
                                         .font(.glBody)
                                         .foregroundColor(.textPrimary)
+                                        .lineLimit(1)
                                         .frame(maxWidth: .infinity, alignment: .leading)
+                                    Text(Self.detailText(for: course))
+                                        .font(.glMicro)
+                                        .foregroundColor(.textTertiary)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 12)
@@ -44,5 +48,9 @@ struct CourseAutocompleteDropdown: View {
             )
             .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 2)
         }
+    }
+
+    private static func detailText(for course: CourseCache.CachedCourse) -> String {
+        "\(course.totalHoles) holes · \(course.playCount) round\(course.playCount == 1 ? "" : "s")"
     }
 }
