@@ -21,8 +21,6 @@ struct TimeRangeFilterPicker: View {
                 }
             }
 
-            Divider()
-
             ForEach([TimeRange.last10, TimeRange.allTime], id: \.self) { range in
                 Button {
                     timeRange = range
