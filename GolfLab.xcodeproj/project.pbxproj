@@ -50,7 +50,6 @@
 		A1B2C3D4E5F60718293A4B5C /* ActiveRoundDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */; };
 		A1B2C3D4E5F60718293A4B5D /* ActiveRoundResumeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5B /* ActiveRoundResumeBanner.swift */; };
 		A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */; };
-		A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */; };
 		A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */; };
 		A2CK11AF066B312B2326D1 /* SwiftDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CK01AF066B312B2326D1 /* SwiftDataModels.swift */; };
 		A2CK12AF066B312B2326D1 /* GolfLabStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2CK02AF066B312B2326D1 /* GolfLabStore.swift */; };
@@ -178,7 +177,6 @@
 		A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRoundDraftStore.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5B /* ActiveRoundResumeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRoundResumeBanner.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebration.swift; sourceTree = "<group>"; };
-		A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiEmitterView.swift; sourceTree = "<group>"; };
 		A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalCelebrationOverlay.swift; sourceTree = "<group>"; };
 		A2CK01AF066B312B2326D1 /* SwiftDataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataModels.swift; sourceTree = "<group>"; };
 		A2CK02AF066B312B2326D1 /* GolfLabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfLabStore.swift; sourceTree = "<group>"; };
@@ -432,7 +430,6 @@
 			children = (
 				A1B2C3D4E5F60718293A4B5B /* ActiveRoundResumeBanner.swift */,
 				D8B4C201AF066B312B2326C0 /* WeeklyGoalsStreakSection.swift */,
-				A1WGC201AF066B312B232702 /* ConfettiEmitterView.swift */,
 				A1WGC201AF066B312B232704 /* WeeklyGoalCelebrationOverlay.swift */,
 			);
 			path = Components;
@@ -688,7 +685,6 @@
 				VSPAR01AF066B312B2326C1 /* VsParCumulativeProgression.swift in Sources */,
 				VSPAR02AF066B312B2326C3 /* SeasonHolesFetch.swift in Sources */,
 				A1WGC201AF066B312B232701 /* WeeklyGoalCelebration.swift in Sources */,
-				A1WGC201AF066B312B232703 /* ConfettiEmitterView.swift in Sources */,
 				A1WGC201AF066B312B232705 /* WeeklyGoalCelebrationOverlay.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5D /* ActiveRoundResumeBanner.swift in Sources */,
 				EFFFDFAB6EF91842B60160FB /* GLChrome.swift in Sources */,
