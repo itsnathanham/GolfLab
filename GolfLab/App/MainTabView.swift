@@ -1,11 +1,47 @@
 import CoreData
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct MainTabView: View {
     @EnvironmentObject private var roundStore: RoundStore
     @EnvironmentObject private var watchConnectivity: WatchConnectivityService
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
+
+    init() {
+        #if canImport(UIKit)
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = UIColor(Color.bgCard.opacity(0.85))
+        
+        let itemAppearance = UITabBarItemAppearance()
+        itemAppearance.normal.iconColor = UIColor(Color.textTertiary)
+        itemAppearance.normal.titleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 9, weight: .medium),
+            .foregroundColor: UIColor(Color.textTertiary)
+        ]
+        itemAppearance.selected.iconColor = UIColor(Color.accent)
+        itemAppearance.selected.titleTextAttributes = [
+            .font: UIFont.systemFont(ofSize: 9, weight: .semibold),
+            .foregroundColor: UIColor(Color.accent)
+        ]
+        
+        appearance.stackedLayoutAppearance = itemAppearance
+        appearance.inlineLayoutAppearance = itemAppearance
+        appearance.compactInlineLayoutAppearance = itemAppearance
+        
+        UITabBar.appearance().standardAppearance = appearance
+        if #available(iOS 15.0, *) {
+            UITabBar.appearance().scrollEdgeAppearance = appearance
+        }
+        
+        UITabBar.appearance().itemSpacing = 8
+        UITabBar.appearance().itemWidth = 56
+        UITabBar.appearance().itemPositioning = .centered
+        #endif
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
