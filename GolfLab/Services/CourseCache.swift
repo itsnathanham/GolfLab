@@ -20,6 +20,11 @@ final class CourseCache: ObservableObject {
         var normalizedKey: String {
             id
         }
+
+        var suggestionSubtitle: String {
+            let rounds = playCount == 1 ? "round" : "rounds"
+            return "\(totalHoles) holes · \(playCount) \(rounds)"
+        }
     }
     
     func rebuild(from rounds: [Round], holesByRoundId: [UUID: [Hole]]) {

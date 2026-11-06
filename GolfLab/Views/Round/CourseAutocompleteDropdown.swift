@@ -25,7 +25,7 @@ struct CourseAutocompleteDropdown: View {
                                             .lineLimit(1)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                         
-                                        Text(Self.detailText(for: course))
+                                        Text(course.suggestionSubtitle)
                                             .font(.glFootnote)
                                             .foregroundColor(.textTertiary)
                                     }
@@ -58,9 +58,5 @@ struct CourseAutocompleteDropdown: View {
                     .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
             )
         }
-    }
-
-    private static func detailText(for course: CourseCache.CachedCourse) -> String {
-        "\(course.totalHoles) holes · \(course.playCount) round\(course.playCount == 1 ? "" : "s")"
     }
 }

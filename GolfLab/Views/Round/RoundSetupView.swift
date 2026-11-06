@@ -31,10 +31,6 @@ struct RoundSetupView: View {
     private var showsCourseSuggestions: Bool {
         isCourseNameFieldFocused && appliedCourseName != courseName && !courseMatches.isEmpty
     }
-    
-    private var allCachedCourses: [CourseCache.CachedCourse] {
-        roundStore.courseCache.coursesMatching(query: "")
-    }
 
     var body: some View {
         ScrollView {
@@ -79,7 +75,20 @@ struct RoundSetupView: View {
         .toolbar(.hidden, for: .navigationBar)
         .tint(.accent)
         .sheet(isPresented: $showCoursePickerSheet) {
-            coursePickerSheet
+            CoursePickerSheet(
+                courseCache: roundStore.courseCache,
+                selectedName: courseName,
+                onSelect: { course in
+                    selectCourse(course)
+                },
+                onNew: {
+                    courseName = ""
+                    appliedCourseName = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        isCourseNameFieldFocused = true
+                    }
+                }
+            )
         }
         .sheet(isPresented: $showDatePickerSheet) {
             VStack(spacing: 0) {
@@ -201,6 +210,7 @@ struct RoundSetupView: View {
                         .foregroundColor(.textTertiary)
                         .frame(width: 32, height: 32)
                 }
+                .accessibilityLabel("Saved courses")
                 .buttonStyle(.plain)
                 .padding(.trailing, 8)
             }
@@ -219,112 +229,6 @@ struct RoundSetupView: View {
         )
     }
 
-    private var coursePickerSheet: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .center) {
-                Button("Cancel") {
-                    showCoursePickerSheet = false
-                }
-                .font(GLFonts.sans(size: 16, weight: .medium))
-                .foregroundColor(.textSecondary)
-                
-                Spacer()
-                
-                Text("Select course")
-                    .font(.glNavTitle)
-                    .foregroundColor(.textPrimary)
-                
-                Spacer()
-                
-                Button("New") {
-                    showCoursePickerSheet = false
-                    courseName = ""
-                    appliedCourseName = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        isCourseNameFieldFocused = true
-                    }
-                }
-                .font(GLFonts.sans(size: 16, weight: .semibold))
-                .foregroundColor(.accent)
-            }
-            .padding(.horizontal, GLLayout.horizontalInset)
-            .padding(.vertical, 12)
-            .background(Color.cardBackground)
-            
-            if allCachedCourses.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "map")
-                        .font(.system(size: 32, weight: .light))
-                        .foregroundColor(.textTertiary)
-                    Text("No saved courses yet")
-                        .font(.glBody)
-                        .foregroundColor(.textSecondary)
-                    Text("Tap 'New' to enter a course name")
-                        .font(.glFootnote)
-                        .foregroundColor(.textTertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 60)
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(Array(allCachedCourses.enumerated()), id: \.element.id) { index, course in
-                            Button {
-                                selectCourse(course)
-                                showCoursePickerSheet = false
-                            } label: {
-                                HStack(alignment: .top, spacing: 12) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(course.displayName)
-                                            .font(.glBody)
-                                            .foregroundColor(.textPrimary)
-                                            .lineLimit(2)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        
-                                        HStack(spacing: 6) {
-                                            Text("\(course.totalHoles) holes")
-                                                .font(.glFootnote)
-                                                .foregroundColor(.textTertiary)
-                                            
-                                            Text("•")
-                                                .font(.glFootnote)
-                                                .foregroundColor(.textTertiary)
-                                            
-                                            Text("\(course.playCount) round\(course.playCount == 1 ? "" : "s")")
-                                                .font(.glFootnote)
-                                                .foregroundColor(.textTertiary)
-                                        }
-                                    }
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.textTertiary)
-                                }
-                                .padding(.horizontal, GLLayout.horizontalInset)
-                                .padding(.vertical, 14)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            
-                            if index < allCachedCourses.count - 1 {
-                                Rectangle()
-                                    .fill(Color.borderDefault)
-                                    .frame(height: 1)
-                                    .padding(.leading, GLLayout.horizontalInset)
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, GLLayout.sheetContentBottomPadding)
-                }
-            }
-        }
-        .background(Color.appBackground)
-        .preferredColorScheme(.dark)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-    
     private var dateRow: some View {
         Button {
             dismissCourseNameKeyboard()
@@ -572,4 +476,121 @@ struct RoundSetupView: View {
 
 extension HoleSetup: Identifiable {
     var id: Int { holeNumber }
+}
+
+private struct CoursePickerSheet: View {
+    @ObservedObject var courseCache: CourseCache
+    @Environment(\.dismiss) private var dismiss
+
+    let selectedName: String
+    let onSelect: (CourseCache.CachedCourse) -> Void
+    let onNew: () -> Void
+
+    private var courses: [CourseCache.CachedCourse] {
+        courseCache.courses.sorted {
+            $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+        }
+    }
+
+    private var selectedKey: String {
+        CourseCache.normalizeCourseName(selectedName)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                topNav
+                    .padding(.horizontal, GLLayout.horizontalInset)
+                    .padding(.top, GLTopBarMetrics.sheetTopPadding + GLTopBarMetrics.sheetExtraTopInset)
+                    .padding(.bottom, 16)
+
+                Group {
+                    if courses.isEmpty {
+                        emptyState
+                    } else {
+                        courseList
+                    }
+                }
+                .padding(.horizontal, GLLayout.horizontalInset)
+                .padding(.bottom, GLLayout.sheetContentBottomPadding)
+            }
+        }
+        .background(Color.appBackground)
+        .toolbar(.hidden, for: .navigationBar)
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium, .large])
+    }
+
+    private var topNav: some View {
+        GLScreenTopBar(title: "Select course") {
+            GLCircleBackButton { dismiss() }
+        } trailing: {
+            Button {
+                onNew()
+                dismiss()
+            } label: {
+                Text("New")
+                    .font(GLFonts.sans(size: 16, weight: .semibold))
+                    .foregroundColor(.accent)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 6) {
+            Text("No saved courses yet")
+                .font(GLFonts.sans(size: 14, weight: .regular))
+                .foregroundColor(.textTertiary)
+            Text("Tap New to enter a course name.")
+                .font(.glFootnote)
+                .foregroundColor(.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    private var courseList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GLFormFieldLabel(text: "Saved courses")
+            VStack(spacing: 0) {
+                ForEach(Array(courses.enumerated()), id: \.element.id) { index, course in
+                    Button {
+                        onSelect(course)
+                        dismiss()
+                    } label: {
+                        HStack(alignment: .center, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(course.displayName)
+                                    .font(.glBody)
+                                    .foregroundColor(.textPrimary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(course.suggestionSubtitle)
+                                    .font(.glFootnote)
+                                    .foregroundColor(.textTertiary)
+                            }
+                            if course.normalizedKey == selectedKey {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.accent)
+                            }
+                        }
+                        .padding(.horizontal, GLCardMetrics.padding)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < courses.count - 1 {
+                        Rectangle()
+                            .fill(Color.borderDefault)
+                            .frame(height: 1)
+                    }
+                }
+            }
+            .glCardChromeFrame(outlined: true)
+        }
+    }
 }
