@@ -59,9 +59,9 @@ extension Color {
     
     static var chartPositive: Color { accent }
     /// Negative / above-par trend — Apple system red.
-    static let chartNegative = Color(hex: "#D93A31")
+    static let chartNegative = Color(hex: "#FF453A")
     /// Double-bogey+ emphasis — stronger red.
-    static let chartNegativeStrong = Color(hex: "#D9304E")
+    static let chartNegativeStrong = Color(hex: "#FF375F")
     /// Steady / neutral series line.
     static var chartNeutral: Color { textSecondary }
     static var chartSeasonAverage: Color { accentMid.opacity(0.55) }
