@@ -35,10 +35,10 @@ extension Color {
     // MARK: - Accent
     
     /// Bold green — CTAs, active states, under-par scores.
-    static let accent = Color(hex: "#00C805")
+    static let accent = Color(hex: "#00A804")
     
     /// Lighter green — positive trends, birdie rings.
-    static let accentMid = Color(hex: "#5AC53B")
+    static let accentMid = Color(hex: "#4AB530")
     
     static var accentDim: Color { Color(hex: "#00C805").opacity(0.12) }
     static var accentDimmer: Color { Color(hex: "#00C805").opacity(0.06) }
@@ -59,9 +59,9 @@ extension Color {
     
     static var chartPositive: Color { accent }
     /// Negative / above-par trend — Apple system red.
-    static let chartNegative = Color(hex: "#FF453A")
+    static let chartNegative = Color(hex: "#D93A31")
     /// Double-bogey+ emphasis — stronger red.
-    static let chartNegativeStrong = Color(hex: "#FF375F")
+    static let chartNegativeStrong = Color(hex: "#D9304E")
     /// Steady / neutral series line.
     static var chartNeutral: Color { textSecondary }
     static var chartSeasonAverage: Color { accentMid.opacity(0.55) }
@@ -73,23 +73,23 @@ extension Color {
     // MARK: - Extended chart palette (multi-series, data emphasis)
     
     /// Cyan — distance, pace, yardage trends.
-    static let chartCyan = Color(hex: "#30D5C8")
+    static let chartCyan = Color(hex: "#28B5AA")
     static var chartCyanFill: Color { chartCyan.opacity(0.20) }
     
     /// Magenta — penalty emphasis, focus metrics, hazard stats.
-    static let chartMagenta = Color(hex: "#FF2D55")
+    static let chartMagenta = Color(hex: "#D92648")
     static var chartMagentaFill: Color { chartMagenta.opacity(0.20) }
     
     /// Yellow — par baseline, neutral trends, milestones.
-    static let chartYellow = Color(hex: "#FFD60A")
+    static let chartYellow = Color(hex: "#D9B809")
     static var chartYellowFill: Color { chartYellow.opacity(0.20) }
     
     /// Purple — practice data, putting stats, short game.
-    static let chartPurple = Color(hex: "#BF5AF2")
+    static let chartPurple = Color(hex: "#A04DD8")
     static var chartPurpleFill: Color { chartPurple.opacity(0.20) }
     
     /// Orange — peak performance, best rounds, fairway hits.
-    static let chartOrange = Color(hex: "#FF9F0A")
+    static let chartOrange = Color(hex: "#D98909")
     static var chartOrangeFill: Color { chartOrange.opacity(0.20) }
     
     // MARK: - Scorecard (rings / boxes; same semantics as chart vs par)
@@ -134,14 +134,14 @@ extension Color {
     
     // MARK: - Legacy palette (deprecated, use semantic tokens above)
     
-    static let green900 = Color(hex: "#00C805")
-    static let green800 = Color(hex: "#00A004")
-    static let green700 = Color(hex: "#00C805")
-    static let green500 = Color(hex: "#5AC53B")
-    static let green400 = Color(hex: "#4DC97E")
-    static let green300 = Color(hex: "#8EDCAA")
-    static let green200 = Color(hex: "#A8E2C3")
-    static let green50 = Color(hex: "#E0F7EA")
+    static let green900 = Color(hex: "#00A804")
+    static let green800 = Color(hex: "#008803")
+    static let green700 = Color(hex: "#00A804")
+    static let green500 = Color(hex: "#4AB530")
+    static let green400 = Color(hex: "#3FB56B")
+    static let green300 = Color(hex: "#7BC597")
+    static let green200 = Color(hex: "#95D1B0")
+    static let green50 = Color(hex: "#D0E8DA")
 }
 
 extension Color {

@@ -25,9 +25,15 @@ struct RoundSetupView: View {
         roundStore.courseCache.coursesMatching(query: courseName)
     }
 
+    @State private var showCoursePickerSheet = false
+    
     /// Derived, not stored: the list can only be open while the field has focus and the text is not an applied course.
     private var showsCourseSuggestions: Bool {
         isCourseNameFieldFocused && appliedCourseName != courseName && !courseMatches.isEmpty
+    }
+    
+    private var allCachedCourses: [CourseCache.CachedCourse] {
+        roundStore.courseCache.coursesMatching(query: "")
     }
 
     var body: some View {
@@ -42,21 +48,18 @@ struct RoundSetupView: View {
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.bottom, 8)
 
-                VStack(spacing: 8) {
+                VStack(spacing: 0) {
                     courseCard
                     
                     if showsCourseSuggestions {
                         CourseAutocompleteDropdown(matches: courseMatches) { course in
                             selectCourse(course)
                         }
+                        .padding(.top, 4)
                     }
                 }
                 .padding(.horizontal, GLLayout.horizontalInset)
                 .padding(.bottom, 24)
-
-                photoCTA
-                    .padding(.horizontal, GLLayout.horizontalInset)
-                    .padding(.bottom, 24)
 
                 sectionLabel("Par")
                     .padding(.horizontal, GLLayout.horizontalInset)
@@ -75,6 +78,9 @@ struct RoundSetupView: View {
         .background(Color.bgPrimary)
         .toolbar(.hidden, for: .navigationBar)
         .tint(.accent)
+        .sheet(isPresented: $showCoursePickerSheet) {
+            coursePickerSheet
+        }
         .sheet(isPresented: $showDatePickerSheet) {
             VStack(spacing: 0) {
                 HStack(alignment: .center) {
@@ -182,7 +188,22 @@ struct RoundSetupView: View {
 
     private var courseCard: some View {
         VStack(spacing: 0) {
-            courseNameRow
+            HStack(spacing: 0) {
+                courseNameRow
+                    .frame(maxWidth: .infinity)
+                
+                Button {
+                    dismissCourseNameKeyboard()
+                    showCoursePickerSheet = true
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.textTertiary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 8)
+            }
             divider
             inlineRow(label: "Holes", value: totalHoles == 18 ? "18 holes" : "9 holes") {
                 setTotalHoles(totalHoles == 18 ? 9 : 18)
@@ -198,6 +219,112 @@ struct RoundSetupView: View {
         )
     }
 
+    private var coursePickerSheet: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Button("Cancel") {
+                    showCoursePickerSheet = false
+                }
+                .font(GLFonts.sans(size: 16, weight: .medium))
+                .foregroundColor(.textSecondary)
+                
+                Spacer()
+                
+                Text("Select course")
+                    .font(.glNavTitle)
+                    .foregroundColor(.textPrimary)
+                
+                Spacer()
+                
+                Button("New") {
+                    showCoursePickerSheet = false
+                    courseName = ""
+                    appliedCourseName = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isCourseNameFieldFocused = true
+                    }
+                }
+                .font(GLFonts.sans(size: 16, weight: .semibold))
+                .foregroundColor(.accent)
+            }
+            .padding(.horizontal, GLLayout.horizontalInset)
+            .padding(.vertical, 12)
+            .background(Color.cardBackground)
+            
+            if allCachedCourses.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "map")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundColor(.textTertiary)
+                    Text("No saved courses yet")
+                        .font(.glBody)
+                        .foregroundColor(.textSecondary)
+                    Text("Tap 'New' to enter a course name")
+                        .font(.glFootnote)
+                        .foregroundColor(.textTertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 60)
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(allCachedCourses.enumerated()), id: \.element.id) { index, course in
+                            Button {
+                                selectCourse(course)
+                                showCoursePickerSheet = false
+                            } label: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(course.displayName)
+                                            .font(.glBody)
+                                            .foregroundColor(.textPrimary)
+                                            .lineLimit(2)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        HStack(spacing: 6) {
+                                            Text("\(course.totalHoles) holes")
+                                                .font(.glFootnote)
+                                                .foregroundColor(.textTertiary)
+                                            
+                                            Text("•")
+                                                .font(.glFootnote)
+                                                .foregroundColor(.textTertiary)
+                                            
+                                            Text("\(course.playCount) round\(course.playCount == 1 ? "" : "s")")
+                                                .font(.glFootnote)
+                                                .foregroundColor(.textTertiary)
+                                        }
+                                    }
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.textTertiary)
+                                }
+                                .padding(.horizontal, GLLayout.horizontalInset)
+                                .padding(.vertical, 14)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            
+                            if index < allCachedCourses.count - 1 {
+                                Rectangle()
+                                    .fill(Color.borderDefault)
+                                    .frame(height: 1)
+                                    .padding(.leading, GLLayout.horizontalInset)
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, GLLayout.sheetContentBottomPadding)
+                }
+            }
+        }
+        .background(Color.appBackground)
+        .preferredColorScheme(.dark)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+    
     private var dateRow: some View {
         Button {
             dismissCourseNameKeyboard()
@@ -216,44 +343,6 @@ struct RoundSetupView: View {
             .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
-    }
-
-    private var photoCTA: some View {
-        HStack {
-            HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.bgElevated)
-                    .frame(width: 32, height: 32)
-                    .overlay {
-                        Image(systemName: "camera")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.textTertiary)
-                    }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Photograph scorecard")
-                        .font(.glSubhead)
-                        .foregroundColor(.textSecondary)
-                    Text("Coming soon - auto-fills pars & yardage")
-                        .font(.glFootnote)
-                        .foregroundColor(.textTertiary)
-                }
-            }
-            Spacer()
-            Text("→")
-                .font(GLFonts.sans(size: 14, weight: .regular))
-                .foregroundColor(.textTertiary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color.cardBackground)
-        .opacity(0.55)
-        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-        .simultaneousGesture(TapGesture().onEnded { dismissCourseNameKeyboard() })
     }
 
     private var holeParsCard: some View {
