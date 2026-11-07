@@ -106,6 +106,8 @@
 		GLW1B09AF066B312B232601 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EB49FC0F7CD8080C975EE1 /* Colors.swift */; };
 		GLW1B10AF066B312B232601 /* WatchPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79256CA229D6D5C6C26A44D /* WatchPalette.swift */; };
 		GLW1B11AF066B312B232601 /* GolfLabWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = GLW1F07AF066B312B232601 /* GolfLabWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		GLW1B12AF066B312B232601 /* ActiveRoundLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* ActiveRoundLink.swift */; };
+		GLW1B13AF066B312B232601 /* ActiveRoundLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* ActiveRoundLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -266,6 +268,7 @@
 		GLW1F07AF066B312B232601 /* GolfLabWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GolfLabWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		GLW1F08AF066B312B232601 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		GLW1F09AF066B312B232601 /* GolfLabWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GolfLabWidgets.entitlements; sourceTree = "<group>"; };
+		GLW1F10AF066B312B232601 /* ActiveRoundLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRoundLink.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -557,6 +560,7 @@
 				W1C003AF066B312B2326D1 /* WatchComplicationStore.swift */,
 				GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */,
 				GLW1F02AF066B312B232601 /* GLVsParLabel.swift */,
+				GLW1F10AF066B312B232601 /* ActiveRoundLink.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -831,6 +835,7 @@
 				GLW1B05AF066B312B232601 /* LiveActivityManager.swift in Sources */,
 				GLW1B06AF066B312B232601 /* ProfilePhotoStorage.swift in Sources */,
 				GLW1B07AF066B312B232601 /* CircularPhotoEditor.swift in Sources */,
+				GLW1B12AF066B312B232601 /* ActiveRoundLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -842,6 +847,7 @@
 				GLW1B02AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */,
 				GLW1B03AF066B312B232601 /* GLVsParLabel.swift in Sources */,
 				GLW1B09AF066B312B232601 /* Colors.swift in Sources */,
+				GLW1B13AF066B312B232601 /* ActiveRoundLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

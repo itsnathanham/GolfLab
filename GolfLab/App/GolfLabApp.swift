@@ -47,6 +47,10 @@ struct GolfLabApp: App {
             .task {
                 await session.start(roundStore: roundStore)
             }
+            .onOpenURL { url in
+                guard ActiveRoundLink.matches(url) else { return }
+                roundStore.noteActiveRoundLinkOpened()
+            }
         }
         .modelContainer(container)
     }

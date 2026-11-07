@@ -10,6 +10,7 @@ struct RoundLiveActivityWidget: Widget {
         ActivityConfiguration(for: RoundLiveActivityAttributes.self) { context in
             RoundLiveActivityBanner(context: context)
                 .activityBackgroundTint(Self.cardGreen)
+                .widgetURL(ActiveRoundLink.url)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -33,6 +34,7 @@ struct RoundLiveActivityWidget: Widget {
                 RoundActivityScoreText(state: context.state)
                     .font(.system(size: 12, weight: .bold, design: .rounded))
             }
+            .widgetURL(ActiveRoundLink.url)
         }
     }
 }

@@ -36,6 +36,11 @@ struct MainTabView: View {
                 selectedTab = 1
             }
         }
+        .onChange(of: roundStore.activeRoundFocusToken) { _, token in
+            if token > 0 {
+                selectedTab = 1
+            }
+        }
         .onChange(of: watchConnectivity.receivedHoleEntriesRevision) { _, _ in
             roundStore.mergePendingWatchHoleEntries()
         }
