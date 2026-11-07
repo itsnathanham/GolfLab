@@ -769,6 +769,22 @@ class RoundStore: ObservableObject {
         )
     }
 
+    func weeklyGoalWeekDetail(
+        week: GLWeeklyGoalsStreak.WeekRecord,
+        history: [GLWeeklyGoalsStreak.WeekRecord]
+    ) -> GLWeeklyGoalsStreak.WeekDetail? {
+        GLWeeklyGoalsStreak.weekDetail(
+            week: week,
+            history: history,
+            roundTarget: weeklyRoundTarget,
+            practiceTarget: weeklyPracticeTarget,
+            goalRevisions: weeklyGoalTargetRevisions,
+            rounds: allRounds,
+            holeRowCountByRoundId: holeRowCountByRoundId,
+            practiceSessions: allPracticeSessions
+        )
+    }
+
     func dismissWeeklyGoalCelebration() {
         weeklyGoalCelebration = nil
     }

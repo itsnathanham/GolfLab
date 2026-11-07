@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 /// App-root overlay when the current week newly completes all active weekly targets (`docs/design.md` § Weekly goals).
+/// Flag bloom: ambient fireworks first, then an orange-and-white flag fan reveals the celebration card.
 struct WeeklyGoalCelebrationOverlay: View {
     let presentation: WeeklyGoalCelebrationPresentation
     let onDismiss: () -> Void
@@ -25,7 +26,7 @@ struct WeeklyGoalCelebrationOverlay: View {
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.top, 12)
                     .opacity(bannerVisible ? 1 : 0)
-                    .offset(y: bannerVisible ? 0 : -10)
+                    .scaleEffect(bannerVisible ? 1 : 0.42, anchor: .center)
                 Spacer(minLength: 0)
             }
             .padding(.top, 52)
@@ -34,9 +35,7 @@ struct WeeklyGoalCelebrationOverlay: View {
         .onTapGesture { onDismiss() }
         .onAppear {
             playCelebrationHaptics()
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-                bannerVisible = true
-            }
+            revealBanner()
             DispatchQueue.main.asyncAfter(deadline: .now() + autoDismissSeconds) {
                 onDismiss()
             }
@@ -47,9 +46,14 @@ struct WeeklyGoalCelebrationOverlay: View {
 
     private var celebrationBanner: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.streakSuccess)
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.bgElevated)
+                    .frame(width: 36, height: 36)
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.streakMark)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Weekly goals complete")
@@ -74,9 +78,8 @@ struct WeeklyGoalCelebrationOverlay: View {
         .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius))
         .overlay(
             RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                .stroke(Color.streakSuccess.opacity(0.35), lineWidth: GLCardMetrics.strokeWidth)
+                .stroke(Color.streakCardBorder, lineWidth: GLCardMetrics.strokeWidth)
         )
-        .shadow(color: Color.black.opacity(0.08), radius: 12, y: 4)
     }
 
     private var subtitle: String { Self.targetsMetSubtitle }
@@ -102,9 +105,20 @@ struct WeeklyGoalCelebrationOverlay: View {
         return parts.joined(separator: " ")
     }
 
+    private func revealBanner() {
+        let delay: TimeInterval = reduceMotion ? 0 : GolfFireworkEmitterView.cardRevealTime
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+                bannerVisible = true
+            }
+        }
+    }
+
     /// `.success` on appear, a light tap as each shell launches, and a medium thump on each burst.
     private func playCelebrationHaptics() {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+        guard !reduceMotion else { return }
 
         let launchTap = UIImpactFeedbackGenerator(style: .light)
         let burstThump = UIImpactFeedbackGenerator(style: .medium)

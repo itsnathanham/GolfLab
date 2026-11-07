@@ -281,4 +281,108 @@ enum GLWeeklyGoalsStreak {
             return boundsYMD(forWeekContaining: date)?.start
         }
     }
+
+    // MARK: - Week detail (summary sheet)
+
+    struct WeekDetail: Sendable, Equatable {
+        let weekNumber: Int
+        let weekStartYMD: String
+        let weekEndYMD: String
+        let outcome: WeekOutcome
+        let roundTarget: Int
+        let practiceTarget: Int
+        /// All rounds in the week (including incomplete) for history navigation.
+        let rounds: [Round]
+        let practices: [PracticeSession]
+        let rangeBallsHit: Int
+        /// Oldest → newest, typically a short window ending at (or including) this week.
+        let rangeBallsByWeek: [WeekBalls]
+        /// Completed rounds only — drives the goals meter.
+        let completedRoundCount: Int
+    }
+
+    struct WeekBalls: Sendable, Equatable, Identifiable {
+        var id: String { weekStartYMD }
+        let weekNumber: Int
+        let weekStartYMD: String
+        let balls: Int
+    }
+
+    static func weekDetail(
+        week: WeekRecord,
+        history: [WeekRecord],
+        calendar: Calendar = .current,
+        roundTarget: Int,
+        practiceTarget: Int,
+        goalRevisions: [WeeklyGoalTargetRevision],
+        rounds: [Round],
+        holeRowCountByRoundId: [UUID: Int],
+        practiceSessions: [PracticeSession],
+        chartWindow: Int = 6
+    ) -> WeekDetail? {
+        let ctx = EvaluationContext(
+            now: Date(),
+            calendar: calendar,
+            roundTarget: roundTarget,
+            practiceTarget: practiceTarget,
+            goalRevisions: goalRevisions,
+            rounds: rounds,
+            holeRowCountByRoundId: holeRowCountByRoundId,
+            practiceSessions: practiceSessions
+        )
+        guard let bounds = ctx.boundsYMD(forWeekStartYMD: week.weekStartYMD) else { return nil }
+        let (rT, pT) = ctx.targets(forWeekStartYMD: week.weekStartYMD)
+        let weekRounds = rounds
+            .filter { $0.datePlayedYMD >= bounds.start && $0.datePlayedYMD <= bounds.end }
+            .sortedByDatePlayedDescending()
+        let completedRoundCount = weekRounds.filter { ctx.isCompletedRound($0) }.count
+        let weekPractices = PracticeSession.sortedForDisplay(
+            practiceSessions.filter { $0.sessionDate >= bounds.start && $0.sessionDate <= bounds.end }
+        )
+        let balls = ctx.countRangeBallsHit(startYMD: bounds.start, endYMD: bounds.end)
+
+        let span = max(chartWindow, 1)
+        let window: [WeekRecord]
+        if let idx = history.firstIndex(where: { $0.weekStartYMD == week.weekStartYMD }) {
+            let startIdx = max(0, idx - (span - 1))
+            window = Array(history[startIdx...idx])
+        } else {
+            window = [week]
+        }
+        let chart: [WeekBalls] = window.map { record in
+            let b = ctx.boundsYMD(forWeekStartYMD: record.weekStartYMD) ?? (record.weekStartYMD, record.weekStartYMD)
+            return WeekBalls(
+                weekNumber: record.weekNumber,
+                weekStartYMD: record.weekStartYMD,
+                balls: ctx.countRangeBallsHit(startYMD: b.start, endYMD: b.end)
+            )
+        }
+
+        return WeekDetail(
+            weekNumber: week.weekNumber,
+            weekStartYMD: bounds.start,
+            weekEndYMD: bounds.end,
+            outcome: week.outcome,
+            roundTarget: rT,
+            practiceTarget: pT,
+            rounds: weekRounds,
+            practices: weekPractices,
+            rangeBallsHit: balls,
+            rangeBallsByWeek: chart,
+            completedRoundCount: completedRoundCount
+        )
+    }
+
+    static func dateRangeDisplay(startYMD: String, endYMD: String, calendar: Calendar = .current) -> String {
+        guard let start = dateFromYMD(startYMD, calendar: calendar),
+              let end = dateFromYMD(endYMD, calendar: calendar)
+        else {
+            return "\(GLCalendarISO.mmddyyyyDisplay(from: startYMD)) – \(GLCalendarISO.mmddyyyyDisplay(from: endYMD))"
+        }
+        let df = DateFormatter()
+        df.calendar = calendar
+        df.locale = .current
+        df.setLocalizedDateFormatFromTemplate("MMM d")
+        return "\(df.string(from: start)) – \(df.string(from: end))"
+    }
 }

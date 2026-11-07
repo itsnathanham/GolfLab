@@ -1,17 +1,20 @@
 import SwiftUI
 import UIKit
 
-/// Golf-themed fireworks: three shells climb from the bottom edge and burst into mini golf balls, flags, or tees.
+/// Golf-themed fireworks: ambient shells, then a flag bloom whose fan reveals the celebration card.
 /// Timing constants are shared with `WeeklyGoalCelebrationOverlay` so haptics land on each burst.
 struct GolfFireworkEmitterView: UIViewRepresentable {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Seconds after appear until each shell leaves the bottom edge. The first waits for a dismissing sheet to clear.
-    static let launchDelays: [TimeInterval] = [0.5, 1.1, 1.7]
+    /// The last delay is the flag-bloom shell.
+    static let launchDelays: [TimeInterval] = [0.5, 1.1, 1.7, 2.35]
     /// Seconds a shell climbs before it bursts.
     static let riseDuration: TimeInterval = 0.55
     /// Seconds after appear when each shell bursts.
     static var burstTimes: [TimeInterval] { launchDelays.map { $0 + riseDuration } }
+    /// Card springs in just after the flag fan opens, so the flags read before the card covers the origin.
+    static var cardRevealTime: TimeInterval { (burstTimes.last ?? (2.35 + riseDuration)) + 0.12 }
     /// Seconds until the last particles have faded.
     static var showDuration: TimeInterval { (burstTimes.last ?? 0) + 2.6 }
 
@@ -49,25 +52,32 @@ final class GolfFireworkView: UIView {
     }
 
     private func scheduleShow() {
-        let kinds = ParticleKind.allCases.shuffled()
+        let ambientKinds = ParticleKind.ambientCases.shuffled()
+        let lastIndex = GolfFireworkEmitterView.launchDelays.count - 1
         for (index, delay) in GolfFireworkEmitterView.launchDelays.enumerated() {
-            let kind = kinds[index % kinds.count]
+            let isBloom = index == lastIndex
+            let kind = ambientKinds[index % ambientKinds.count]
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.launchShell(kind: kind)
+                self?.launchShell(kind: kind, bloom: isBloom)
             }
         }
     }
 
     // MARK: - Shell
 
-    private func launchShell(kind: ParticleKind) {
+    private func launchShell(kind: ParticleKind, bloom: Bool) {
         guard window != nil else { return }
         let rise = GolfFireworkEmitterView.riseDuration
-        let startX = bounds.width * CGFloat.random(in: 0.2...0.8)
+        let startX = bloom
+            ? bounds.width * 0.5
+            : bounds.width * CGFloat.random(in: 0.2...0.8)
         let start = CGPoint(x: startX, y: bounds.height + 16)
         let apex = CGPoint(
-            x: min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
-            y: bounds.height * CGFloat.random(in: 0.26...0.46)
+            x: bloom
+                ? bounds.width * 0.5
+                : min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
+            // Bloom aims at the top banner slot so the card opens out of the flag fan.
+            y: bounds.height * (bloom ? CGFloat.random(in: 0.16...0.24) : CGFloat.random(in: 0.26...0.46))
         )
 
         let path = UIBezierPath()
@@ -81,15 +91,24 @@ final class GolfFireworkView: UIView {
         flight.fillMode = .forwards
         flight.isRemovedOnCompletion = false
 
+        let shellImage = bloom ? ParticleKind.orangeFlagImage : ParticleKind.balls.image
         let shell = CALayer()
-        shell.contents = ParticleKind.balls.image.cgImage
-        shell.contentsScale = ParticleKind.balls.image.scale
-        shell.bounds = CGRect(origin: .zero, size: ParticleKind.balls.image.size)
+        shell.contents = shellImage.cgImage
+        shell.contentsScale = shellImage.scale
+        shell.contentsGravity = .resizeAspect
+        shell.bounds = CGRect(
+            origin: .zero,
+            size: bloom ? CGSize(width: 16, height: 21) : shellImage.size
+        )
         shell.position = start
+        if bloom {
+            // Artwork pennant points right; aim it up the climb.
+            shell.transform = CATransform3DMakeRotation(.pi / 2, 0, 0, 1)
+        }
         layer.addSublayer(shell)
         shell.add(flight, forKey: "flight")
 
-        let trail = makeTrailEmitter(color: kind.trailColor)
+        let trail = makeTrailEmitter(color: bloom ? UIColor(Color.chartOrange) : kind.trailColor)
         trail.emitterPosition = start
         layer.addSublayer(trail)
         let trailFlight = CAKeyframeAnimation(keyPath: "emitterPosition")
@@ -103,7 +122,11 @@ final class GolfFireworkView: UIView {
         DispatchQueue.main.asyncAfter(deadline: .now() + rise) { [weak self] in
             shell.removeFromSuperlayer()
             trail.birthRate = 0
-            self?.burst(at: apex, kind: kind)
+            if bloom {
+                self?.flagBloom(at: apex)
+            } else {
+                self?.burst(at: apex, kind: kind)
+            }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + rise + 1.0) {
             trail.removeFromSuperlayer()
@@ -134,6 +157,76 @@ final class GolfFireworkView: UIView {
         cell.color = color.cgColor
         emitter.emitterCells = [cell]
         return emitter
+    }
+
+    // MARK: - Flag bloom
+
+    /// Radial fan of orange and white flags. They hold the ring, then fade as the card settles.
+    private func flagBloom(at point: CGPoint) {
+        guard window != nil else { return }
+        let count = 14
+        addFlash(at: point, color: UIColor(Color.chartOrange))
+
+        for index in 0..<count {
+            let angle = (CGFloat(index) / CGFloat(count)) * (.pi * 2)
+            let distance = 58 + CGFloat(index % 3) * 24
+            let end = CGPoint(
+                x: point.x + cos(angle) * distance,
+                y: point.y + sin(angle) * distance * 0.82
+            )
+            let image = index.isMultiple(of: 2) ? ParticleKind.orangeFlagImage : ParticleKind.whiteFlagImage
+            let stagger = Double(index % 4) * 0.018
+
+            let flag = CALayer()
+            flag.contents = image.cgImage
+            flag.contentsScale = image.scale
+            flag.contentsGravity = .resizeAspect
+            flag.bounds = CGRect(origin: .zero, size: CGSize(width: 15, height: 20))
+            // CA rotation is y-up; negate so the pennant follows the y-down travel vector.
+            flag.transform = CATransform3DMakeRotation(-angle, 0, 0, 1)
+            flag.position = CGPoint(x: flag.bounds.midX, y: flag.bounds.midY)
+
+            let host = CALayer()
+            host.bounds = flag.bounds
+            host.position = point
+            host.transform = CATransform3DMakeScale(0.35, 0.35, 1)
+            host.addSublayer(flag)
+            layer.addSublayer(host)
+
+            let move = CABasicAnimation(keyPath: "position")
+            move.fromValue = NSValue(cgPoint: point)
+            move.toValue = NSValue(cgPoint: end)
+            move.beginTime = CACurrentMediaTime() + stagger
+            move.duration = 0.42
+            move.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            move.fillMode = .both
+            move.isRemovedOnCompletion = false
+
+            let grow = CABasicAnimation(keyPath: "transform.scale")
+            grow.fromValue = 0.35
+            grow.toValue = 1
+            grow.beginTime = move.beginTime
+            grow.duration = 0.42
+            grow.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            grow.fillMode = .both
+            grow.isRemovedOnCompletion = false
+
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 1
+            fade.toValue = 0
+            fade.beginTime = CACurrentMediaTime() + stagger + 0.32
+            fade.duration = 0.5
+            fade.fillMode = .forwards
+            fade.isRemovedOnCompletion = false
+
+            host.add(move, forKey: "move")
+            host.add(grow, forKey: "grow")
+            host.add(fade, forKey: "fade")
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + stagger + 1.0) {
+                host.removeFromSuperlayer()
+            }
+        }
     }
 
     // MARK: - Burst
@@ -217,13 +310,33 @@ final class GolfFireworkView: UIView {
         case flags
         case tees
 
+        static var ambientCases: [ParticleKind] { [.balls, .flags, .tees] }
+
+        /// Reveal-fan artwork. Orange is rasterized — `withTintColor` does not change `cgImage`, which is what the layers draw.
+        static let whiteFlagImage: UIImage = flagImage
+        static let orangeFlagImage: UIImage = tintedFlag(UIColor(Color.chartOrange))
+
+        private static func tintedFlag(_ color: UIColor) -> UIImage {
+            let base = flagImage
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = base.scale
+            format.opaque = false
+            let rect = CGRect(origin: .zero, size: base.size)
+            return UIGraphicsImageRenderer(size: base.size, format: format).image { renderer in
+                base.draw(in: rect)
+                color.setFill()
+                renderer.cgContext.setBlendMode(.sourceIn)
+                renderer.cgContext.fill(rect)
+            }
+        }
+
         /// Cell tints multiply the white artwork; nothing here may be black or it vanishes on the dark theme.
         var colors: [UIColor] {
             switch self {
             case .balls:
                 return [.white, .white, UIColor(Color.streakSuccessDeep)]
             case .flags:
-                return [UIColor(Color.accent), UIColor(Color.chartPurple), .white]
+                return [UIColor(Color.accent), UIColor(Color.chartOrange), .white]
             case .tees:
                 return [UIColor(Color.chartYellow), UIColor(Color.accentMid), .white]
             }

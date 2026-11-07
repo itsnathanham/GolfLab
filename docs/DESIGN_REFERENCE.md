@@ -42,13 +42,15 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartCyan` | `#30D5C8` | Distance, pace, yardage trends |
 | `chartMagenta` | `#FF2D55` | Penalty emphasis, focus metrics |
 | `chartYellow` | `#FFD60A` | Par baseline, neutral trends |
-| `chartPurple` | `#BF5AF2` | Streak marks, season-best badges, GIR line |
-| `chartOrange` | `#FF9F0A` | Peak performance, best rounds |
-| **Weekly goals** | | *Consistent with main accent* |
-| `streakSuccess` | `#00C805` | Celebration and fireworks |
-| `streakSuccessDeep` | `#5AC53B` | Firework particles |
-| `streakOnSuccess` | `#000000` | Checkmark on streak circles |
-| `streakTextActive` | `#00C805` | Celebration caption |
+| `chartPurple` | `#A04DD8` | Season-best badges, GIR / practice series |
+| `chartOrange` | `#D98909` | Peak performance, calendar practice dots, streak marks |
+| **Weekly goals** | | *Orange marks; progress stays accent green* |
+| `streakMark` | `chartOrange` | Flagsticks, flame, streak caption |
+| `streakSuccess` | `chartOrange` | Celebration card / flag bloom |
+| `streakSuccessDeep` | `accentMid` | Firework particles |
+| `streakOnSuccess` | `#FFFFFF` | × on missed week marks |
+| `streakTextActive` | `chartOrange` | Celebration streak line |
+| `streakCardBorder` | orange @ 40% | Celebration card stroke |
 | **Calendar** | | |
 | `hierarchySecondary` | `#30D5C8` | Round dots, second chart |
 | `hierarchyTertiary` | `#FF9F0A` | Practice dots, third chart |
@@ -130,8 +132,9 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | `GLFormFieldLabel` | `GLFormChrome.swift` | Uppercase caption label (12pt, 0.10em tracking). |
 | `GLTrendCardHeader` | `Typography.swift` | 11pt uppercase chart title + hairline. |
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value. |
-| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: round/practice bars (green), week scroll row (green circles). |
-| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: banner + golf fireworks (`GolfFireworkEmitterView`). |
+| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: Flagstick or Streak hero (`GLStreakSectionStyle`); tap week → summary sheet. |
+| `WeeklyGoalWeekSummarySheet` | `Views/Components/` | Week detail sheet: meters, rounds → detail, practice, range-ball columns. |
+| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: ambient fireworks + flag-bloom reveal (`GolfFireworkEmitterView`). |
 
 **Navigation split:** Tab roots use **hidden** `NavigationStack` chrome and the components above. Pushed editors may use visible `navigationTitle` / toolbar.
 
