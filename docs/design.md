@@ -141,6 +141,8 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 
 **Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
 
+**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, practice rows (focus + date). No range-balls chart.
+
 **Streak footer:** `flame.fill` (orange) + footnote caption (orange).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):

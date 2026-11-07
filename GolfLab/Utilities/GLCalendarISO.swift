@@ -78,19 +78,35 @@ enum GLCalendarISO {
 
     /// For UI copy (History / practice sheets).
     static func mmddyyyyDisplay(from ymdPrefix: String) -> String {
+        guard let date = date(fromYMD: ymdPrefix) else { return String(ymdPrefix.prefix(10)) }
+        return mmddyyyy.string(from: date)
+    }
+
+    /// Day summary title, e.g. `Nov 7 '26`.
+    static func daySheetTitle(from ymdPrefix: String) -> String {
+        guard let date = date(fromYMD: ymdPrefix) else { return String(ymdPrefix.prefix(10)) }
+        return daySheetTitleFormatter.string(from: date)
+    }
+
+    /// Full weekday name for a `yyyy-MM-dd` key, e.g. `Saturday`.
+    static func weekdayName(from ymdPrefix: String) -> String {
+        guard let date = date(fromYMD: ymdPrefix) else { return "" }
+        return weekdayNameFormatter.string(from: date)
+    }
+
+    private static func date(fromYMD ymdPrefix: String) -> Date? {
         let head = String(ymdPrefix.prefix(10))
         let parts = head.split(separator: "-", omittingEmptySubsequences: false).map(String.init)
         guard parts.count == 3,
               let y = Int(parts[0]),
               let m = Int(parts[1]),
               let d = Int(parts[2])
-        else { return head }
+        else { return nil }
         var dc = DateComponents()
         dc.year = y
         dc.month = m
         dc.day = d
-        guard let date = cal.date(from: dc) else { return head }
-        return mmddyyyy.string(from: date)
+        return cal.date(from: dc)
     }
 
     private static let mmddyyyy: DateFormatter = {
@@ -99,6 +115,24 @@ enum GLCalendarISO {
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone.current
         f.dateFormat = "MM/dd/yyyy"
+        return f
+    }()
+
+    private static let daySheetTitleFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar = cal
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "MMM d ''yy"
+        return f
+    }()
+
+    private static let weekdayNameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.calendar = cal
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "EEEE"
         return f
     }()
 }
