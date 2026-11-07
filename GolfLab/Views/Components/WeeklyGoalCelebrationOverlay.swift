@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// App-root overlay when the current week newly completes all active weekly targets (`docs/design.md` § Weekly goals).
-/// Card beacon: ambient fireworks first, then the final shell burst reveals the celebration card.
+/// Flag bloom: ambient fireworks first, then an orange-and-white flag fan reveals the celebration card.
 struct WeeklyGoalCelebrationOverlay: View {
     let presentation: WeeklyGoalCelebrationPresentation
     let onDismiss: () -> Void
@@ -26,8 +26,7 @@ struct WeeklyGoalCelebrationOverlay: View {
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.top, 12)
                     .opacity(bannerVisible ? 1 : 0)
-                    .scaleEffect(bannerVisible ? 1 : 0.72, anchor: .top)
-                    .offset(y: bannerVisible ? 0 : 8)
+                    .scaleEffect(bannerVisible ? 1 : 0.42, anchor: .center)
                 Spacer(minLength: 0)
             }
             .padding(.top, 52)

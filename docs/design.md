@@ -145,11 +145,11 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Golf fireworks: three ambient shells (balls / flags / tees), then a fourth orange **card beacon** aimed at the top banner; the celebration card springs open on that burst — **off** when Reduce Motion is enabled (card only).
+- Golf fireworks: three ambient shells (balls / flags / tees), then a fourth **flag bloom** (orange + white flags fanning at the top banner); the celebration card springs open out of that fan — **off** when Reduce Motion is enabled (card only).
 - Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
-- Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including beacon).
+- Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Once per calendar week; queued if a sheet would hide the overlay.
-- Watch (`WatchWeeklyGoalCelebrationView`): one ambient + center beacon, compact “Goals met” card; phone only steps in when the watch is unreachable.
+- Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
 
 ---
 

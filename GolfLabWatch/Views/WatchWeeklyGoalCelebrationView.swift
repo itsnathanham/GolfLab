@@ -2,7 +2,7 @@ import SwiftUI
 import WatchKit
 
 /// Watch celebration when weekly goals complete from a save made on this watch.
-/// Card beacon (lean): one ambient burst, then a center orange beacon that reveals the card.
+/// Flag bloom (lean): one center fan of orange and white flags reveals the card. No ambient shells.
 struct WatchWeeklyGoalCelebrationView: View {
     let completedWeeksStreak: Int
     let onDismiss: () -> Void
@@ -10,10 +10,10 @@ struct WatchWeeklyGoalCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
 
-    /// Ambient then beacon — keeps the show short on watch.
-    private static let ambientDelay: TimeInterval = 0.15
-    private static let beaconDelay: TimeInterval = 0.85
-    private static let dismissAfter: TimeInterval = 3.4
+    /// Flags fan, then the card opens out of that bloom.
+    private static let bloomDelay: TimeInterval = 0.2
+    private static let cardDelay: TimeInterval = 0.38
+    private static let dismissAfter: TimeInterval = 3.1
 
     var body: some View {
         ZStack {
@@ -21,15 +21,9 @@ struct WatchWeeklyGoalCelebrationView: View {
                 .ignoresSafeArea()
 
             if !reduceMotion {
-                WatchFireworkBurst(
-                    kind: .balls,
-                    origin: UnitPoint(x: 0.28, y: 0.74),
-                    delay: Self.ambientDelay
-                )
-                WatchFireworkBurst(
-                    kind: .beacon,
-                    origin: UnitPoint(x: 0.5, y: 0.42),
-                    delay: Self.beaconDelay
+                WatchFlagBloom(
+                    origin: UnitPoint(x: 0.5, y: 0.5),
+                    delay: Self.bloomDelay
                 )
             }
 
@@ -56,13 +50,13 @@ struct WatchWeeklyGoalCelebrationView: View {
                     .stroke(WatchPalette.streakMark.opacity(0.40), lineWidth: 1)
             )
             .opacity(showContent ? 1 : 0)
-            .scaleEffect(showContent ? 1 : 0.72)
+            .scaleEffect(showContent ? 1 : 0.4)
         }
         .contentShape(Rectangle())
         .onTapGesture { onDismiss() }
         .onAppear {
             playCelebrationHaptics()
-            let delay: TimeInterval = reduceMotion ? 0 : Self.beaconDelay
+            let delay: TimeInterval = reduceMotion ? 0 : Self.cardDelay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) {
                     showContent = true
@@ -83,54 +77,47 @@ struct WatchWeeklyGoalCelebrationView: View {
         WKInterfaceDevice.current().play(.success)
 
         guard !reduceMotion else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.ambientDelay) {
-            WKInterfaceDevice.current().play(.click)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.beaconDelay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.bloomDelay) {
             WKInterfaceDevice.current().play(.click)
         }
     }
 }
 
-/// One burst: particles start at `origin`, fly outward, then drop and fade.
-private struct WatchFireworkBurst: View {
-    enum Kind {
-        case balls
-        case flags
-        case beacon
-    }
-
-    let kind: Kind
+/// Orange and white flags fan from `origin`, hold, then fade as the card opens.
+private struct WatchFlagBloom: View {
     let origin: UnitPoint
     let delay: TimeInterval
 
-    @State private var particles: [Particle] = []
-    @State private var exploded = false
+    @State private var flags: [BloomFlag] = []
+    @State private var opened = false
     @State private var faded = false
 
-    private static let particleCount = 14
+    private static let flagCount = 8
 
     var body: some View {
         GeometryReader { geo in
             let center = CGPoint(x: geo.size.width * origin.x, y: geo.size.height * origin.y)
             ZStack {
-                ForEach(particles) { particle in
-                    particleView(particle)
-                        .position(
-                            x: center.x + (exploded ? particle.offset.width : 0),
-                            y: center.y + (exploded ? particle.offset.height : 0) + (faded ? 14 : 0)
-                        )
-                        .scaleEffect(exploded ? 1 : 0.3)
+                ForEach(flags) { flag in
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(flag.orange ? WatchPalette.streakMark : Color.white)
+                        .rotationEffect(.radians(flag.angle))
+                        .scaleEffect(opened ? 1 : 0.3)
                         .opacity(faded ? 0 : 1)
+                        .position(
+                            x: center.x + (opened ? flag.offset.width : 0),
+                            y: center.y + (opened ? flag.offset.height : 0)
+                        )
                 }
             }
             .onAppear {
-                particles = Particle.make(count: Self.particleCount)
+                flags = BloomFlag.make(count: Self.flagCount)
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                    withAnimation(.easeOut(duration: 0.55)) {
-                        exploded = true
+                    withAnimation(.easeOut(duration: 0.42)) {
+                        opened = true
                     }
-                    withAnimation(.easeIn(duration: 0.5).delay(0.45)) {
+                    withAnimation(.easeIn(duration: 0.45).delay(0.32)) {
                         faded = true
                     }
                 }
@@ -139,39 +126,20 @@ private struct WatchFireworkBurst: View {
         .allowsHitTesting(false)
     }
 
-    @ViewBuilder
-    private func particleView(_ particle: Particle) -> some View {
-        switch kind {
-        case .balls:
-            Circle()
-                .fill(particle.colorIndex == 0 ? WatchPalette.streakSuccessDeep : Color.white)
-                .frame(width: particle.size, height: particle.size)
-        case .flags:
-            Image(systemName: "flag.fill")
-                .font(.system(size: particle.size + 3, weight: .bold))
-                .foregroundStyle(particle.colorIndex == 0 ? Color.white : WatchPalette.accent)
-        case .beacon:
-            Image(systemName: "flag.fill")
-                .font(.system(size: particle.size + 3, weight: .bold))
-                .foregroundStyle(particle.colorIndex == 0 ? Color.white : WatchPalette.streakMark)
-        }
-    }
-
-    private struct Particle: Identifiable {
+    private struct BloomFlag: Identifiable {
         let id = UUID()
-        /// Where the particle lands relative to the burst origin.
+        let angle: Double
         let offset: CGSize
-        let size: CGFloat
-        let colorIndex: Int
+        let orange: Bool
 
-        static func make(count: Int) -> [Particle] {
+        static func make(count: Int) -> [BloomFlag] {
             (0..<count).map { index in
-                let angle = Double(index) / Double(count) * 2 * Double.pi + Double.random(in: -0.18...0.18)
-                let distance = Double.random(in: 34...62)
-                return Particle(
+                let angle = Double(index) / Double(count) * 2 * Double.pi
+                let distance = 40 + Double(index % 3) * 10
+                return BloomFlag(
+                    angle: angle,
                     offset: CGSize(width: cos(angle) * distance, height: sin(angle) * distance),
-                    size: CGFloat.random(in: 4...7),
-                    colorIndex: Int.random(in: 0..<3)
+                    orange: index.isMultiple(of: 2)
                 )
             }
         }

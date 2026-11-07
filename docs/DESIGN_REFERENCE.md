@@ -46,7 +46,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartOrange` | `#D98909` | Peak performance, calendar practice dots, streak marks |
 | **Weekly goals** | | *Orange marks; progress stays accent green* |
 | `streakMark` | `chartOrange` | Flagsticks, flame, streak caption |
-| `streakSuccess` | `chartOrange` | Celebration card / beacon |
+| `streakSuccess` | `chartOrange` | Celebration card / flag bloom |
 | `streakSuccessDeep` | `accentMid` | Firework particles |
 | `streakOnSuccess` | `#FFFFFF` | × on missed week marks |
 | `streakTextActive` | `chartOrange` | Celebration streak line |
@@ -134,7 +134,7 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value. |
 | `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: Flagstick or Streak hero (`GLStreakSectionStyle`); tap week → summary sheet. |
 | `WeeklyGoalWeekSummarySheet` | `Views/Components/` | Week detail sheet: meters, rounds → detail, practice, range-ball columns. |
-| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: ambient fireworks + card-beacon reveal (`GolfFireworkEmitterView`). |
+| `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: ambient fireworks + flag-bloom reveal (`GolfFireworkEmitterView`). |
 
 **Navigation split:** Tab roots use **hidden** `NavigationStack` chrome and the components above. Pushed editors may use visible `navigationTitle` / toolbar.
 
