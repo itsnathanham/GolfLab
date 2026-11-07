@@ -106,7 +106,6 @@ targets:
       - path: GolfLabWidgets
       - path: Shared/RoundLiveActivityAttributes.swift
       - path: Shared/GLVsParLabel.swift
-      - path: Shared/ActiveRoundLink.swift
       - path: GolfLab/DesignSystem/Colors.swift
     settings:
       base:

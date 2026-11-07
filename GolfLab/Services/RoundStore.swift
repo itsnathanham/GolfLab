@@ -45,8 +45,6 @@ class RoundStore: ObservableObject {
     /// Profile photo path from profile; set during hydrate / profile save.
     @Published private(set) var profilePhotoPath: String?
     @Published private(set) var profilePhoto: UIImage?
-    /// Bumps when a Live Activity tap asks the UI to show the in-progress round.
-    @Published private(set) var activeRoundFocusToken: UInt64 = 0
     /// From `users` profile (`weekly_round_target` / `weekly_practice_target`); defaults used until loaded.
     @Published var weeklyRoundTarget: Int = 1
     @Published var weeklyPracticeTarget: Int = 2
@@ -109,11 +107,6 @@ class RoundStore: ObservableObject {
 
     func clearPreferNewRoundSetup() {
         preferNewRoundSetup = false
-    }
-
-    func noteActiveRoundLinkOpened() {
-        guard isRoundActive else { return }
-        activeRoundFocusToken &+= 1
     }
 
     func dismissRestoredRoundBanner() {
