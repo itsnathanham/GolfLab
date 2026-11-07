@@ -139,7 +139,7 @@ Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
 Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet` (medium/large detents).
 
-**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds (score white, vs par always accent green → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
+**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
 
 **Streak footer:** `flame.fill` (orange) + footnote caption (orange).
 
