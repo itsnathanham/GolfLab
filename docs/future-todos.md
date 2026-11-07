@@ -35,9 +35,10 @@ Ordered follow-ups. **Not started.**
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | 1   | **Practice cards** — redo the practice card UI/UX, and add edit and delete for a logged practice session                                                                                            | **Not started** |
 | 2   | **Streak color** — redo the purple used for the streak                                                                                                                                              | **Not started** |
-| 3   | **Stock yardages** — rethink the stepper UI in `StockClubYardagesSection`, and fix the last entry                                                                                                   | **Not started** |
-| 4   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
-| 5   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Not started** |
+| 3   | **Streak celebration card** — update the weekly goals celebration banner/card (`WeeklyGoalCelebrationOverlay`) to match the chosen streak color + section treatment                                | **Not started** |
+| 4   | **Stock yardages** — rethink the stepper UI in `StockClubYardagesSection`, and fix the last entry                                                                                                   | **Not started** |
+| 5   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
+| 6   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Not started** |
 
 
 ---
