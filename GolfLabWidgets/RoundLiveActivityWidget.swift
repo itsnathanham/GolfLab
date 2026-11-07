@@ -88,16 +88,9 @@ private struct RoundActivityScoreText: View {
 
     var body: some View {
         Text(state.hasSavedHole ? GLVsParLabel.text(state.scoreVsPar) : "—")
-            .foregroundStyle(color)
+            .foregroundStyle(Color.green)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
-    }
-
-    private var color: Color {
-        guard state.hasSavedHole else { return .white }
-        if state.scoreVsPar < 0 { return .accent }
-        if state.scoreVsPar > 0 { return .chartNegative }
-        return .white
     }
 }
 
