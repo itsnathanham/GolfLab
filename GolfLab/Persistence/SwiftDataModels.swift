@@ -15,6 +15,8 @@ final class SDProfile {
     var stockClubYardagesData: Data?
     /// False until the user edits stock yardages at least once (nil vs empty bag).
     var hasConfiguredStockClubYardages: Bool = false
+    /// File path to stored profile photo (relative to Documents directory).
+    var profilePhotoPath: String?
 
     @Relationship(deleteRule: .cascade, inverse: \SDStockClubYardage.profile)
     var stockClubYardages: [SDStockClubYardage]? = []
@@ -29,7 +31,8 @@ final class SDProfile {
         weeklyPracticeTarget: Int? = nil,
         weeklyGoalTargetRevisionsData: Data? = nil,
         stockClubYardagesData: Data? = nil,
-        hasConfiguredStockClubYardages: Bool = false
+        hasConfiguredStockClubYardages: Bool = false,
+        profilePhotoPath: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -41,6 +44,7 @@ final class SDProfile {
         self.weeklyGoalTargetRevisionsData = weeklyGoalTargetRevisionsData
         self.stockClubYardagesData = stockClubYardagesData
         self.hasConfiguredStockClubYardages = hasConfiguredStockClubYardages
+        self.profilePhotoPath = profilePhotoPath
     }
 }
 

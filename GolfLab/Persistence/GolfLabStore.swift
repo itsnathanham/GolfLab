@@ -15,6 +15,7 @@ protocol GolfLabStore: AnyObject {
         weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
         stockClubYardages: [StockClubYardage]?
     ) async throws -> UserProfile
+    func updateProfilePhoto(userId: UUID, path: String?) async throws
     func ensureProfile(userId: UUID) throws -> UserProfile
 
     func insertRound(_ round: RoundInsert) async throws -> Round
@@ -151,6 +152,17 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         }
         try context.save()
         return profile.asUserProfile()
+    }
+
+    func updateProfilePhoto(userId: UUID, path: String?) async throws {
+        let context = try requireContext()
+        let profile = try findProfile(userId: userId) ?? {
+            let created = SDProfile(id: userId)
+            context.insert(created)
+            return created
+        }()
+        profile.profilePhotoPath = path
+        try context.save()
     }
 
     func insertRound(_ round: RoundInsert) async throws -> Round {
@@ -494,7 +506,8 @@ private extension SDProfile {
             weeklyRoundTarget: weeklyRoundTarget,
             weeklyPracticeTarget: weeklyPracticeTarget,
             weeklyGoalTargetRevisions: revisions,
-            stockClubYardages: stockYardages
+            stockClubYardages: stockYardages,
+            profilePhotoPath: profilePhotoPath
         )
     }
 

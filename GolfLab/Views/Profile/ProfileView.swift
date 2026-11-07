@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,8 +18,10 @@ struct ProfileView: View {
     @State private var showExportError = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var profileDirty = false
-    /// Blocks autosave while the form is filled from the store.
     @State private var suppressAutosave = true
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showPhotoEditor = false
+    @State private var pendingEditImage: UIImage?
 
     var body: some View {
         ScrollView {
@@ -29,6 +32,8 @@ struct ProfileView: View {
                     .padding(.bottom, GLTopBarMetrics.titleBarBottomSpacing)
 
                 VStack(alignment: .leading, spacing: 22) {
+                    profilePhotoSection
+                    
                     GLFormCard {
                         VStack(alignment: .leading, spacing: 16) {
                             GLFormFieldLabel(text: "Account")
@@ -125,6 +130,69 @@ struct ProfileView: View {
             Spacer()
             Color.clear
                 .frame(width: 32, height: 32)
+        }
+    }
+    
+    private var profilePhotoSection: some View {
+        GLFormCard {
+            VStack(spacing: 16) {
+                GLFormFieldLabel(text: "Profile Photo")
+                
+                HStack(spacing: 16) {
+                    profileAvatar
+                    VStack(alignment: .leading, spacing: 8) {
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            Text(roundStore.profilePhoto == nil ? "Choose Photo" : "Change Photo")
+                                .font(GLFonts.sans(size: 14, weight: .medium))
+                                .foregroundColor(.accent)
+                        }
+                        if roundStore.profilePhoto != nil {
+                            Button(action: removeProfilePhoto) {
+                                Text("Remove Photo")
+                                    .font(GLFonts.sans(size: 14, weight: .medium))
+                                    .foregroundColor(.chartNegative)
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                guard let data = try? await newItem.loadTransferable(type: Data.self),
+                      let image = ProfilePhotoStorage.image(from: data, maxPixel: 1600) else {
+                    await MainActor.run {
+                        selectedPhotoItem = nil
+                        saveErrorMessage = "Couldn’t open that photo."
+                        showSaveErrorAlert = true
+                    }
+                    return
+                }
+                await MainActor.run {
+                    pendingEditImage = image
+                    showPhotoEditor = true
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showPhotoEditor) {
+            if let image = pendingEditImage {
+                CircularPhotoEditor(
+                    image: image,
+                    onSave: { croppedImage in
+                        saveProfilePhoto(croppedImage)
+                        showPhotoEditor = false
+                        pendingEditImage = nil
+                        selectedPhotoItem = nil
+                    },
+                    onCancel: {
+                        showPhotoEditor = false
+                        pendingEditImage = nil
+                        selectedPhotoItem = nil
+                    }
+                )
+            }
         }
     }
 
@@ -244,6 +312,69 @@ struct ProfileView: View {
         let version = info?["CFBundleShortVersionString"] as? String ?? "1.0.1"
         let build = info?["CFBundleVersion"] as? String ?? "2"
         return "\(version) (\(build))"
+    }
+    
+    private var profileAvatar: some View {
+        Group {
+            if let profilePhoto = roundStore.profilePhoto {
+                Image(uiImage: profilePhoto)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
+                    .font(GLFonts.sans(size: 28, weight: .medium))
+                    .foregroundColor(.textSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.bgElevated)
+            }
+        }
+        .frame(width: 80, height: 80)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.borderDefault, lineWidth: 1))
+    }
+
+    private func saveProfilePhoto(_ image: UIImage) {
+        guard let userId = AccountService.shared.currentUserId else { return }
+        Task {
+            do {
+                let photoPath = try ProfilePhotoStorage.save(image, userId: userId)
+                try await GolfLabData.store.updateProfilePhoto(userId: userId, path: photoPath)
+                await MainActor.run {
+                    if var current = profile {
+                        current.profilePhotoPath = photoPath
+                        profile = current
+                    }
+                    roundStore.applyProfilePhoto(image, path: photoPath)
+                }
+            } catch {
+                await MainActor.run {
+                    saveErrorMessage = error.localizedDescription
+                    showSaveErrorAlert = true
+                }
+            }
+        }
+    }
+
+    private func removeProfilePhoto() {
+        guard let userId = AccountService.shared.currentUserId else { return }
+        Task {
+            do {
+                ProfilePhotoStorage.delete(path: profile?.profilePhotoPath)
+                try await GolfLabData.store.updateProfilePhoto(userId: userId, path: nil)
+                await MainActor.run {
+                    if var current = profile {
+                        current.profilePhotoPath = nil
+                        profile = current
+                    }
+                    roundStore.applyProfilePhoto(nil, path: nil)
+                }
+            } catch {
+                await MainActor.run {
+                    saveErrorMessage = error.localizedDescription
+                    showSaveErrorAlert = true
+                }
+            }
+        }
     }
 }
 

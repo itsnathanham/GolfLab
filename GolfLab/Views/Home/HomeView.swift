@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HomeView: View {
     @Binding var selectedTab: Int
@@ -87,16 +88,22 @@ struct HomeView: View {
                 ProfileView()
                     .environmentObject(roundStore)
             } label: {
-                Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
-                    .font(.glMicro)
-                    .foregroundColor(.textSecondary)
-                    .frame(width: 30, height: 30)
-                    .background(Color.bgElevated)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.borderDefault, lineWidth: 1)
-                    )
+                Group {
+                    if let image = roundStore.profilePhoto {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
+                            .font(.glMicro)
+                            .foregroundColor(.textSecondary)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.bgElevated)
+                    }
+                }
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.borderDefault, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Profile")

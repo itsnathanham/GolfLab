@@ -1,6 +1,7 @@
 import Foundation
 import os
 import SwiftUI
+import UIKit
 
 private let roundStoreLogger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "GolfLab",
@@ -41,6 +42,9 @@ class RoundStore: ObservableObject {
     @Published private(set) var holesByRoundId: [UUID: [Hole]] = [:]
     /// Display name from profile (Home avatar); set during hydrate / profile save.
     @Published private(set) var profileDisplayName: String?
+    /// Profile photo path from profile; set during hydrate / profile save.
+    @Published private(set) var profilePhotoPath: String?
+    @Published private(set) var profilePhoto: UIImage?
     /// From `users` profile (`weekly_round_target` / `weekly_practice_target`); defaults used until loaded.
     @Published var weeklyRoundTarget: Int = 1
     @Published var weeklyPracticeTarget: Int = 2
@@ -82,6 +86,9 @@ class RoundStore: ObservableObject {
     init() {
         courseCache.restoreFromUserDefaults()
         restoreActiveRoundFromDraftIfNeeded()
+        if !isRoundActive {
+            LiveActivityManager.shared.end()
+        }
         WatchConnectivityService.shared.attach(self)
     }
 
@@ -121,6 +128,7 @@ class RoundStore: ObservableObject {
             WatchConnectivityService.shared.pushCompanionSnapshot(.tombstone(sessionId: endedSession))
         }
         WatchConnectivityService.shared.clearEntries()
+        LiveActivityManager.shared.end()
     }
 
     // MARK: - Start a new round
@@ -138,9 +146,11 @@ class RoundStore: ObservableObject {
         let holes: [ActiveHole] = setup.holeSetups.map { h in
             ActiveHole(holeNumber: h.holeNumber, par: h.par, yardage: h.yardage, strokeIndex: h.strokeIndex)
         }
-        activeRound = ActiveRound(setup: setup, userId: userId, holes: holes)
+        let round = ActiveRound(setup: setup, userId: userId, holes: holes)
+        activeRound = round
         isRoundActive = true
         pushCompanionSnapshotToWatch()
+        refreshLiveActivity()
     }
 
     /// Pushes setup + `currentHoleIndex` + saved holes to Watch (and persists a local draft).
@@ -206,6 +216,7 @@ class RoundStore: ObservableObject {
         holeClock = max(envelope.holeClock, round.holes.map(\.revision).max() ?? 0)
         didRestoreActiveRoundFromDraft = true
         restoredFromWatch = false
+        refreshLiveActivity()
     }
 
     private func persistActiveRoundDraft() {
@@ -246,6 +257,27 @@ class RoundStore: ObservableObject {
         round.holes[index] = saved
         activeRound = round
         pushCompanionSnapshotToWatch()
+        refreshLiveActivity()
+    }
+
+    private func refreshLiveActivity(replacePhoto: Bool = false) {
+        guard let round = activeRound, isRoundActive else {
+            LiveActivityManager.shared.end()
+            return
+        }
+        let savedHoles = round.holes.filter(\.isSaved)
+        let scoreVsPar = savedHoles.reduce(0) { $0 + ($1.score - $1.par) }
+        LiveActivityManager.shared.sync(
+            courseName: round.setup.courseName,
+            initials: avatarInitials,
+            photo: profilePhoto,
+            state: RoundLiveActivityAttributes.ContentState(
+                holesCompleted: savedHoles.count,
+                scoreVsPar: scoreVsPar,
+                hasSavedHole: !savedHoles.isEmpty
+            ),
+            replacePhoto: replacePhoto
+        )
     }
 
     /// Saves `entry` on the current hole and bumps `currentHoleIndex` in **one** `activeRound` assignment when not on the last hole.
@@ -270,10 +302,12 @@ class RoundStore: ObservableObject {
             ) ?? index + 1
             activeRound = round
             pushCompanionSnapshotToWatch()
+            refreshLiveActivity()
             return .advancedToNextHole
         }
         activeRound = round
         pushCompanionSnapshotToWatch()
+        refreshLiveActivity()
         return .completedRoundSaveLastHole
     }
 
@@ -290,6 +324,7 @@ class RoundStore: ObservableObject {
         stampSaved(&round.holes[idx])
         activeRound = round
         pushCompanionSnapshotToWatch()
+        refreshLiveActivity()
     }
 
     /// Optional-chaining writes to nested `struct` fields do not persist; always copy the round, mutate, assign back.
@@ -330,6 +365,7 @@ class RoundStore: ObservableObject {
                 didRestoreActiveRoundFromDraft = false
                 restoredFromWatch = false
                 ActiveRoundDraftStore.tombstone(sessionId: snapshot.sessionId, holeClock: holeClock)
+                LiveActivityManager.shared.end()
             }
             return
         }
@@ -377,6 +413,7 @@ class RoundStore: ObservableObject {
             }
             activeRound = round
             persistActiveRoundDraft()
+            refreshLiveActivity()
         }
         return changed
     }
@@ -427,6 +464,7 @@ class RoundStore: ObservableObject {
         restoredFromWatch = true
         preferNewRoundSetup = false
         persistActiveRoundDraft()
+        refreshLiveActivity()
     }
 
     /// Applies any hole data received from Apple Watch so totals and inserts include every logged hole,
@@ -461,6 +499,7 @@ class RoundStore: ObservableObject {
         stampSaved(&round.holes[idx])
         activeRound = round
         pushCompanionSnapshotToWatch()
+        refreshLiveActivity()
     }
 
     // MARK: - Save round
@@ -515,6 +554,7 @@ class RoundStore: ObservableObject {
 
         let newId = savedRound.id
         // Clear before reload so par averages from `fetchHoleAggregatesByUser` are not merged twice with the same holes.
+        LiveActivityManager.shared.end()
         activeRound = nil
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
@@ -596,6 +636,9 @@ class RoundStore: ObservableObject {
         }
 
         await syncWeeklyTargetsFromProfile()
+        if isRoundActive {
+            refreshLiveActivity()
+        }
     }
 
     /// Replaces the shared hole cache (launch hydrate / full refresh).
@@ -659,7 +702,22 @@ class RoundStore: ObservableObject {
             flatPractice: p
         )
         profileDisplayName = profile.displayName
+        guard profile.profilePhotoPath != profilePhotoPath else { return }
+        profilePhotoPath = profile.profilePhotoPath
+        profilePhoto = ProfilePhotoStorage.load(path: profile.profilePhotoPath)
+        if isRoundActive {
+            refreshLiveActivity(replacePhoto: true)
+        }
     }
+
+    func applyProfilePhoto(_ image: UIImage?, path: String?) {
+        profilePhotoPath = path
+        profilePhoto = image
+        if isRoundActive {
+            refreshLiveActivity(replacePhoto: true)
+        }
+    }
+
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
     func upsertPracticeSession(_ session: PracticeSession, fromWatch: Bool = false) {
         let goalsBefore = weeklyGoalsSnapshot()
