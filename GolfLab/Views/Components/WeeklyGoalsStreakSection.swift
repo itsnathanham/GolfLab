@@ -35,7 +35,6 @@ struct WeeklyGoalsStreakSection: View {
                 }
             }
             .presentationDragIndicator(.visible)
-            .presentationDetents([.medium, .large])
             .environmentObject(roundStore)
         }
     }

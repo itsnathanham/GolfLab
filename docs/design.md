@@ -137,7 +137,7 @@ Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 | In progress (current week, not yet met) | Dashed orange flag + ellipsis on cup |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
-Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet` (medium/large detents).
+Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
 **Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
 
