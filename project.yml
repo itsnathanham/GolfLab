@@ -101,7 +101,7 @@ targets:
   GolfLabWidgets:
     type: app-extension
     platform: iOS
-    deploymentTarget: "17.0"
+    deploymentTarget: "18.0"
     sources:
       - path: GolfLabWidgets
       - path: Shared/RoundLiveActivityAttributes.swift

@@ -2,8 +2,8 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-private enum RoundLiveActivityChrome {
-    static func make() -> some WidgetConfiguration {
+struct RoundLiveActivityWidget: Widget {
+    var body: some WidgetConfiguration {
         ActivityConfiguration(for: RoundLiveActivityAttributes.self) { context in
             RoundLiveActivityCard(context: context)
                 .activityBackgroundTint(RoundLiveActivityBanner.background)
@@ -31,37 +31,11 @@ private enum RoundLiveActivityChrome {
                     .font(.system(size: 16, weight: .bold, design: .rounded))
             }
         }
-    }
-}
-
-struct RoundLiveActivityWidget: Widget {
-    var body: some WidgetConfiguration {
-        RoundLiveActivityChrome.make()
-    }
-}
-
-@available(iOS 18.0, *)
-struct RoundLiveActivityWatchLinkedWidget: Widget {
-    var body: some WidgetConfiguration {
-        RoundLiveActivityChrome.make()
-            .supplementalActivityFamilies([.small])
+        .supplementalActivityFamilies([.small])
     }
 }
 
 private struct RoundLiveActivityCard: View {
-    let context: ActivityViewContext<RoundLiveActivityAttributes>
-
-    var body: some View {
-        if #available(iOS 18.0, *) {
-            RoundLiveActivityFamilyCard(context: context)
-        } else {
-            RoundLiveActivityBanner(context: context)
-        }
-    }
-}
-
-@available(iOS 18.0, *)
-private struct RoundLiveActivityFamilyCard: View {
     @Environment(\.activityFamily) private var activityFamily
     let context: ActivityViewContext<RoundLiveActivityAttributes>
 
@@ -92,10 +66,6 @@ private struct RoundActivityScoreStack: View {
 @main
 struct GolfLabWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        if #available(iOS 18.0, *) {
-            RoundLiveActivityWatchLinkedWidget()
-        } else {
-            RoundLiveActivityWidget()
-        }
+        RoundLiveActivityWidget()
     }
 }
