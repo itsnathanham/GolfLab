@@ -180,18 +180,16 @@ struct ProfileView: View {
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
-            Task {
+            Task { @MainActor in
                 let loaded = await Self.loadPickerImage(newItem)
-                await MainActor.run { selectedPhotoItem = nil }
-                // Let the photo picker finish dismissing before presenting the editor.
+                selectedPhotoItem = nil
+                // Presenting while the photo picker is still dismissing freezes the app.
                 try? await Task.sleep(nanoseconds: 400_000_000)
-                await MainActor.run {
-                    if let loaded {
-                        photoEdit = ProfilePhotoEdit(image: loaded)
-                    } else {
-                        saveErrorMessage = "Couldn’t open that photo."
-                        showSaveErrorAlert = true
-                    }
+                if let loaded {
+                    photoEdit = ProfilePhotoEdit(image: loaded)
+                } else {
+                    saveErrorMessage = "Couldn’t open that photo."
+                    showSaveErrorAlert = true
                 }
             }
         }
@@ -211,7 +209,7 @@ struct ProfileView: View {
             await MainActor.run {
                 suppressAutosave = true
                 profile = p
-                displayName = Self.fieldInitials(p.displayName ?? "")
+                displayName = RoundStore.initials(from: p.displayName)
                 weeklyRoundGoal = p.weeklyRoundTarget ?? 1
                 weeklyPracticeGoal = p.weeklyPracticeTarget ?? 2
                 if let saved = p.stockClubYardages {
@@ -274,7 +272,7 @@ struct ProfileView: View {
             )
             suppressAutosave = true
             profile = updated
-            displayName = Self.fieldInitials(updated.displayName ?? "")
+            displayName = RoundStore.initials(from: updated.displayName)
             weeklyRoundGoal = updated.weeklyRoundTarget ?? 1
             weeklyPracticeGoal = updated.weeklyPracticeTarget ?? 2
             if let saved = updated.stockClubYardages {
@@ -310,20 +308,6 @@ struct ProfileView: View {
                 await MainActor.run { showExportError = true }
             }
         }
-    }
-
-    /// Two characters for the island. A first and last name becomes the first letter of each.
-    private static func fieldInitials(_ name: String) -> String {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
-        let parts = trimmed.split(separator: " ").map(String.init)
-        let raw: String
-        if parts.count >= 2 {
-            raw = "\(parts[0].prefix(1))\(parts[1].prefix(1))"
-        } else {
-            raw = String(trimmed.prefix(2))
-        }
-        return raw.uppercased()
     }
 
     /// Marketing version + build, e.g. `1.0.1 (2)`, so TestFlight installs are easy to verify.
