@@ -67,14 +67,7 @@ enum GLCalendarISO {
         monthTitleFormatter.string(from: monthStart)
     }
 
-    private static let monthTitleFormatter: DateFormatter = {
-        let x = DateFormatter()
-        x.calendar = cal
-        x.locale = Locale(identifier: "en_US_POSIX")
-        x.timeZone = TimeZone.current
-        x.dateFormat = "MMMM yyyy"
-        return x
-    }()
+    private static let monthTitleFormatter = posixFormatter("MMMM yyyy")
 
     /// For UI copy (History / practice sheets).
     static func mmddyyyyDisplay(from ymdPrefix: String) -> String {
@@ -109,30 +102,16 @@ enum GLCalendarISO {
         return cal.date(from: dc)
     }
 
-    private static let mmddyyyy: DateFormatter = {
-        let f = DateFormatter()
-        f.calendar = cal
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.current
-        f.dateFormat = "MM/dd/yyyy"
-        return f
-    }()
+    private static let mmddyyyy = posixFormatter("MM/dd/yyyy")
+    private static let daySheetTitleFormatter = posixFormatter("MMM d ''yy")
+    private static let weekdayNameFormatter = posixFormatter("EEEE")
 
-    private static let daySheetTitleFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.calendar = cal
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.current
-        f.dateFormat = "MMM d ''yy"
-        return f
-    }()
-
-    private static let weekdayNameFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.calendar = cal
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.current
-        f.dateFormat = "EEEE"
-        return f
-    }()
+    private static func posixFormatter(_ dateFormat: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = cal
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = dateFormat
+        return formatter
+    }
 }
