@@ -125,9 +125,9 @@ extension Color {
     
     /// Met-week flagsticks, flame, streak caption, celebration card chrome.
     static var streakMark: Color { chartOrange }
-    /// Celebration / firework accents that should match streak marks.
+    /// Celebration orange. Same value as `streakMark`.
     static var streakSuccess: Color { chartOrange }
-    /// Firework particles + deep accents (warmer companion to orange).
+    /// Green accent used in firework particles.
     static var streakSuccessDeep: Color { accentMid }
     /// Glyph on elevated miss marks (white ×).
     static let streakOnSuccess = Color(hex: "#FFFFFF")

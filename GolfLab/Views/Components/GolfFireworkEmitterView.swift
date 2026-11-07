@@ -182,8 +182,7 @@ final class GolfFireworkView: UIView {
             flag.contentsScale = image.scale
             flag.contentsGravity = .resizeAspect
             flag.bounds = CGRect(origin: .zero, size: CGSize(width: 15, height: 20))
-            // Positive Core Animation rotation is counterclockwise in y-up space.
-            // Negate so the pennant follows the y-down travel vector.
+            // CA rotation is y-up; negate so the pennant follows the y-down travel vector.
             flag.transform = CATransform3DMakeRotation(-angle, 0, 0, 1)
             flag.position = CGPoint(x: flag.bounds.midX, y: flag.bounds.midY)
 

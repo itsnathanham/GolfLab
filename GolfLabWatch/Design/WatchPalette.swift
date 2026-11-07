@@ -22,10 +22,8 @@ enum WatchPalette {
     static let chartPurple = Color(red: 191 / 255, green: 90 / 255, blue: 242 / 255)
     static let chartOrange = Color(red: 255 / 255, green: 159 / 255, blue: 10 / 255)
     
-    // Weekly goal streak colors — same orange as iOS `chartOrange` / `streakMark` (#D98909).
+    // Weekly goal streak colors — same orange as iOS `streakMark` (#D98909), not watch `chartOrange`.
     static let streakMark = Color(red: 217 / 255, green: 137 / 255, blue: 9 / 255)
-    static let streakSuccess = streakMark
-    static let streakSuccessDeep = Color(red: 74 / 255, green: 181 / 255, blue: 48 / 255)
     static let streakActive = streakMark
     static let cardBackground = Color(red: 28 / 255, green: 28 / 255, blue: 30 / 255)
 }

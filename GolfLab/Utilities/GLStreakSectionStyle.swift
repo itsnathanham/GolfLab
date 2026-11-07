@@ -1,6 +1,6 @@
 import Foundation
 
-/// Home / History weekly goals presentation. Persisted locally so both layouts can be A/B’d on device.
+/// Home and History weekly goals layout. Stored in UserDefaults so both screens stay in sync.
 enum GLStreakSectionStyle: String, CaseIterable, Identifiable {
     case flagstick
     case hero

@@ -208,9 +208,9 @@ struct WeeklyGoalsStreakSection: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.bgElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadiusSmall))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadiusSmall)
                 .stroke(done ? Color.accent.opacity(0.35) : Color.clear, lineWidth: GLCardMetrics.strokeWidth)
         )
     }
@@ -298,7 +298,7 @@ struct WeeklyGoalsStreakSection: View {
     }
 
     private func flagstickMark(outcome: GLWeeklyGoalsStreak.WeekOutcome) -> some View {
-        ZStack {
+        Group {
             switch outcome {
             case .complete:
                 FlagstickGlyph(style: .met)
@@ -308,7 +308,7 @@ struct WeeklyGoalsStreakSection: View {
                 FlagstickGlyph(style: .inProgress)
             }
         }
-        .frame(width: 28, height: flagstickHeight)
+        .frame(width: weekNodeSize, height: flagstickHeight)
     }
 
     private func heroWeekStrip(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
@@ -362,13 +362,13 @@ struct WeeklyGoalsStreakSection: View {
             Image(systemName: "flame.fill")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.streakMark)
-            Text(Self.streakCaption(weeks: streakWeeks, heroPrompt: heroPrompt))
+            Text(Self.streakCaption(weeks: streakWeeks))
                 .font(.glFootnote)
                 .foregroundColor(heroPrompt && streakWeeks == 0 ? .textSecondary : .streakMark)
         }
     }
 
-    private static func streakCaption(weeks: Int, heroPrompt: Bool) -> String {
+    private static func streakCaption(weeks: Int) -> String {
         if weeks == 0 {
             return "Hit both goals this week to grow your streak."
         }

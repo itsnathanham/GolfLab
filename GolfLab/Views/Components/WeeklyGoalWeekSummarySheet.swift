@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Bottom sheet for a tapped streak week — Option A (day-summary sibling) with goal meters and range-ball columns.
+/// Week summary shown when a streak week mark is tapped.
 struct WeeklyGoalWeekSummarySheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var roundStore: RoundStore
