@@ -100,7 +100,8 @@ private struct RoundActivityAvatar: View {
 
     var body: some View {
         Group {
-            if let data = context.attributes.profilePhotoJPEG, let image = UIImage(data: data) {
+            if let data = context.state.profilePhotoJPEG ?? context.attributes.profilePhotoJPEG,
+               let image = UIImage(data: data) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

@@ -72,6 +72,7 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+                roundStore.refreshLiveActivityForForeground()
             }
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
@@ -81,6 +82,7 @@ struct MainTabView: View {
             if roundStore.isRoundActive {
                 selectedTab = 1
                 roundStore.pushCompanionSnapshotToWatch()
+                roundStore.refreshLiveActivityForForeground()
             }
             flushWatchPracticeEntries()
         }

@@ -260,7 +260,11 @@ class RoundStore: ObservableObject {
         refreshLiveActivity()
     }
 
-    private func refreshLiveActivity(replacePhoto: Bool = false) {
+    func refreshLiveActivityForForeground() {
+        refreshLiveActivity()
+    }
+
+    private func refreshLiveActivity() {
         guard let round = activeRound, isRoundActive else {
             LiveActivityManager.shared.end()
             return
@@ -275,8 +279,7 @@ class RoundStore: ObservableObject {
                 holesCompleted: savedHoles.count,
                 scoreVsPar: scoreVsPar,
                 hasSavedHole: !savedHoles.isEmpty
-            ),
-            replacePhoto: replacePhoto
+            )
         )
     }
 
@@ -706,7 +709,7 @@ class RoundStore: ObservableObject {
         profilePhotoPath = profile.profilePhotoPath
         profilePhoto = ProfilePhotoStorage.load(path: profile.profilePhotoPath)
         if isRoundActive {
-            refreshLiveActivity(replacePhoto: true)
+            refreshLiveActivity()
         }
     }
 
@@ -714,7 +717,7 @@ class RoundStore: ObservableObject {
         profilePhotoPath = path
         profilePhoto = image
         if isRoundActive {
-            refreshLiveActivity(replacePhoto: true)
+            refreshLiveActivity()
         }
     }
 
