@@ -20,8 +20,7 @@ struct ProfileView: View {
     @State private var profileDirty = false
     @State private var suppressAutosave = true
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var showPhotoEditor = false
-    @State private var pendingEditImage: UIImage?
+    @State private var photoEdit: ProfilePhotoEdit?
 
     var body: some View {
         ScrollView {
@@ -106,7 +105,28 @@ struct ProfileView: View {
             }
         }
         .task { await loadProfile() }
-        .onChange(of: displayName) { _, _ in scheduleProfileAutosave() }
+        .onChange(of: displayName) { _, newValue in
+            let clipped = String(newValue.prefix(2)).uppercased()
+            if clipped != newValue {
+                displayName = clipped
+                return
+            }
+            scheduleProfileAutosave()
+        }
+        .fullScreenCover(item: $photoEdit) { edit in
+            CircularPhotoEditor(
+                image: edit.image,
+                onSave: { croppedImage in
+                    saveProfilePhoto(croppedImage)
+                    photoEdit = nil
+                    selectedPhotoItem = nil
+                },
+                onCancel: {
+                    photoEdit = nil
+                    selectedPhotoItem = nil
+                }
+            )
+        }
         .onChange(of: weeklyRoundGoal) { _, _ in scheduleProfileAutosave() }
         .onChange(of: weeklyPracticeGoal) { _, _ in scheduleProfileAutosave() }
         .onDisappear {
@@ -161,39 +181,25 @@ struct ProfileView: View {
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
             Task {
-                guard let data = try? await newItem.loadTransferable(type: Data.self),
-                      let image = ProfilePhotoStorage.image(from: data, maxPixel: 1600) else {
-                    await MainActor.run {
-                        selectedPhotoItem = nil
+                let loaded = await Self.loadPickerImage(newItem)
+                await MainActor.run { selectedPhotoItem = nil }
+                // Let the photo picker finish dismissing before presenting the editor.
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                await MainActor.run {
+                    if let loaded {
+                        photoEdit = ProfilePhotoEdit(image: loaded)
+                    } else {
                         saveErrorMessage = "Couldn’t open that photo."
                         showSaveErrorAlert = true
                     }
-                    return
-                }
-                await MainActor.run {
-                    pendingEditImage = image
-                    showPhotoEditor = true
                 }
             }
         }
-        .fullScreenCover(isPresented: $showPhotoEditor) {
-            if let image = pendingEditImage {
-                CircularPhotoEditor(
-                    image: image,
-                    onSave: { croppedImage in
-                        saveProfilePhoto(croppedImage)
-                        showPhotoEditor = false
-                        pendingEditImage = nil
-                        selectedPhotoItem = nil
-                    },
-                    onCancel: {
-                        showPhotoEditor = false
-                        pendingEditImage = nil
-                        selectedPhotoItem = nil
-                    }
-                )
-            }
-        }
+    }
+
+    private static func loadPickerImage(_ item: PhotosPickerItem) async -> UIImage? {
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
+        return ProfilePhotoStorage.image(from: data, maxPixel: 1600)
     }
 
     private func loadProfile() async {
@@ -205,7 +211,7 @@ struct ProfileView: View {
             await MainActor.run {
                 suppressAutosave = true
                 profile = p
-                displayName = p.displayName ?? ""
+                displayName = Self.fieldInitials(p.displayName ?? "")
                 weeklyRoundGoal = p.weeklyRoundTarget ?? 1
                 weeklyPracticeGoal = p.weeklyPracticeTarget ?? 2
                 if let saved = p.stockClubYardages {
@@ -268,7 +274,7 @@ struct ProfileView: View {
             )
             suppressAutosave = true
             profile = updated
-            displayName = updated.displayName ?? ""
+            displayName = Self.fieldInitials(updated.displayName ?? "")
             weeklyRoundGoal = updated.weeklyRoundTarget ?? 1
             weeklyPracticeGoal = updated.weeklyPracticeTarget ?? 2
             if let saved = updated.stockClubYardages {
@@ -304,6 +310,20 @@ struct ProfileView: View {
                 await MainActor.run { showExportError = true }
             }
         }
+    }
+
+    /// Two characters for the island. A first and last name becomes the first letter of each.
+    private static func fieldInitials(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let parts = trimmed.split(separator: " ").map(String.init)
+        let raw: String
+        if parts.count >= 2 {
+            raw = "\(parts[0].prefix(1))\(parts[1].prefix(1))"
+        } else {
+            raw = String(trimmed.prefix(2))
+        }
+        return raw.uppercased()
     }
 
     /// Marketing version + build, e.g. `1.0.1 (2)`, so TestFlight installs are easy to verify.
@@ -376,6 +396,11 @@ struct ProfileView: View {
             }
         }
     }
+}
+
+private struct ProfilePhotoEdit: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 private struct ActivityView: UIViewControllerRepresentable {

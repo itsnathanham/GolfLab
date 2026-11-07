@@ -3,13 +3,13 @@ import SwiftUI
 import UIKit
 import WidgetKit
 
-struct RoundLiveActivityWidget: Widget {
-    private static let cardGreen = Color(red: 8 / 255, green: 86 / 255, blue: 46 / 255)
+private enum RoundLiveActivityChrome {
+    static let cardGreen = Color(red: 8 / 255, green: 86 / 255, blue: 46 / 255)
 
-    var body: some WidgetConfiguration {
+    static func make() -> some WidgetConfiguration {
         ActivityConfiguration(for: RoundLiveActivityAttributes.self) { context in
             RoundLiveActivityBanner(context: context)
-                .activityBackgroundTint(Self.cardGreen)
+                .activityBackgroundTint(cardGreen)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -34,6 +34,20 @@ struct RoundLiveActivityWidget: Widget {
                     .font(.system(size: 16, weight: .bold, design: .rounded))
             }
         }
+    }
+}
+
+struct RoundLiveActivityWidget: Widget {
+    var body: some WidgetConfiguration {
+        RoundLiveActivityChrome.make()
+    }
+}
+
+@available(iOS 18.0, *)
+struct RoundLiveActivityWatchLinkedWidget: Widget {
+    var body: some WidgetConfiguration {
+        RoundLiveActivityChrome.make()
+            .supplementalActivityFamilies([.small])
     }
 }
 
@@ -122,6 +136,10 @@ private struct RoundActivityAvatar: View {
 @main
 struct GolfLabWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        RoundLiveActivityWidget()
+        if #available(iOS 18.0, *) {
+            RoundLiveActivityWatchLinkedWidget()
+        } else {
+            RoundLiveActivityWidget()
+        }
     }
 }
