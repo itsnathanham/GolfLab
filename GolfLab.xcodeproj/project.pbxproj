@@ -98,6 +98,8 @@
 		GLW1B01AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
 		GLW1B02AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
 		GLW1B14AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
+		GLW1B15AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */; };
+		GLW1B16AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */; };
 		W1C017AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1C016AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift */; };
 		GLW1B03AF066B312B232601 /* GLVsParLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F02AF066B312B232601 /* GLVsParLabel.swift */; };
 		GLW1B04AF066B312B232601 /* GLVsParLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F02AF066B312B232601 /* GLVsParLabel.swift */; };
@@ -262,6 +264,7 @@
 		GLPRACT002AF066B312B2326D1 /* GLPracticeRangeBalls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLPracticeRangeBalls.swift; sourceTree = "<group>"; };
 		GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		GLW1F02AF066B312B232601 /* GLVsParLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLVsParLabel.swift; sourceTree = "<group>"; };
+		GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundLiveActivityBanner.swift; sourceTree = "<group>"; };
 		GLW1F03AF066B312B232601 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
 		GLW1F04AF066B312B232601 /* ProfilePhotoStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePhotoStorage.swift; sourceTree = "<group>"; };
 		GLW1F05AF066B312B232601 /* CircularPhotoEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularPhotoEditor.swift; sourceTree = "<group>"; };
@@ -560,6 +563,7 @@
 				W1C003AF066B312B2326D1 /* WatchComplicationStore.swift */,
 				GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */,
 				GLW1F02AF066B312B232601 /* GLVsParLabel.swift */,
+				GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -845,6 +849,7 @@
 				GLW1B08AF066B312B232601 /* RoundLiveActivityWidget.swift in Sources */,
 				GLW1B02AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */,
 				GLW1B03AF066B312B232601 /* GLVsParLabel.swift in Sources */,
+				GLW1B15AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */,
 				GLW1B09AF066B312B232601 /* Colors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -859,6 +864,7 @@
 				B931C1DC5753E4D9E0B8AD2F /* GLComplicationIcon.swift in Sources */,
 				W1C002AF066B312B2326D1 /* WatchComplicationStore.swift in Sources */,
 				GLW1B04AF066B312B232601 /* GLVsParLabel.swift in Sources */,
+				GLW1B16AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */,
 				GLW1B10AF066B312B232601 /* WatchPalette.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

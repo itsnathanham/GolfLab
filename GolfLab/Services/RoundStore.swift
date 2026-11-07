@@ -672,7 +672,7 @@ class RoundStore: ObservableObject {
         return fetched
     }
 
-    private static func initials(from displayName: String?) -> String {
+    static func initials(from displayName: String?) -> String {
         guard let name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
             return ""
         }
