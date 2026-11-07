@@ -284,7 +284,7 @@ enum GLWeeklyGoalsStreak {
 
     // MARK: - Week detail (summary sheet)
 
-    struct WeekDetail: Sendable, Equatable {
+    struct WeekDetail: Sendable {
         let weekNumber: Int
         let weekStartYMD: String
         let weekEndYMD: String
