@@ -87,16 +87,31 @@ struct HomeView: View {
                 ProfileView()
                     .environmentObject(roundStore)
             } label: {
-                Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
-                    .font(.glMicro)
-                    .foregroundColor(.textSecondary)
-                    .frame(width: 30, height: 30)
-                    .background(Color.bgElevated)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.borderDefault, lineWidth: 1)
-                    )
+                Group {
+                    if let photoPath = roundStore.profilePhotoPath,
+                       let image = ProfilePhotoStorage.loadProfilePhoto(path: photoPath) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 30, height: 30)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.borderDefault, lineWidth: 1)
+                            )
+                    } else {
+                        Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
+                            .font(.glMicro)
+                            .foregroundColor(.textSecondary)
+                            .frame(width: 30, height: 30)
+                            .background(Color.bgElevated)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.borderDefault, lineWidth: 1)
+                            )
+                    }
+                }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Profile")

@@ -14,6 +14,8 @@ struct UserProfile: Codable, Identifiable {
     var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?
     /// Stock carry distances by club. `nil` = never configured (show default bag template).
     var stockClubYardages: [StockClubYardage]?
+    /// File path to stored profile photo (relative to Documents directory).
+    var profilePhotoPath: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -25,6 +27,7 @@ struct UserProfile: Codable, Identifiable {
         case weeklyPracticeTarget = "weekly_practice_target"
         case weeklyGoalTargetRevisions = "weekly_goal_target_revisions"
         case stockClubYardages = "stock_club_yardages"
+        case profilePhotoPath = "profile_photo_path"
     }
 }
 
@@ -61,7 +64,8 @@ extension UserProfile {
             weeklyRoundTarget: weeklyRoundTarget ?? requestedRound,
             weeklyPracticeTarget: weeklyPracticeTarget ?? requestedPractice,
             weeklyGoalTargetRevisions: weeklyGoalTargetRevisions ?? requestedRevisions,
-            stockClubYardages: stockClubYardages
+            stockClubYardages: stockClubYardages,
+            profilePhotoPath: profilePhotoPath
         )
     }
 }

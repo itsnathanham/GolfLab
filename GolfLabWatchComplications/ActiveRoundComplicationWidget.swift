@@ -4,11 +4,12 @@ import WidgetKit
 struct ActiveRoundComplicationEntry: TimelineEntry {
     let date: Date
     let holeNumber: Int?
+    let scoreVsPar: Int?
 }
 
 struct ActiveRoundComplicationProvider: TimelineProvider {
     func placeholder(in context: Context) -> ActiveRoundComplicationEntry {
-        ActiveRoundComplicationEntry(date: .now, holeNumber: 1)
+        ActiveRoundComplicationEntry(date: .now, holeNumber: 1, scoreVsPar: 0)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ActiveRoundComplicationEntry) -> Void) {
@@ -20,7 +21,12 @@ struct ActiveRoundComplicationProvider: TimelineProvider {
     }
 
     private func makeEntry() -> ActiveRoundComplicationEntry {
-        ActiveRoundComplicationEntry(date: .now, holeNumber: WatchComplicationStore.activeHoleNumber())
+        let data = WatchComplicationStore.activeRoundData()
+        return ActiveRoundComplicationEntry(
+            date: .now,
+            holeNumber: data.holeNumber,
+            scoreVsPar: data.scoreVsPar
+        )
     }
 }
 
@@ -29,15 +35,28 @@ struct ActiveRoundComplicationView: View {
 
     var body: some View {
         Group {
-            if let holeNumber = entry.holeNumber {
-                Text("\(holeNumber)")
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .minimumScaleFactor(0.6)
+            if let holeNumber = entry.holeNumber, let scoreVsPar = entry.scoreVsPar {
+                VStack(spacing: 2) {
+                    Text(scoreText(scoreVsPar))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(scoreColor(scoreVsPar))
+                    Text("H\(holeNumber)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.8))
+                }
             } else {
                 GLComplicationIcon()
             }
         }
         .foregroundStyle(Color.white)
+    }
+    
+    private func scoreText(_ score: Int) -> String {
+        score > 0 ? "+\(score)" : score == 0 ? "E" : "\(score)"
+    }
+    
+    private func scoreColor(_ score: Int) -> Color {
+        score > 0 ? .red : score < 0 ? .green : .white
     }
 }
 

@@ -25,6 +25,8 @@ targets:
     dependencies:
       - target: "GolfLab Watch App"
         embed: true
+      - target: "GolfLabWidgets"
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nathanhamilton.golflab
@@ -42,6 +44,8 @@ targets:
         com.apple.developer.icloud-services:
           - CloudKit
         com.apple.developer.ubiquity-kvstore-identifier: $(TeamIdentifierPrefix)com.nathanhamilton.golflab
+        com.apple.security.application-groups:
+          - group.com.nathanhamilton.golflab
 
   GolfLab Watch App:
     type: application
@@ -60,3 +64,26 @@ targets:
         MARKETING_VERSION: "1.0.1"
         CURRENT_PROJECT_VERSION: "3"
         INFOPLIST_FILE: GolfLabWatch/App/Info.plist
+    entitlements:
+      path: GolfLabWatch/GolfLabWatch.entitlements
+
+  GolfLabWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GolfLabWidgets
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nathanhamilton.golflab.widgets
+        SWIFT_VERSION: "5.9"
+        DEVELOPMENT_TEAM: ""
+        MARKETING_VERSION: "1.0.1"
+        CURRENT_PROJECT_VERSION: "3"
+        INFOPLIST_FILE: GolfLabWidgets/Info.plist
+    entitlements:
+      path: GolfLabWidgets/GolfLabWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nathanhamilton.golflab

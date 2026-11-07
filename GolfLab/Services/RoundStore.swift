@@ -41,6 +41,8 @@ class RoundStore: ObservableObject {
     @Published private(set) var holesByRoundId: [UUID: [Hole]] = [:]
     /// Display name from profile (Home avatar); set during hydrate / profile save.
     @Published private(set) var profileDisplayName: String?
+    /// Profile photo path from profile; set during hydrate / profile save.
+    @Published var profilePhotoPath: String?
     /// From `users` profile (`weekly_round_target` / `weekly_practice_target`); defaults used until loaded.
     @Published var weeklyRoundTarget: Int = 1
     @Published var weeklyPracticeTarget: Int = 2
@@ -138,9 +140,22 @@ class RoundStore: ObservableObject {
         let holes: [ActiveHole] = setup.holeSetups.map { h in
             ActiveHole(holeNumber: h.holeNumber, par: h.par, yardage: h.yardage, strokeIndex: h.strokeIndex)
         }
-        activeRound = ActiveRound(setup: setup, userId: userId, holes: holes)
+        let round = ActiveRound(setup: setup, userId: userId, holes: holes)
+        activeRound = round
         isRoundActive = true
         pushCompanionSnapshotToWatch()
+        
+        LiveActivityManager.shared.startActivity(
+            userId: userId,
+            roundId: UUID(),
+            courseName: setup.courseName,
+            currentHole: 1,
+            scoreVsPar: 0,
+            totalHoles: setup.totalHoles,
+            profilePhotoPath: profilePhotoPath
+        )
+        
+        WatchComplicationStore.publish(displayHoleNumber: 1, scoreVsPar: 0)
     }
 
     /// Pushes setup + `currentHoleIndex` + saved holes to Watch (and persists a local draft).
@@ -247,6 +262,23 @@ class RoundStore: ObservableObject {
         activeRound = round
         pushCompanionSnapshotToWatch()
     }
+    
+    private func updateLiveActivity() {
+        guard let round = activeRound else { return }
+        let savedHoles = round.holes.filter(\.isSaved)
+        let totalScore = savedHoles.reduce(0) { $0 + $1.score }
+        let totalPar = savedHoles.reduce(0) { $0 + $1.par }
+        let scoreVsPar = totalScore - totalPar
+        let currentHole = round.currentHoleIndex + 1
+        
+        LiveActivityManager.shared.updateActivity(
+            currentHole: currentHole,
+            scoreVsPar: scoreVsPar,
+            totalHoles: round.setup.totalHoles
+        )
+        
+        WatchComplicationStore.publish(displayHoleNumber: currentHole, scoreVsPar: scoreVsPar)
+    }
 
     /// Saves `entry` on the current hole and bumps `currentHoleIndex` in **one** `activeRound` assignment when not on the last hole.
     /// Avoids a one-frame state where the current hole is saved (forward chevron enabled) before the index advances.
@@ -270,10 +302,12 @@ class RoundStore: ObservableObject {
             ) ?? index + 1
             activeRound = round
             pushCompanionSnapshotToWatch()
+            updateLiveActivity()
             return .advancedToNextHole
         }
         activeRound = round
         pushCompanionSnapshotToWatch()
+        updateLiveActivity()
         return .completedRoundSaveLastHole
     }
 
@@ -515,6 +549,7 @@ class RoundStore: ObservableObject {
 
         let newId = savedRound.id
         // Clear before reload so par averages from `fetchHoleAggregatesByUser` are not merged twice with the same holes.
+        LiveActivityManager.shared.endActivity()
         activeRound = nil
         isRoundActive = false
         didRestoreActiveRoundFromDraft = false
@@ -659,6 +694,7 @@ class RoundStore: ObservableObject {
             flatPractice: p
         )
         profileDisplayName = profile.displayName
+        profilePhotoPath = profile.profilePhotoPath
     }
     /// Merges a row returned from `insertPracticeSession` so History calendar updates without a full reload.
     func upsertPracticeSession(_ session: PracticeSession, fromWatch: Bool = false) {

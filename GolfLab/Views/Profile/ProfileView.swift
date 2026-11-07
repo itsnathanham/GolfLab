@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,8 +18,11 @@ struct ProfileView: View {
     @State private var showExportError = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var profileDirty = false
-    /// Blocks autosave while the form is filled from the store.
     @State private var suppressAutosave = true
+    @State private var profileImage: UIImage?
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showPhotoEditor = false
+    @State private var pendingEditImage: UIImage?
 
     var body: some View {
         ScrollView {
@@ -29,6 +33,8 @@ struct ProfileView: View {
                     .padding(.bottom, GLTopBarMetrics.titleBarBottomSpacing)
 
                 VStack(alignment: .leading, spacing: 22) {
+                    profilePhotoSection
+                    
                     GLFormCard {
                         VStack(alignment: .leading, spacing: 16) {
                             GLFormFieldLabel(text: "Account")
@@ -127,6 +133,82 @@ struct ProfileView: View {
                 .frame(width: 32, height: 32)
         }
     }
+    
+    private var profilePhotoSection: some View {
+        GLFormCard {
+            VStack(spacing: 16) {
+                GLFormFieldLabel(text: "Profile Photo")
+                
+                HStack(spacing: 16) {
+                    if let profileImage {
+                        Image(uiImage: profileImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 80, height: 80)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.borderDefault, lineWidth: 1))
+                    } else {
+                        Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
+                            .font(GLFonts.sans(size: 28, weight: .medium))
+                            .foregroundColor(.textSecondary)
+                            .frame(width: 80, height: 80)
+                            .background(Color.bgElevated)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.borderDefault, lineWidth: 1))
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            Text("Choose Photo")
+                                .font(GLFonts.sans(size: 14, weight: .medium))
+                                .foregroundColor(.accent)
+                        }
+                        
+                        if profileImage != nil {
+                            Button {
+                                removeProfilePhoto()
+                            } label: {
+                                Text("Remove Photo")
+                                    .font(GLFonts.sans(size: 14, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        pendingEditImage = image
+                        showPhotoEditor = true
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showPhotoEditor) {
+            if let image = pendingEditImage {
+                CircularPhotoEditor(
+                    image: image,
+                    onSave: { croppedImage in
+                        saveProfilePhoto(croppedImage)
+                        showPhotoEditor = false
+                        pendingEditImage = nil
+                        selectedPhotoItem = nil
+                    },
+                    onCancel: {
+                        showPhotoEditor = false
+                        pendingEditImage = nil
+                        selectedPhotoItem = nil
+                    }
+                )
+            }
+        }
+    }
 
     private func loadProfile() async {
         guard let userId = AccountService.shared.currentUserId else {
@@ -145,6 +227,7 @@ struct ProfileView: View {
                 } else {
                     stockClubRows = GLStockClubYardages.defaultBagRows()
                 }
+                profileImage = ProfilePhotoStorage.loadProfilePhoto(path: p.profilePhotoPath)
                 roundStore.applyWeeklyGoalState(from: p)
                 profileDirty = false
                 suppressAutosave = false
@@ -196,7 +279,8 @@ struct ProfileView: View {
                 weeklyRoundTarget: weeklyRoundGoal,
                 weeklyPracticeTarget: weeklyPracticeGoal,
                 weeklyGoalTargetRevisions: revisionsPatch,
-                stockClubYardages: stockToSave
+                stockClubYardages: stockToSave,
+                profilePhotoPath: profile?.profilePhotoPath
             )
             suppressAutosave = true
             profile = updated
@@ -244,6 +328,80 @@ struct ProfileView: View {
         let version = info?["CFBundleShortVersionString"] as? String ?? "1.0.1"
         let build = info?["CFBundleVersion"] as? String ?? "2"
         return "\(version) (\(build))"
+    }
+    
+    private func saveProfilePhoto(_ image: UIImage) {
+        guard let userId = AccountService.shared.currentUserId else { return }
+        
+        Task {
+            do {
+                if let oldPath = profile?.profilePhotoPath {
+                    ProfilePhotoStorage.deleteProfilePhoto(path: oldPath)
+                }
+                
+                let photoPath = try ProfilePhotoStorage.saveProfilePhoto(image, userId: userId)
+                
+                let updated = try await GolfLabData.store.updateProfile(
+                    userId: userId,
+                    displayName: displayName.isEmpty ? nil : displayName,
+                    homeCourseName: profile?.homeCourseName,
+                    homeCourseTee: profile?.homeCourseTee,
+                    preferredUnits: "yards",
+                    weeklyRoundTarget: weeklyRoundGoal,
+                    weeklyPracticeTarget: weeklyPracticeGoal,
+                    weeklyGoalTargetRevisions: profile?.weeklyGoalTargetRevisions,
+                    stockClubYardages: profile?.stockClubYardages,
+                    profilePhotoPath: photoPath
+                )
+                
+                await MainActor.run {
+                    profile = updated
+                    profileImage = image
+                    roundStore.profilePhotoPath = photoPath
+                }
+            } catch {
+                await MainActor.run {
+                    saveErrorMessage = error.localizedDescription
+                    showSaveErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func removeProfilePhoto() {
+        guard let userId = AccountService.shared.currentUserId else { return }
+        
+        Task {
+            do {
+                if let oldPath = profile?.profilePhotoPath {
+                    ProfilePhotoStorage.deleteProfilePhoto(path: oldPath)
+                }
+                
+                let updated = try await GolfLabData.store.updateProfile(
+                    userId: userId,
+                    displayName: displayName.isEmpty ? nil : displayName,
+                    homeCourseName: profile?.homeCourseName,
+                    homeCourseTee: profile?.homeCourseTee,
+                    preferredUnits: "yards",
+                    weeklyRoundTarget: weeklyRoundGoal,
+                    weeklyPracticeTarget: weeklyPracticeGoal,
+                    weeklyGoalTargetRevisions: profile?.weeklyGoalTargetRevisions,
+                    stockClubYardages: profile?.stockClubYardages,
+                    profilePhotoPath: nil
+                )
+                
+                await MainActor.run {
+                    profile = updated
+                    profileImage = nil
+                    roundStore.profilePhotoPath = nil
+                }
+            } catch {
+                await MainActor.run {
+                    saveErrorMessage = error.localizedDescription
+                    showSaveErrorAlert = true
+                }
+            }
+        }
     }
 }
 

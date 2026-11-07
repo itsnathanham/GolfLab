@@ -129,7 +129,8 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
         weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
-        stockClubYardages: [StockClubYardage]?
+        stockClubYardages: [StockClubYardage]?,
+        profilePhotoPath: String?
     ) async throws -> UserProfile {
         let context = try requireContext()
         let profile = try findProfile(userId: userId) ?? {
@@ -143,6 +144,7 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         profile.preferredUnits = preferredUnits
         profile.weeklyRoundTarget = weeklyRoundTarget
         profile.weeklyPracticeTarget = weeklyPracticeTarget
+        profile.profilePhotoPath = profilePhotoPath
         if let weeklyGoalTargetRevisions {
             profile.weeklyGoalTargetRevisionsData = try JSONEncoder().encode(weeklyGoalTargetRevisions)
         }
@@ -494,7 +496,8 @@ private extension SDProfile {
             weeklyRoundTarget: weeklyRoundTarget,
             weeklyPracticeTarget: weeklyPracticeTarget,
             weeklyGoalTargetRevisions: revisions,
-            stockClubYardages: stockYardages
+            stockClubYardages: stockYardages,
+            profilePhotoPath: profilePhotoPath
         )
     }
 
