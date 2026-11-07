@@ -35,10 +35,7 @@ struct ProfileView: View {
                     profilePhotoSection
                     
                     GLFormCard {
-                        VStack(alignment: .leading, spacing: 16) {
-                            GLFormFieldLabel(text: "Account")
-                            GLFormTextField(label: "Display name", text: $displayName, prompt: "Your name")
-                        }
+                        GLFormTextField(label: "Initials", text: $displayName, prompt: "NH")
                     }
 
                     GLFormCard {
