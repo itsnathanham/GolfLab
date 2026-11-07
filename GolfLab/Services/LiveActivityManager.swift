@@ -19,28 +19,31 @@ final class LiveActivityManager {
         courseName: String,
         initials: String,
         photo: UIImage?,
-        state: RoundLiveActivityAttributes.ContentState,
-        replacePhoto: Bool = false
+        state: RoundLiveActivityAttributes.ContentState
     ) {
         enqueue { [photo] in
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+            let jpeg = photo.flatMap(ProfilePhotoStorage.activityThumbnail(from:))
+            var contentState = state
+            contentState.profilePhotoJPEG = jpeg
             let existing = Activity<RoundLiveActivityAttributes>.activities
             if let current = existing.first {
                 for extra in existing.dropFirst() {
                     await extra.end(nil, dismissalPolicy: .immediate)
                 }
-                let photoPresenceChanged = (current.attributes.profilePhotoJPEG != nil) != (photo != nil)
-                let storedPhotoTooLarge = (current.attributes.profilePhotoJPEG?.count ?? 0) > ProfilePhotoStorage.activityByteBudget
-                let identityChanged = current.attributes.initials != initials || current.attributes.courseName != courseName
-                if replacePhoto || photoPresenceChanged || identityChanged || storedPhotoTooLarge {
-                    guard self.request(courseName: courseName, initials: initials, photo: photo, state: state) else { return }
+                let identityChanged = current.attributes.initials != initials
+                    || current.attributes.courseName != courseName
+                if identityChanged,
+                   self.request(courseName: courseName, initials: initials, jpeg: jpeg, state: contentState) {
                     await current.end(nil, dismissalPolicy: .immediate)
-                } else {
-                    await current.update(.init(state: state, staleDate: nil))
+                    return
                 }
+                // Score and photo updates are allowed after the app leaves the foreground.
+                // Starting a replacement activity is not, and fails with "Target is not foreground".
+                await current.update(.init(state: contentState, staleDate: nil))
                 return
             }
-            _ = self.request(courseName: courseName, initials: initials, photo: photo, state: state)
+            _ = self.request(courseName: courseName, initials: initials, jpeg: jpeg, state: contentState)
         }
     }
 
@@ -56,11 +59,11 @@ final class LiveActivityManager {
     private func request(
         courseName: String,
         initials: String,
-        photo: UIImage?,
+        jpeg: Data?,
         state: RoundLiveActivityAttributes.ContentState
     ) -> Bool {
+        guard UIApplication.shared.applicationState == .active else { return false }
         let content = ActivityContent(state: state, staleDate: nil)
-        let jpeg = photo.flatMap(ProfilePhotoStorage.activityThumbnail(from:))
         let attributes = RoundLiveActivityAttributes(
             courseName: courseName,
             initials: initials,
@@ -74,13 +77,19 @@ final class LiveActivityManager {
                 liveActivityLogger.error("Live Activity failed: \(error.localizedDescription)")
                 return false
             }
+            var slimState = state
+            slimState.profilePhotoJPEG = nil
             let slim = RoundLiveActivityAttributes(
                 courseName: courseName,
                 initials: initials,
                 profilePhotoJPEG: nil
             )
             do {
-                _ = try Activity.request(attributes: slim, content: content, pushType: nil)
+                _ = try Activity.request(
+                    attributes: slim,
+                    content: ActivityContent(state: slimState, staleDate: nil),
+                    pushType: nil
+                )
                 return true
             } catch {
                 liveActivityLogger.error("Live Activity failed: \(error.localizedDescription)")
