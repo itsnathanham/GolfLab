@@ -24,7 +24,7 @@ enum WatchComplicationStore {
               defaults.bool(forKey: Key.isRoundActive)
         else { return (nil, nil) }
         let hole = defaults.integer(forKey: Key.displayHoleNumber)
-        let score = defaults.integer(forKey: Key.scoreVsPar)
+        let score = defaults.object(forKey: Key.scoreVsPar) as? Int
         return (hole > 0 ? hole : nil, score)
     }
 
@@ -33,9 +33,13 @@ enum WatchComplicationStore {
         defaults.set(displayHoleNumber != nil, forKey: Key.isRoundActive)
         if let displayHoleNumber {
             defaults.set(displayHoleNumber, forKey: Key.displayHoleNumber)
+        } else {
+            defaults.removeObject(forKey: Key.displayHoleNumber)
         }
         if let scoreVsPar {
             defaults.set(scoreVsPar, forKey: Key.scoreVsPar)
+        } else {
+            defaults.removeObject(forKey: Key.scoreVsPar)
         }
         WidgetCenter.shared.reloadTimelines(ofKind: widgetKind)
     }

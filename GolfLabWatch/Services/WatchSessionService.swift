@@ -318,7 +318,8 @@ class WatchSessionService: NSObject, ObservableObject {
             WatchComplicationStore.publish(displayHoleNumber: nil)
             return
         }
-        WatchComplicationStore.publish(displayHoleNumber: displayHoleNumber)
+        let score: Int? = holeEntries.isEmpty ? nil : scoreVsPar
+        WatchComplicationStore.publish(displayHoleNumber: displayHoleNumber, scoreVsPar: score)
     }
 
     private func restoreLocalScorecard() {

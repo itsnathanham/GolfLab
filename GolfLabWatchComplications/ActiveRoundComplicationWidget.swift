@@ -35,28 +35,33 @@ struct ActiveRoundComplicationView: View {
 
     var body: some View {
         Group {
-            if let holeNumber = entry.holeNumber, let scoreVsPar = entry.scoreVsPar {
-                VStack(spacing: 2) {
-                    Text(scoreText(scoreVsPar))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(scoreColor(scoreVsPar))
-                    Text("H\(holeNumber)")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.8))
+            if let holeNumber = entry.holeNumber {
+                if let scoreVsPar = entry.scoreVsPar {
+                    VStack(spacing: 1) {
+                        Text(GLVsParLabel.text(scoreVsPar))
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(scoreColor(scoreVsPar))
+                        Text("H\(holeNumber)")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(WatchPalette.textPrimary.opacity(0.8))
+                    }
+                    .minimumScaleFactor(0.6)
+                } else {
+                    Text("\(holeNumber)")
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .minimumScaleFactor(0.6)
                 }
             } else {
                 GLComplicationIcon()
             }
         }
-        .foregroundStyle(Color.white)
+        .foregroundStyle(WatchPalette.textPrimary)
     }
-    
-    private func scoreText(_ score: Int) -> String {
-        score > 0 ? "+\(score)" : score == 0 ? "E" : "\(score)"
-    }
-    
+
     private func scoreColor(_ score: Int) -> Color {
-        score > 0 ? .red : score < 0 ? .green : .white
+        if score > 0 { return WatchPalette.chartNegative }
+        if score < 0 { return WatchPalette.chartPositive }
+        return WatchPalette.textPrimary
     }
 }
 
@@ -70,7 +75,7 @@ struct ActiveRoundComplicationWidget: Widget {
                 .containerBackground(Self.iconGreen, for: .widget)
         }
         .configurationDisplayName("Current Hole")
-        .description("Shows the active hole number.")
+        .description("Shows the hole in play, and score versus par after a hole is saved.")
         .supportedFamilies([.accessoryCircular])
     }
 }
