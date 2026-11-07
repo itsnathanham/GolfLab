@@ -78,6 +78,5 @@ struct ActiveRoundComplicationWidget: Widget {
 struct GolfLabWatchComplicationsBundle: WidgetBundle {
     var body: some Widget {
         ActiveRoundComplicationWidget()
-        RoundWatchLiveActivityWidget()
     }
 }

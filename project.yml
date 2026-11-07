@@ -80,15 +80,13 @@ targets:
   GolfLabWatchComplications:
     type: app-extension
     platform: watchOS
-    deploymentTarget: "11.0"
+    deploymentTarget: "10.0"
     sources:
       - path: GolfLabWatchComplications
       - path: GolfLabWatch/Views/GLComplicationIcon.swift
       - path: GolfLabWatch/Design/WatchPalette.swift
       - path: Shared/WatchComplicationStore.swift
       - path: Shared/GLVsParLabel.swift
-      - path: Shared/RoundLiveActivityAttributes.swift
-      - path: Shared/RoundLiveActivityBanner.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nathanhamilton.golflab.watch.widget

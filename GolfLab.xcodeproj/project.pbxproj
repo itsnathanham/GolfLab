@@ -97,10 +97,7 @@
 		GLCAL001AF066B312B2326D1 /* GLCalendarISO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E60441036AA2A749FC58294 /* GLCalendarISO.swift */; };
 		GLW1B01AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
 		GLW1B02AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
-		GLW1B14AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F01AF066B312B232601 /* RoundLiveActivityAttributes.swift */; };
 		GLW1B15AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */; };
-		GLW1B16AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F10AF066B312B232601 /* RoundLiveActivityBanner.swift */; };
-		W1C017AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W1C016AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift */; };
 		GLW1B03AF066B312B232601 /* GLVsParLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F02AF066B312B232601 /* GLVsParLabel.swift */; };
 		GLW1B04AF066B312B232601 /* GLVsParLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F02AF066B312B232601 /* GLVsParLabel.swift */; };
 		GLW1B05AF066B312B232601 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = GLW1F03AF066B312B232601 /* LiveActivityManager.swift */; };
@@ -256,7 +253,6 @@
 		VSPAR02AF066B312B2326C2 /* SeasonHolesFetch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonHolesFetch.swift; sourceTree = "<group>"; };
 		W1C003AF066B312B2326D1 /* WatchComplicationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchComplicationStore.swift; sourceTree = "<group>"; };
 		W1C005AF066B312B2326D1 /* ActiveRoundComplicationWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRoundComplicationWidget.swift; sourceTree = "<group>"; };
-		W1C016AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundWatchLiveActivityWidget.swift; sourceTree = "<group>"; };
 		W1C008AF066B312B2326D1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		W1C00AAF066B312B2326D1 /* GolfLabWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GolfLabWatch.entitlements; sourceTree = "<group>"; };
 		W1C00BAF066B312B2326D1 /* GolfLabWatchComplications.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GolfLabWatchComplications.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -598,7 +594,6 @@
 			isa = PBXGroup;
 			children = (
 				W1C005AF066B312B2326D1 /* ActiveRoundComplicationWidget.swift */,
-				W1C016AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift */,
 				W1C008AF066B312B2326D1 /* Info.plist */,
 			);
 			path = GolfLabWatchComplications;
@@ -859,12 +854,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				W1C004AF066B312B2326D1 /* ActiveRoundComplicationWidget.swift in Sources */,
-				W1C017AF066B312B2326D1 /* RoundWatchLiveActivityWidget.swift in Sources */,
-				GLW1B14AF066B312B232601 /* RoundLiveActivityAttributes.swift in Sources */,
 				B931C1DC5753E4D9E0B8AD2F /* GLComplicationIcon.swift in Sources */,
 				W1C002AF066B312B2326D1 /* WatchComplicationStore.swift in Sources */,
 				GLW1B04AF066B312B232601 /* GLVsParLabel.swift in Sources */,
-				GLW1B16AF066B312B232601 /* RoundLiveActivityBanner.swift in Sources */,
 				GLW1B10AF066B312B232601 /* WatchPalette.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1108,7 +1100,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -1131,7 +1123,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
