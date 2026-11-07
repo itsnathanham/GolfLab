@@ -30,16 +30,17 @@ final class LiveActivityManager {
                     await extra.end(nil, dismissalPolicy: .immediate)
                 }
                 let photoPresenceChanged = (current.attributes.profilePhotoJPEG != nil) != (photo != nil)
+                let storedPhotoTooLarge = (current.attributes.profilePhotoJPEG?.count ?? 0) > ProfilePhotoStorage.activityByteBudget
                 let identityChanged = current.attributes.initials != initials || current.attributes.courseName != courseName
-                if replacePhoto || photoPresenceChanged || identityChanged {
+                if replacePhoto || photoPresenceChanged || identityChanged || storedPhotoTooLarge {
+                    guard self.request(courseName: courseName, initials: initials, photo: photo, state: state) else { return }
                     await current.end(nil, dismissalPolicy: .immediate)
-                    self.request(courseName: courseName, initials: initials, photo: photo, state: state)
                 } else {
                     await current.update(.init(state: state, staleDate: nil))
                 }
                 return
             }
-            self.request(courseName: courseName, initials: initials, photo: photo, state: state)
+            _ = self.request(courseName: courseName, initials: initials, photo: photo, state: state)
         }
     }
 
@@ -51,12 +52,13 @@ final class LiveActivityManager {
         }
     }
 
+    @discardableResult
     private func request(
         courseName: String,
         initials: String,
         photo: UIImage?,
         state: RoundLiveActivityAttributes.ContentState
-    ) {
+    ) -> Bool {
         let content = ActivityContent(state: state, staleDate: nil)
         let jpeg = photo.flatMap(ProfilePhotoStorage.activityThumbnail(from:))
         let attributes = RoundLiveActivityAttributes(
@@ -66,10 +68,11 @@ final class LiveActivityManager {
         )
         do {
             _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
+            return true
         } catch {
             guard jpeg != nil else {
                 liveActivityLogger.error("Live Activity failed: \(error.localizedDescription)")
-                return
+                return false
             }
             let slim = RoundLiveActivityAttributes(
                 courseName: courseName,
@@ -78,8 +81,10 @@ final class LiveActivityManager {
             )
             do {
                 _ = try Activity.request(attributes: slim, content: content, pushType: nil)
+                return true
             } catch {
                 liveActivityLogger.error("Live Activity failed: \(error.localizedDescription)")
+                return false
             }
         }
     }
