@@ -24,12 +24,4 @@ enum GLStreakSectionStyle: String, CaseIterable, Identifiable {
             return "Big streak count, week strip, and compact goal chips."
         }
     }
-
-    static var stored: GLStreakSectionStyle {
-        if let raw = UserDefaults.standard.string(forKey: defaultsKey),
-           let value = GLStreakSectionStyle(rawValue: raw) {
-            return value
-        }
-        return .flagstick
-    }
 }

@@ -174,10 +174,21 @@ struct WeeklyGoalWeekSummarySheet: View {
         let vs = vsParDisplay(for: round)
         return HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(round.courseName)
-                    .font(.glSubhead)
-                    .foregroundColor(.textPrimary)
-                    .lineLimit(1)
+                HStack(alignment: .center, spacing: 8) {
+                    Text(round.courseName)
+                        .font(.glSubhead)
+                        .foregroundColor(.textPrimary)
+                        .lineLimit(1)
+                    if isIncomplete(round) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flag.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("Incomplete")
+                                .font(.glFilterActive)
+                        }
+                        .foregroundColor(.chartNegative)
+                    }
+                }
                 Text(RoundListRowView.metaLine(for: round))
                     .font(.glFootnote)
                     .foregroundColor(.textTertiary)
@@ -202,6 +213,11 @@ struct WeeklyGoalWeekSummarySheet: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .contentShape(Rectangle())
+    }
+
+    private func isIncomplete(_ round: Round) -> Bool {
+        guard let n = roundStore.holeRowCountByRoundId[round.id] else { return false }
+        return round.isScorecardIncomplete(storedHoleRows: n)
     }
 
     private func vsParDisplay(for round: Round) -> (text: String, color: Color) {

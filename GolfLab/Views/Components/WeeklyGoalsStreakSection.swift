@@ -22,23 +22,20 @@ struct WeeklyGoalsStreakSection: View {
             }
         }
         .sheet(item: $selectedWeek) { week in
-            Group {
+            NavigationStack {
                 if let detail = roundStore.weeklyGoalWeekDetail(week: week, history: snap.weekHistory) {
-                    NavigationStack {
-                        WeeklyGoalWeekSummarySheet(detail: detail)
-                    }
-                    .presentationDragIndicator(.visible)
-                    .presentationDetents([.medium, .large])
+                    WeeklyGoalWeekSummarySheet(detail: detail)
                 } else {
-                    NavigationStack {
-                        Text("Couldn’t load this week.")
-                            .font(.glBody)
-                            .foregroundColor(.textSecondary)
-                            .padding()
-                    }
-                    .presentationDragIndicator(.visible)
+                    Text("Couldn’t load this week.")
+                        .font(.glBody)
+                        .foregroundColor(.textSecondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(GLLayout.horizontalInset)
+                        .background(Color.appBackground)
                 }
             }
+            .presentationDragIndicator(.visible)
+            .presentationDetents([.medium, .large])
             .environmentObject(roundStore)
         }
     }
@@ -96,7 +93,7 @@ struct WeeklyGoalsStreakSection: View {
                         Text("\(snap.completedWeeksStreak)")
                             .font(GLFonts.mono(size: 32, weight: .semibold))
                             .foregroundColor(.streakMark)
-                        Text(snap.completedWeeksStreak == 1 ? "week streak" : "week streak")
+                        Text("week streak")
                             .font(.glFootnote)
                             .foregroundColor(.streakMark)
                     }
@@ -316,26 +313,35 @@ struct WeeklyGoalsStreakSection: View {
 
     private func heroWeekStrip(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 3) {
-                ForEach(weeks.suffix(12)) { week in
-                    Button {
-                        selectedWeek = week
-                    } label: {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(heroStripFill(week.outcome))
-                            .frame(height: 10)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 3) {
+                        ForEach(weeks) { week in
+                            Button {
+                                selectedWeek = week
+                            } label: {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(heroStripFill(week.outcome))
+                                    .frame(width: 22, height: 10)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(weekAccessibilityLabel(week))
+                            .id(week.id)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(weekAccessibilityLabel(week))
+                }
+                .onAppear { scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy) }
+                .onChange(of: weeks.map(\.id)) { _, _ in
+                    scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy)
                 }
             }
-            if let first = weeks.suffix(12).first, let last = weeks.suffix(12).last {
+            if let first = weeks.first, let last = weeks.last {
                 HStack {
                     Text("W\(first.weekNumber)")
                         .font(GLFonts.mono(size: 10, weight: .medium))
                         .foregroundColor(.textTertiary)
                     Spacer()
-                    Text("W\(last.weekNumber) · now")
+                    Text(first.id == last.id ? "W\(last.weekNumber)" : "W\(last.weekNumber) · now")
                         .font(GLFonts.mono(size: 10, weight: .medium))
                         .foregroundColor(.textTertiary)
                 }
@@ -364,9 +370,7 @@ struct WeeklyGoalsStreakSection: View {
 
     private static func streakCaption(weeks: Int, heroPrompt: Bool) -> String {
         if weeks == 0 {
-            return heroPrompt
-                ? "Hit rounds this week to extend the streak."
-                : "Hit both goals this week to grow your streak."
+            return "Hit both goals this week to grow your streak."
         }
         if weeks == 1 {
             return "1 week streak"

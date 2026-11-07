@@ -341,9 +341,14 @@ enum GLWeeklyGoalsStreak {
         )
         let balls = ctx.countRangeBallsHit(startYMD: bounds.start, endYMD: bounds.end)
 
-        let idx = history.firstIndex(where: { $0.weekStartYMD == week.weekStartYMD }) ?? (history.count - 1)
-        let startIdx = max(0, idx - (chartWindow - 1))
-        let window = Array(history[startIdx...idx])
+        let span = max(chartWindow, 1)
+        let window: [WeekRecord]
+        if let idx = history.firstIndex(where: { $0.weekStartYMD == week.weekStartYMD }) {
+            let startIdx = max(0, idx - (span - 1))
+            window = Array(history[startIdx...idx])
+        } else {
+            window = [week]
+        }
         let chart: [WeekBalls] = window.map { record in
             let b = ctx.boundsYMD(forWeekStartYMD: record.weekStartYMD) ?? (record.weekStartYMD, record.weekStartYMD)
             return WeekBalls(
