@@ -17,7 +17,7 @@ struct RoundLiveActivityWidget: Widget {
                     RoundActivityAvatar(context: context, side: 40)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    RoundActivityScoreStack(context: context, scoreSize: 20, thruSize: 12)
+                    RoundActivityScoreStack(context: context, scoreSize: 26, thruSize: 12)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(context.attributes.courseName)
@@ -28,11 +28,11 @@ struct RoundLiveActivityWidget: Widget {
                 }
             } compactLeading: {
                 RoundActivityAvatar(context: context, side: 24)
-            } compactTrailing: {
-                RoundActivityScoreStack(context: context, scoreSize: 12, thruSize: 9)
+            }             compactTrailing: {
+                RoundActivityScoreStack(context: context, scoreSize: 16, thruSize: 9)
             } minimal: {
                 RoundActivityScoreText(state: context.state)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
             }
         }
     }
