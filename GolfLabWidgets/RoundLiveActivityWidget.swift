@@ -1,4 +1,5 @@
 import ActivityKit
+import ImageIO
 import SwiftUI
 import UIKit
 import WidgetKit
@@ -16,7 +17,7 @@ struct RoundLiveActivityWidget: Widget {
                     RoundActivityAvatar(context: context, side: 40)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    RoundActivityScoreStack(context: context, scoreSize: 20, thruSize: 12)
+                    RoundActivityScoreStack(context: context, scoreSize: 26, thruSize: 12)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(context.attributes.courseName)
@@ -27,11 +28,11 @@ struct RoundLiveActivityWidget: Widget {
                 }
             } compactLeading: {
                 RoundActivityAvatar(context: context, side: 24)
-            } compactTrailing: {
-                RoundActivityScoreStack(context: context, scoreSize: 12, thruSize: 9)
+            }             compactTrailing: {
+                RoundActivityScoreStack(context: context, scoreSize: 16, thruSize: 9)
             } minimal: {
                 RoundActivityScoreText(state: context.state)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
             }
         }
     }
@@ -107,10 +108,10 @@ private struct RoundActivityAvatar: View {
 
     var body: some View {
         Group {
-            if let data = context.attributes.profilePhotoJPEG, let image = UIImage(data: data) {
+            if let data = context.attributes.profilePhotoJPEG, let image = activityImage(from: data, side: side) {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .scaledToFill()
             } else {
                 Text(context.attributes.initials.isEmpty ? "?" : context.attributes.initials)
                     .font(.system(size: side * 0.38, weight: .semibold))
@@ -120,8 +121,22 @@ private struct RoundActivityAvatar: View {
             }
         }
         .frame(width: side, height: side)
+        .clipped()
         .clipShape(Circle())
     }
+}
+
+private func activityImage(from data: Data, side: CGFloat) -> UIImage? {
+    let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+    let options: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceThumbnailMaxPixelSize: max(side * 3, 1)
+    ]
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+    return UIImage(cgImage: cgImage)
 }
 
 @main

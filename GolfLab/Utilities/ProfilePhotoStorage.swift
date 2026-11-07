@@ -2,7 +2,9 @@ import UIKit
 
 enum ProfilePhotoStorage {
     private static let directoryName = "ProfilePhotos"
-    private static let activityByteBudget = 3_600
+    /// ActivityKit drops the whole activity when the encoded payload is past about 4KB.
+    /// A face thumbnail has to stay far under that, or the island appears and then vanishes.
+    static let activityByteBudget = 800
 
     static func image(from data: Data, maxPixel: CGFloat) -> UIImage? {
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
@@ -48,15 +50,19 @@ enum ProfilePhotoStorage {
 
     /// JPEG small enough to ride inside a Live Activity. Nil when it cannot fit.
     static func activityThumbnail(from image: UIImage) -> Data? {
-        let thumb = resized(image, maxPixel: 72)
-        var quality: CGFloat = 0.7
-        var data = thumb.jpegData(compressionQuality: quality)
-        while let current = data, current.count > activityByteBudget, quality > 0.25 {
-            quality -= 0.1
-            data = thumb.jpegData(compressionQuality: quality)
+        var maxPixel: CGFloat = 40
+        while maxPixel >= 24 {
+            let thumb = resized(image, maxPixel: maxPixel)
+            var quality: CGFloat = 0.5
+            while quality >= 0.2 {
+                if let data = thumb.jpegData(compressionQuality: quality), data.count <= activityByteBudget {
+                    return data
+                }
+                quality -= 0.1
+            }
+            maxPixel -= 8
         }
-        guard let data, data.count <= activityByteBudget else { return nil }
-        return data
+        return nil
     }
 
     private static func resized(_ image: UIImage, maxPixel: CGFloat) -> UIImage {
