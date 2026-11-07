@@ -3,7 +3,6 @@ import SwiftUI
 /// Week summary shown when a streak week mark is tapped.
 struct WeeklyGoalWeekSummarySheet: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var roundStore: RoundStore
 
     let detail: GLWeeklyGoalsStreak.WeekDetail
 
@@ -155,7 +154,7 @@ struct WeeklyGoalWeekSummarySheet: View {
                     NavigationLink {
                         RoundDetailView(round: round)
                     } label: {
-                        weekRoundRow(round)
+                        RoundListRowView(round: round, showIncompleteFlag: true)
                     }
                     .buttonStyle(.plain)
                     .navigationLinkIndicatorVisibility(.hidden)
@@ -168,68 +167,6 @@ struct WeeklyGoalWeekSummarySheet: View {
             }
             .glCardChromeFrame(outlined: true)
         }
-    }
-
-    private func weekRoundRow(_ round: Round) -> some View {
-        let vs = vsParDisplay(for: round)
-        return HStack(alignment: .center, spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .center, spacing: 8) {
-                    Text(round.courseName)
-                        .font(.glSubhead)
-                        .foregroundColor(.textPrimary)
-                        .lineLimit(1)
-                    if isIncomplete(round) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flag.fill")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("Incomplete")
-                                .font(.glFilterActive)
-                        }
-                        .foregroundColor(.chartNegative)
-                    }
-                }
-                Text(RoundListRowView.metaLine(for: round))
-                    .font(.glFootnote)
-                    .foregroundColor(.textTertiary)
-            }
-            Spacer(minLength: 8)
-            HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    if let score = round.totalScore {
-                        Text("\(score)")
-                            .font(GLFonts.mono(size: 15, weight: .semibold))
-                            .foregroundColor(.textPrimary)
-                    }
-                    Text(vs.text)
-                        .font(GLFonts.mono(size: 13, weight: .semibold))
-                        .foregroundColor(vs.color)
-                }
-                Text("›")
-                    .font(GLFonts.sans(size: 14, weight: .regular))
-                    .foregroundColor(.textTertiary)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-    }
-
-    private func isIncomplete(_ round: Round) -> Bool {
-        guard let n = roundStore.holeRowCountByRoundId[round.id] else { return false }
-        return round.isScorecardIncomplete(storedHoleRows: n)
-    }
-
-    private func vsParDisplay(for round: Round) -> (text: String, color: Color) {
-        guard let score = round.totalScore,
-              let par = roundStore.totalParSumByRoundId[round.id],
-              par > 0
-        else { return ("—", .textTertiary) }
-        let delta = score - par
-        if delta == 0 { return ("E", .accent) }
-        let raw = String(format: "%+.0f", Double(delta))
-        let text = raw.replacingOccurrences(of: "-", with: "\u{2212}")
-        return (text, .accent)
     }
 
     private var practiceSection: some View {
