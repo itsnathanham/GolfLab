@@ -37,15 +37,15 @@ struct ActiveRoundComplicationView: View {
         Group {
             if let holeNumber = entry.holeNumber {
                 if let scoreVsPar = entry.scoreVsPar {
-                    VStack(spacing: 1) {
+                    VStack(spacing: 0) {
                         Text(GLVsParLabel.text(scoreVsPar))
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundStyle(scoreColor(scoreVsPar))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(WatchPalette.chartPositive)
                         Text("H\(holeNumber)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(WatchPalette.textPrimary.opacity(0.8))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(WatchPalette.textPrimary.opacity(0.85))
                     }
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                 } else {
                     Text("\(holeNumber)")
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
@@ -56,12 +56,6 @@ struct ActiveRoundComplicationView: View {
             }
         }
         .foregroundStyle(WatchPalette.textPrimary)
-    }
-
-    private func scoreColor(_ score: Int) -> Color {
-        if score > 0 { return WatchPalette.chartNegative }
-        if score < 0 { return WatchPalette.chartPositive }
-        return WatchPalette.textPrimary
     }
 }
 
@@ -84,5 +78,6 @@ struct ActiveRoundComplicationWidget: Widget {
 struct GolfLabWatchComplicationsBundle: WidgetBundle {
     var body: some Widget {
         ActiveRoundComplicationWidget()
+        RoundWatchLiveActivityWidget()
     }
 }
