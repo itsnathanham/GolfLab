@@ -121,16 +121,20 @@ extension Color {
     static var calendarPracticeDim: Color { calendarPracticeDot.opacity(0.10) }
     static var calendarPracticeBorder: Color { calendarPracticeDot.opacity(0.30) }
     
-    // MARK: - Weekly goals / streak (consistent with main accent)
+    // MARK: - Weekly goals / streak (calendar orange marks; progress stays accent green)
     
-    /// Met week circle + flame — green theme consistent with brand.
-    static var streakSuccess: Color { accent }
-    /// Firework particles + deep accents.
+    /// Met-week flagsticks, flame, streak caption, celebration card chrome.
+    static var streakMark: Color { chartOrange }
+    /// Celebration / firework accents that should match streak marks.
+    static var streakSuccess: Color { chartOrange }
+    /// Firework particles + deep accents (warmer companion to orange).
     static var streakSuccessDeep: Color { accentMid }
-    /// Checkmark on met week circles.
-    static let streakOnSuccess = Color(hex: "#000000")
-    /// Active streak footer caption.
-    static var streakTextActive: Color { accent }
+    /// Glyph on elevated miss marks (white ×).
+    static let streakOnSuccess = Color(hex: "#FFFFFF")
+    /// Active streak footer / celebration streak line.
+    static var streakTextActive: Color { chartOrange }
+    /// Celebration card border.
+    static var streakCardBorder: Color { chartOrange.opacity(0.40) }
     
     // MARK: - Legacy palette (deprecated, use semantic tokens above)
     

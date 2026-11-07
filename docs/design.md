@@ -118,35 +118,38 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Progress bars stay accent green. Met-week circles, the flame, and the streak caption use chart purple. Fireworks lead with green.
+Progress bars stay accent green. Met-week marks, flame, streak caption, and celebration chrome use calendar orange (`chartOrange` / `streakMark`).
 
 ```swift
-Color(hex: "#BF5AF2")        // chartPurple — met week circle, flame, streak caption
-Color(hex: "#00C805")        // streakSuccess      — celebration / firework green
-Color(hex: "#5AC53B")        // streakSuccessDeep  — firework accents
-Color(hex: "#000000")        // streakOnSuccess    — checkmark on purple circles
+Color(hex: "#D98909")        // streakMark / streakSuccess — flagsticks, flame, caption, celebration
+Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
+Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 ```
+
+**Layouts** (Profile → Streak layout): **Flagstick** (default) keeps the classic card with flagstick week marks; **Streak hero** leads with a mono streak count, segmented week strip, and compact goal chips.
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
-| Met (past or current week)              | 28pt circle, chart purple fill, black checkmark |
-| Missed (finished week only)             | 28pt circle, `bgElevated` fill, white ×            |
-| In progress (current week, not yet met) | 28pt circle, `bgElevated` fill, white `ellipsis`   |
+| Met (past or current week)              | Orange flagstick in cup |
+| Missed (finished week only)             | Bare stick + `bgElevated` cup with white × |
+| In progress (current week, not yet met) | Dashed orange flag + ellipsis on cup |
 
-Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to circle centers.
-Auto-scroll to the newest week on appear.
+Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
+Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet` (medium/large detents).
 
-**Streak footer:** `flame.fill` (chart purple) + footnote caption (chart purple).
+**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds (score white, vs par always accent green → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
+
+**Streak footer:** `flame.fill` (orange) + footnote caption (orange).
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Golf fireworks: three shells climb from the bottom edge and burst into mini golf balls, flags, or tees (one kind per burst; order, launch x, apex height, and particle count are randomized) — **off** when Reduce Motion is enabled.
-- Top banner: "Weekly goals complete" + short copy that targets were met **this week**.
-- Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst.
+- Golf fireworks: three ambient shells (balls / flags / tees), then a fourth orange **card beacon** aimed at the top banner; the celebration card springs open on that burst — **off** when Reduce Motion is enabled (card only).
+- Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
+- Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including beacon).
 - Once per calendar week; queued if a sheet would hide the overlay.
-- Shown on the device that saved the completing event: a save made on the watch celebrates on the watch (`WatchWeeklyGoalCelebrationView`, two small bursts + card); the phone only steps in when the watch is unreachable.
+- Watch (`WatchWeeklyGoalCelebrationView`): one ambient + center beacon, compact “Goals met” card; phone only steps in when the watch is unreachable.
 
 ---
 

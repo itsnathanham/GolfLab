@@ -1,17 +1,20 @@
 import SwiftUI
 import UIKit
 
-/// Golf-themed fireworks: three shells climb from the bottom edge and burst into mini golf balls, flags, or tees.
+/// Golf-themed fireworks: ambient shells plus a final “card beacon” whose burst reveals the celebration card.
 /// Timing constants are shared with `WeeklyGoalCelebrationOverlay` so haptics land on each burst.
 struct GolfFireworkEmitterView: UIViewRepresentable {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Seconds after appear until each shell leaves the bottom edge. The first waits for a dismissing sheet to clear.
-    static let launchDelays: [TimeInterval] = [0.5, 1.1, 1.7]
+    /// The last delay is the orange card-beacon shell.
+    static let launchDelays: [TimeInterval] = [0.5, 1.1, 1.7, 2.35]
     /// Seconds a shell climbs before it bursts.
     static let riseDuration: TimeInterval = 0.55
     /// Seconds after appear when each shell bursts.
     static var burstTimes: [TimeInterval] { launchDelays.map { $0 + riseDuration } }
+    /// When the celebration card should spring in (final beacon burst).
+    static var cardRevealTime: TimeInterval { burstTimes.last ?? (2.35 + riseDuration) }
     /// Seconds until the last particles have faded.
     static var showDuration: TimeInterval { (burstTimes.last ?? 0) + 2.6 }
 
@@ -49,25 +52,31 @@ final class GolfFireworkView: UIView {
     }
 
     private func scheduleShow() {
-        let kinds = ParticleKind.allCases.shuffled()
+        let ambientKinds = ParticleKind.ambientCases.shuffled()
         for (index, delay) in GolfFireworkEmitterView.launchDelays.enumerated() {
-            let kind = kinds[index % kinds.count]
+            let isBeacon = index == GolfFireworkEmitterView.launchDelays.count - 1
+            let kind: ParticleKind = isBeacon ? .beacon : ambientKinds[index % ambientKinds.count]
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.launchShell(kind: kind)
+                self?.launchShell(kind: kind, beacon: isBeacon)
             }
         }
     }
 
     // MARK: - Shell
 
-    private func launchShell(kind: ParticleKind) {
+    private func launchShell(kind: ParticleKind, beacon: Bool) {
         guard window != nil else { return }
         let rise = GolfFireworkEmitterView.riseDuration
-        let startX = bounds.width * CGFloat.random(in: 0.2...0.8)
+        let startX = beacon
+            ? bounds.width * 0.5
+            : bounds.width * CGFloat.random(in: 0.2...0.8)
         let start = CGPoint(x: startX, y: bounds.height + 16)
         let apex = CGPoint(
-            x: min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
-            y: bounds.height * CGFloat.random(in: 0.26...0.46)
+            x: beacon
+                ? bounds.width * 0.5
+                : min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
+            // Beacon aims at the top banner slot so the card opens from the flash.
+            y: bounds.height * (beacon ? CGFloat.random(in: 0.16...0.24) : CGFloat.random(in: 0.26...0.46))
         )
 
         let path = UIBezierPath()
@@ -216,6 +225,10 @@ final class GolfFireworkView: UIView {
         case balls
         case flags
         case tees
+        /// Final orange shell that reveals the celebration card.
+        case beacon
+
+        static var ambientCases: [ParticleKind] { [.balls, .flags, .tees] }
 
         /// Cell tints multiply the white artwork; nothing here may be black or it vanishes on the dark theme.
         var colors: [UIColor] {
@@ -223,9 +236,11 @@ final class GolfFireworkView: UIView {
             case .balls:
                 return [.white, .white, UIColor(Color.streakSuccessDeep)]
             case .flags:
-                return [UIColor(Color.accent), UIColor(Color.chartPurple), .white]
+                return [UIColor(Color.accent), UIColor(Color.chartOrange), .white]
             case .tees:
                 return [UIColor(Color.chartYellow), UIColor(Color.accentMid), .white]
+            case .beacon:
+                return [UIColor(Color.chartOrange), UIColor(Color.chartOrange), .white]
             }
         }
 
@@ -237,6 +252,8 @@ final class GolfFireworkView: UIView {
                 return UIColor(Color.accent)
             case .tees:
                 return UIColor(Color.chartYellow)
+            case .beacon:
+                return UIColor(Color.chartOrange)
             }
         }
 
@@ -244,7 +261,7 @@ final class GolfFireworkView: UIView {
             switch self {
             case .balls:
                 return Self.golfBallImage
-            case .flags:
+            case .flags, .beacon:
                 return Self.flagImage
             case .tees:
                 return Self.teeImage

@@ -5,6 +5,7 @@ import PhotosUI
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var roundStore: RoundStore
+    @AppStorage(GLStreakSectionStyle.defaultsKey) private var streakStyleRaw = GLStreakSectionStyle.flagstick.rawValue
     @State private var profile: UserProfile?
     @State private var displayName = ""
     @State private var weeklyRoundGoal = 1
@@ -60,6 +61,8 @@ struct ProfileView: View {
                             }
                         }
                     }
+
+                    streakStyleCard
 
                     StockClubYardagesSection(rows: $stockClubRows) {
                         scheduleProfileAutosave()
@@ -147,6 +150,37 @@ struct ProfileView: View {
             Spacer()
             Color.clear
                 .frame(width: 32, height: 32)
+        }
+    }
+
+    private var streakStyleBinding: Binding<GLStreakSectionStyle> {
+        Binding(
+            get: { GLStreakSectionStyle(rawValue: streakStyleRaw) ?? .flagstick },
+            set: { streakStyleRaw = $0.rawValue }
+        )
+    }
+
+    private var streakStyleCard: some View {
+        GLFormCard {
+            VStack(alignment: .leading, spacing: 12) {
+                GLFormFieldLabel(text: "Streak layout")
+                Text("Try Flagstick or Streak hero on Home and History. Tap a week mark for that week’s summary.")
+                    .font(.glFootnote)
+                    .foregroundColor(.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Picker("Streak layout", selection: streakStyleBinding) {
+                    ForEach(GLStreakSectionStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(streakStyleBinding.wrappedValue.detail)
+                    .font(.glFootnote)
+                    .foregroundColor(.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
     
