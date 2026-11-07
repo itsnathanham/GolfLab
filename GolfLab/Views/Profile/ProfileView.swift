@@ -134,19 +134,22 @@ struct ProfileView: View {
     }
     
     private var profilePhotoSection: some View {
-        GLFormCard {
+        let profilePhoto = roundStore.profilePhoto
+        let hasProfilePhoto = profilePhoto != nil
+        let initials = roundStore.avatarInitials
+        return GLFormCard {
             VStack(spacing: 16) {
                 GLFormFieldLabel(text: "Profile Photo")
                 
                 HStack(spacing: 16) {
-                    profileAvatar
+                    profileAvatar(image: profilePhoto, initials: initials)
                     VStack(alignment: .leading, spacing: 8) {
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            Text(roundStore.profilePhoto == nil ? "Choose Photo" : "Change Photo")
+                            Text(hasProfilePhoto ? "Change Photo" : "Choose Photo")
                                 .font(GLFonts.sans(size: 14, weight: .medium))
                                 .foregroundColor(.accent)
                         }
-                        if roundStore.profilePhoto != nil {
+                        if hasProfilePhoto {
                             Button(action: removeProfilePhoto) {
                                 Text("Remove Photo")
                                     .font(GLFonts.sans(size: 14, weight: .medium))
@@ -314,14 +317,14 @@ struct ProfileView: View {
         return "\(version) (\(build))"
     }
     
-    private var profileAvatar: some View {
+    private func profileAvatar(image: UIImage?, initials: String) -> some View {
         Group {
-            if let profilePhoto = roundStore.profilePhoto {
-                Image(uiImage: profilePhoto)
+            if let image {
+                Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {
-                Text(roundStore.avatarInitials.isEmpty ? "?" : roundStore.avatarInitials)
+                Text(initials.isEmpty ? "?" : initials)
                     .font(GLFonts.sans(size: 28, weight: .medium))
                     .foregroundColor(.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
