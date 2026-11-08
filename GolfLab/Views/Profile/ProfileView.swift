@@ -22,6 +22,7 @@ struct ProfileView: View {
     @State private var suppressAutosave = true
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var photoEdit: ProfilePhotoEdit?
+    @State private var bagInteractionLocksScroll = false
 
     var body: some View {
         ScrollView {
@@ -64,7 +65,10 @@ struct ProfileView: View {
 
                     streakStyleCard
 
-                    StockClubYardagesSection(rows: $stockClubRows) {
+                    StockClubYardagesSection(
+                        rows: $stockClubRows,
+                        locksParentScroll: $bagInteractionLocksScroll
+                    ) {
                         scheduleProfileAutosave()
                     }
 
@@ -92,6 +96,7 @@ struct ProfileView: View {
             }
         }
         .background(Color.appBackground)
+        .scrollDisabled(bagInteractionLocksScroll)
         .toolbar(.hidden, for: .navigationBar)
         .tint(.accent)
         .alert("Couldn’t save profile", isPresented: $showSaveErrorAlert) {

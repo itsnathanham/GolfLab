@@ -7,16 +7,18 @@ struct GolfFireworkEmitterView: UIViewRepresentable {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Seconds after appear until each shell leaves the bottom edge. The first waits for a dismissing sheet to clear.
-    /// The last delay is the flag-bloom shell.
-    static let launchDelays: [TimeInterval] = [0.5, 1.1, 1.7, 2.35]
-    /// Seconds a shell climbs before it bursts.
-    static let riseDuration: TimeInterval = 0.55
+    /// The last delay is the flag-bloom shell. Gaps let each break finish before the next mortar.
+    static let launchDelays: [TimeInterval] = [0.35, 1.55, 2.75, 4.05]
+    /// Seconds a shell climbs before it bursts. Long enough for the coast into the apex to read.
+    static let riseDuration: TimeInterval = 1.15
     /// Seconds after appear when each shell bursts.
     static var burstTimes: [TimeInterval] { launchDelays.map { $0 + riseDuration } }
-    /// Card springs in just after the flag fan opens, so the flags read before the card covers the origin.
-    static var cardRevealTime: TimeInterval { (burstTimes.last ?? (2.35 + riseDuration)) + 0.12 }
-    /// Seconds until the last particles have faded.
-    static var showDuration: TimeInterval { (burstTimes.last ?? 0) + 2.6 }
+    /// Card springs in after the flag fan has opened, so the flags read before the card covers the origin.
+    static var cardRevealTime: TimeInterval { (burstTimes.last ?? (4.05 + riseDuration)) + 0.62 }
+    /// Card stays up after it appears. Tap still dismisses.
+    static let cardHold: TimeInterval = 5
+    /// Seconds until the overlay dismisses.
+    static var showDuration: TimeInterval { cardRevealTime + cardHold }
 
     func makeUIView(context: Context) -> GolfFireworkView {
         let view = GolfFireworkView()
@@ -80,14 +82,13 @@ final class GolfFireworkView: UIView {
             y: bounds.height * (bloom ? CGFloat.random(in: 0.16...0.24) : CGFloat.random(in: 0.26...0.46))
         )
 
-        let path = UIBezierPath()
-        path.move(to: start)
-        path.addQuadCurve(to: apex, controlPoint: CGPoint(x: start.x, y: apex.y + (start.y - apex.y) * 0.35))
+        let path = ballisticPath(from: start, to: apex)
 
         let flight = CAKeyframeAnimation(keyPath: "position")
         flight.path = path.cgPath
         flight.duration = rise
-        flight.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        flight.calculationMode = .linear
+        flight.timingFunction = CAMediaTimingFunction(name: .linear)
         flight.fillMode = .forwards
         flight.isRemovedOnCompletion = false
 
@@ -114,6 +115,7 @@ final class GolfFireworkView: UIView {
         let trailFlight = CAKeyframeAnimation(keyPath: "emitterPosition")
         trailFlight.path = path.cgPath
         trailFlight.duration = rise
+        trailFlight.calculationMode = .linear
         trailFlight.timingFunction = flight.timingFunction
         trailFlight.fillMode = .forwards
         trailFlight.isRemovedOnCompletion = false
@@ -143,17 +145,17 @@ final class GolfFireworkView: UIView {
         let cell = CAEmitterCell()
         cell.contents = ParticleKind.sparkImage.cgImage
         cell.contentsScale = ParticleKind.sparkImage.scale
-        cell.birthRate = 110
-        cell.lifetime = 0.45
-        cell.velocity = 30
-        cell.velocityRange = 20
+        cell.birthRate = 70
+        cell.lifetime = 0.85
+        cell.velocity = 12
+        cell.velocityRange = 10
         cell.emissionLongitude = .pi / 2
-        cell.emissionRange = .pi / 6
-        cell.yAcceleration = 140
-        cell.scale = 0.7
-        cell.scaleRange = 0.3
-        cell.scaleSpeed = -0.9
-        cell.alphaSpeed = -2.2
+        cell.emissionRange = 0.35
+        cell.yAcceleration = 60
+        cell.scale = 0.55
+        cell.scaleRange = 0.2
+        cell.scaleSpeed = -0.4
+        cell.alphaSpeed = -1.15
         cell.color = color.cgColor
         emitter.emitterCells = [cell]
         return emitter
@@ -169,7 +171,7 @@ final class GolfFireworkView: UIView {
 
         for index in 0..<count {
             let angle = (CGFloat(index) / CGFloat(count)) * (.pi * 2)
-            let distance = 58 + CGFloat(index % 3) * 24
+            let distance = 72 + CGFloat(index % 3) * 28
             let end = CGPoint(
                 x: point.x + cos(angle) * distance,
                 y: point.y + sin(angle) * distance * 0.82
@@ -197,7 +199,7 @@ final class GolfFireworkView: UIView {
             move.fromValue = NSValue(cgPoint: point)
             move.toValue = NSValue(cgPoint: end)
             move.beginTime = CACurrentMediaTime() + stagger
-            move.duration = 0.42
+            move.duration = 0.58
             move.timingFunction = CAMediaTimingFunction(name: .easeOut)
             move.fillMode = .both
             move.isRemovedOnCompletion = false
@@ -206,7 +208,7 @@ final class GolfFireworkView: UIView {
             grow.fromValue = 0.35
             grow.toValue = 1
             grow.beginTime = move.beginTime
-            grow.duration = 0.42
+            grow.duration = 0.58
             grow.timingFunction = CAMediaTimingFunction(name: .easeOut)
             grow.fillMode = .both
             grow.isRemovedOnCompletion = false
@@ -214,8 +216,8 @@ final class GolfFireworkView: UIView {
             let fade = CABasicAnimation(keyPath: "opacity")
             fade.fromValue = 1
             fade.toValue = 0
-            fade.beginTime = CACurrentMediaTime() + stagger + 0.32
-            fade.duration = 0.5
+            fade.beginTime = CACurrentMediaTime() + stagger + 0.72
+            fade.duration = 0.7
             fade.fillMode = .forwards
             fade.isRemovedOnCompletion = false
 
@@ -223,7 +225,7 @@ final class GolfFireworkView: UIView {
             host.add(grow, forKey: "grow")
             host.add(fade, forKey: "fade")
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + stagger + 1.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + stagger + 1.6) {
                 host.removeFromSuperlayer()
             }
         }
@@ -233,10 +235,10 @@ final class GolfFireworkView: UIView {
 
     private func burst(at point: CGPoint, kind: ParticleKind) {
         guard window != nil else { return }
-        let emitWindow: TimeInterval = 0.12
-        let particleCount = Int.random(in: 38...58)
+        let emitWindow: TimeInterval = 0.045
+        let particleCount = Int.random(in: 96...128)
         let colors = kind.colors
-        let speed = CGFloat.random(in: 170...250)
+        let speed = CGFloat.random(in: 380...500)
         let image = kind.image
 
         let emitter = CAEmitterLayer()
@@ -249,55 +251,112 @@ final class GolfFireworkView: UIView {
             cell.contents = image.cgImage
             cell.contentsScale = image.scale
             cell.birthRate = Float(particleCount) / Float(colors.count) / Float(emitWindow)
-            cell.lifetime = Float.random(in: 1.7...2.3)
-            cell.lifetimeRange = 0.3
+            cell.lifetime = Float.random(in: 1.85...2.45)
+            cell.lifetimeRange = 0.25
             cell.velocity = speed
-            cell.velocityRange = speed * 0.35
+            cell.velocityRange = speed * 0.22
             cell.emissionRange = .pi * 2
-            cell.yAcceleration = 170
-            cell.spin = CGFloat.random(in: 1.5...3.5)
-            cell.spinRange = 2
-            cell.scale = 1
-            cell.scaleRange = 0.25
-            cell.scaleSpeed = -0.25
-            cell.alphaSpeed = -0.45
+            cell.yAcceleration = 78
+            cell.spin = CGFloat.random(in: 0.8...2.2)
+            cell.spinRange = 1.4
+            cell.scale = 1.15
+            cell.scaleRange = 0.28
+            cell.scaleSpeed = -0.18
+            cell.alphaSpeed = -0.32
             cell.color = color.cgColor
             return cell
         }
         layer.addSublayer(emitter)
-        addFlash(at: point, color: kind.trailColor)
+        layer.addSublayer(crackleEmitter(at: point))
+        addFlash(at: point, color: .white, diameter: 36, expand: 3.4, duration: 0.16)
+        addFlash(at: point, color: kind.trailColor, diameter: 108, expand: 2.15, duration: 0.32)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + emitWindow) {
             emitter.birthRate = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
             emitter.removeFromSuperlayer()
         }
     }
 
-    private func addFlash(at point: CGPoint, color: UIColor) {
+    /// Short, fast sparks inside the break so the burst has a crack, not only drifting stars.
+    private func crackleEmitter(at point: CGPoint) -> CAEmitterLayer {
+        let emitter = CAEmitterLayer()
+        emitter.frame = bounds
+        emitter.emitterPosition = point
+        emitter.emitterShape = .point
+        emitter.beginTime = CACurrentMediaTime()
+
+        let cell = CAEmitterCell()
+        cell.contents = ParticleKind.sparkImage.cgImage
+        cell.contentsScale = ParticleKind.sparkImage.scale
+        cell.birthRate = 900
+        cell.lifetime = 0.55
+        cell.lifetimeRange = 0.12
+        cell.velocity = 520
+        cell.velocityRange = 80
+        cell.emissionRange = .pi * 2
+        cell.yAcceleration = 40
+        cell.scale = 0.45
+        cell.scaleSpeed = -0.6
+        cell.alphaSpeed = -1.8
+        cell.color = UIColor.white.cgColor
+        emitter.emitterCells = [cell]
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            emitter.birthRate = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            emitter.removeFromSuperlayer()
+        }
+        return emitter
+    }
+
+    /// Rise sampled from a mortar: fastest off the tube, vertical speed gone at the apex.
+    private func ballisticPath(from start: CGPoint, to apex: CGPoint) -> UIBezierPath {
+        let path = UIBezierPath()
+        path.move(to: start)
+        let samples = 28
+        for step in 1...samples {
+            let t = CGFloat(step) / CGFloat(samples)
+            let climb = (2 * t) - (t * t)
+            path.addLine(to: CGPoint(
+                x: start.x + (apex.x - start.x) * t,
+                y: start.y + (apex.y - start.y) * climb
+            ))
+        }
+        return path
+    }
+
+    private func addFlash(
+        at point: CGPoint,
+        color: UIColor,
+        diameter: CGFloat = 86,
+        expand: CGFloat = 2.4,
+        duration: TimeInterval = 0.28
+    ) {
         let flash = CALayer()
-        flash.bounds = CGRect(x: 0, y: 0, width: 44, height: 44)
-        flash.cornerRadius = 22
+        flash.bounds = CGRect(x: 0, y: 0, width: diameter, height: diameter)
+        flash.cornerRadius = diameter / 2
         flash.position = point
-        flash.backgroundColor = color.withAlphaComponent(0.85).cgColor
+        flash.backgroundColor = color.withAlphaComponent(0.9).cgColor
         layer.addSublayer(flash)
 
         let fade = CABasicAnimation(keyPath: "opacity")
         fade.fromValue = 1
         fade.toValue = 0
         let grow = CABasicAnimation(keyPath: "transform.scale")
-        grow.fromValue = 0.3
-        grow.toValue = 1.8
+        grow.fromValue = 0.2
+        grow.toValue = expand
         let group = CAAnimationGroup()
         group.animations = [fade, grow]
-        group.duration = 0.35
+        group.duration = duration
         group.timingFunction = CAMediaTimingFunction(name: .easeOut)
         group.fillMode = .forwards
         group.isRemovedOnCompletion = false
         flash.add(group, forKey: "flash")
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.05) {
             flash.removeFromSuperlayer()
         }
     }

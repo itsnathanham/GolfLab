@@ -126,7 +126,7 @@ Color.orange                 // flagstick flame + caption (system orange)
 Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
 ```
 
-**Layouts** (Profile → Streak layout): **Flagstick** (default) keeps the week marks, and adds the mono streak count plus the compact round and practice chips. **Streak hero** leads with that same count, a segmented week strip, and the chips.
+**Layouts** (Profile → Streak layout): **Flagstick** (default) is one header row — the mono streak count and “week streak” share a baseline, with no hairline under the title — then the week marks, the system-orange flame line, then the round and practice chips. **Streak hero** leads with the stacked count, a segmented week strip, and the chips.
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
@@ -147,7 +147,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Golf fireworks: three ambient shells (balls / flags / tees), then a fourth **flag bloom** (orange + white flags fanning at the top banner); the celebration card springs open out of that fan — **off** when Reduce Motion is enabled (card only).
+- Golf fireworks: three ambient shells climb a ballistic arc (fast mortar, coast to the break) and burst into balls / flags / tees, then a fourth **flag bloom** (orange + white flags fanning at the top banner). The celebration card springs open after that fan and stays up — **off** when Reduce Motion is enabled (card only).
 - Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
@@ -280,7 +280,9 @@ Sub-label:     Sans, 11pt, textTertiary, uppercase
 ```
 
 Buttons must be large enough for one-handed use with a glove.
-Haptic feedback on every increment/decrement (light impact).
+Haptic feedback on every increment/decrement (light impact). The pressed side flashes `accent` with `ctaOnAccent` glyphs for 0.15s.
+
+**Stock yardages** (Profile) uses the same control at row scale: 112×34, 10pt radius, 30pt sides, mono 15 value. Rows are open (no rules). Three horizontal lines on the left reorder a club. Swipe left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
 
 ---
 
