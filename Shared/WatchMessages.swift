@@ -295,13 +295,37 @@ extension WatchPracticeEntry {
 }
 
 /// iPhone → Watch weekly goal celebration notification.
-struct WatchWeeklyGoalCelebration: Codable, Equatable {
+/// `id` makes a second completion in the same week a new show, even when the streak count matches the first.
+struct WatchWeeklyGoalCelebration: Codable, Equatable, Identifiable {
+    let id: UUID
     let completedWeeksStreak: Int
-    
+
+    init(id: UUID = UUID(), completedWeeksStreak: Int) {
+        self.id = id
+        self.completedWeeksStreak = completedWeeksStreak
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case completedWeeksStreak
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        completedWeeksStreak = try container.decode(Int.self, forKey: .completedWeeksStreak)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(completedWeeksStreak, forKey: .completedWeeksStreak)
+    }
+
     func toDictionary() -> [String: Any] {
         WatchCodablePayload.dictionary(self)
     }
-    
+
     static func from(dictionary: [String: Any]) -> WatchWeeklyGoalCelebration? {
         WatchCodablePayload.decode(WatchWeeklyGoalCelebration.self, from: dictionary)
     }

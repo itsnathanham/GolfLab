@@ -98,8 +98,13 @@ struct MainTabView: View {
             if let celebration = roundStore.weeklyGoalCelebration {
                 WeeklyGoalCelebrationOverlay(
                     presentation: celebration,
-                    onDismiss: { roundStore.dismissWeeklyGoalCelebration() }
+                    onDismiss: {
+                        if roundStore.weeklyGoalCelebration?.id == celebration.id {
+                            roundStore.dismissWeeklyGoalCelebration()
+                        }
+                    }
                 )
+                .id(celebration.id)
                 .zIndex(1000)
             }
         }
