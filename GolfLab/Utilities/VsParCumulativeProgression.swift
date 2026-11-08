@@ -8,12 +8,12 @@ enum VsParCumulativeProgression {
         round.holes > 0 && holeRowCount >= round.holes
     }
 
+    /// Cumulative vs-par for holes 1 through `roundHoleCount`. Incomplete scorecards return nil.
     static func cumulativeValues(
         from holes: [Hole],
-        roundHoleCount: Int,
-        slotCount: Int = chartHoleSlots
+        roundHoleCount: Int
     ) -> [Double]? {
-        guard roundHoleCount > 0, slotCount > 0 else { return nil }
+        guard roundHoleCount > 0 else { return nil }
         let sorted = holes.sorted { $0.holeNumber < $1.holeNumber }
         guard !sorted.isEmpty else { return nil }
 
@@ -23,17 +23,12 @@ enum VsParCumulativeProgression {
             running += Double(hole.score - hole.par)
             byHole[hole.holeNumber] = running
         }
-        guard (1...roundHoleCount).allSatisfy({ byHole[$0] != nil }) else { return nil }
 
         var result: [Double] = []
-        var last = 0.0
-        for index in 1...slotCount {
-            if index <= roundHoleCount, let value = byHole[index] {
-                last = value
-                result.append(value)
-            } else {
-                result.append(last)
-            }
+        result.reserveCapacity(roundHoleCount)
+        for index in 1...roundHoleCount {
+            guard let value = byHole[index] else { return nil }
+            result.append(value)
         }
         return result
     }
@@ -50,16 +45,22 @@ enum VsParCumulativeProgression {
         for round in rounds {
             guard let holes = holesByRoundId[round.id],
                   hasCompleteScorecard(round: round, holes: holes, holeRowCount: holeRowCountByRoundId[round.id] ?? 0),
-                  let values = cumulativeValues(from: holes, roundHoleCount: round.holes, slotCount: slotCount)
+                  let values = cumulativeValues(from: holes, roundHoleCount: round.holes)
             else { continue }
-            perRoundValues.append(values)
+            let capped = Array(values.prefix(slotCount))
+            guard !capped.isEmpty else { continue }
+            perRoundValues.append(capped)
         }
         guard perRoundValues.count >= minimumRoundsContributing else { return nil }
 
+        let longest = min(slotCount, perRoundValues.map(\.count).max() ?? 0)
         var averaged: [Double] = []
-        for index in 0..<slotCount {
-            let sum = perRoundValues.reduce(0.0) { $0 + $1[index] }
-            averaged.append(sum / Double(perRoundValues.count))
+        averaged.reserveCapacity(longest)
+        for index in 0..<longest {
+            let contributors = perRoundValues.filter { $0.count > index }
+            guard contributors.count >= minimumRoundsContributing else { break }
+            let sum = contributors.reduce(0.0) { $0 + $1[index] }
+            averaged.append(sum / Double(contributors.count))
         }
         return VsParLineChartSeries(roundValues: averaged)
     }
