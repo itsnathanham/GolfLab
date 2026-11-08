@@ -26,6 +26,15 @@ protocol GolfLabStore: AnyObject {
 
     func fetchAllPracticeSessions(userId: UUID) async throws -> [PracticeSession]
     func insertPracticeSession(_ insert: PracticeSessionInsert) async throws -> PracticeSession
+    func updatePracticeSession(
+        id: UUID,
+        sessionDate: String,
+        practicedRange: Bool,
+        practicedChipping: Bool,
+        practicedPutting: Bool,
+        rangeBallsHit: Int?
+    ) async throws -> PracticeSession
+    func deletePracticeSession(id: UUID) async throws
 
     func insertHoles(_ holes: [HoleInsert]) async throws -> [Hole]
     func fetchHoles(roundId: UUID) async throws -> [Hole]
@@ -49,12 +58,41 @@ struct GolfLabDataExport: Codable {
 enum DatabaseError: LocalizedError {
     case insertFailed(String)
     case notFound
+    /// A Watch delivery arrived for a practice session the phone already deleted.
+    case deletedPracticeReplay
 
     var errorDescription: String? {
         switch self {
         case .insertFailed(let msg): return "Insert failed: \(msg)"
         case .notFound: return "Record not found."
+        case .deletedPracticeReplay: return "This practice session was deleted."
         }
+    }
+}
+
+/// Local ids of practice sessions removed on this phone.
+/// `insertPracticeSession` refuses them so a queued Watch save cannot recreate the row.
+private enum DeletedPracticeSessionIDs {
+    private static let defaultsKey = "golflab.deletedPracticeSessionIDs"
+
+    static func contains(_ id: UUID) -> Bool {
+        stored.contains(id.uuidString)
+    }
+
+    static func remember(_ id: UUID) {
+        var ids = stored
+        ids.insert(id.uuidString)
+        UserDefaults.standard.set(Array(ids), forKey: defaultsKey)
+    }
+
+    static func forget(_ id: UUID) {
+        var ids = stored
+        guard ids.remove(id.uuidString) != nil else { return }
+        UserDefaults.standard.set(Array(ids), forKey: defaultsKey)
+    }
+
+    private static var stored: Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [])
     }
 }
 
@@ -246,8 +284,13 @@ final class SwiftDataGolfLabStore: GolfLabStore {
 
     func insertPracticeSession(_ insert: PracticeSessionInsert) async throws -> PracticeSession {
         let context = try requireContext()
-        if let id = insert.id, let existing = try findPractice(id: id) {
-            return existing.asPracticeSession()
+        if let id = insert.id {
+            if DeletedPracticeSessionIDs.contains(id) {
+                throw DatabaseError.deletedPracticeReplay
+            }
+            if let existing = try findPractice(id: id) {
+                return existing.asPracticeSession()
+            }
         }
         let model = SDPracticeSession(
             id: insert.id ?? UUID(),
@@ -262,6 +305,36 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         context.insert(model)
         try context.save()
         return model.asPracticeSession()
+    }
+
+    func updatePracticeSession(
+        id: UUID,
+        sessionDate: String,
+        practicedRange: Bool,
+        practicedChipping: Bool,
+        practicedPutting: Bool,
+        rangeBallsHit: Int?
+    ) async throws -> PracticeSession {
+        let context = try requireContext()
+        guard let model = try findPractice(id: id) else {
+            throw DatabaseError.notFound
+        }
+        model.sessionDate = sessionDate
+        model.practicedRange = practicedRange
+        model.practicedChipping = practicedChipping
+        model.practicedPutting = practicedPutting
+        model.rangeBallsHit = practicedRange ? rangeBallsHit : nil
+        try context.save()
+        DeletedPracticeSessionIDs.forget(id)
+        return model.asPracticeSession()
+    }
+
+    func deletePracticeSession(id: UUID) async throws {
+        let context = try requireContext()
+        DeletedPracticeSessionIDs.remember(id)
+        guard let model = try findPractice(id: id) else { return }
+        context.delete(model)
+        try context.save()
     }
 
     func insertHoles(_ holes: [HoleInsert]) async throws -> [Hole] {

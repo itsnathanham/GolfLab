@@ -312,7 +312,7 @@ struct ProfileView: View {
             if let saved = updated.stockClubYardages {
                 stockClubRows = saved
             }
-            roundStore.applyWeeklyGoalState(from: updated)
+            roundStore.applyWeeklyGoalState(from: updated, recordGoalEdit: goalsChanged)
             profileDirty = false
             suppressAutosave = false
         } catch {

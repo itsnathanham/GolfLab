@@ -21,7 +21,9 @@ struct WeeklyGoalsStreakSection: View {
                 heroCard(snap: snap)
             }
         }
-        .sheet(item: $selectedWeek) { week in
+        .sheet(item: $selectedWeek, onDismiss: {
+            roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+        }) { week in
             NavigationStack {
                 if let detail = roundStore.weeklyGoalWeekDetail(week: week, history: snap.weekHistory) {
                     WeeklyGoalWeekSummarySheet(detail: detail)

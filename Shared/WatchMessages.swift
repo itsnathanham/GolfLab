@@ -25,6 +25,7 @@ enum WatchMessageKey {
     static let sessionId         = "sessionId"
     static let revision          = "revision"
     static let celebrationData   = "celebrationData"
+    static let weekData          = "weekData"
 }
 
 enum WatchMessageType: String {
@@ -35,6 +36,7 @@ enum WatchMessageType: String {
     case companionEnded     = "companionEnded"
     case syncRequest        = "syncRequest"
     case weeklyGoalCelebration = "weeklyGoalCelebration"
+    case weeklyGoals = "weeklyGoals"
 }
 
 /// Scorecard replicated between iPhone and Watch.
@@ -294,14 +296,69 @@ extension WatchPracticeEntry {
     }
 }
 
-/// iPhone → Watch weekly goal celebration notification.
-struct WatchWeeklyGoalCelebration: Codable, Equatable {
+/// iPhone → Watch current-week progress for the idle home screen.
+struct WatchWeekSnapshot: Codable, Equatable {
+    let weekStartYMD: String
+    let roundTarget: Int
+    let practiceTarget: Int
+    let roundsThisWeek: Int
+    let practiceSessionsThisWeek: Int
     let completedWeeksStreak: Int
-    
+    let hasActiveTargets: Bool
+    /// When the phone built this payload. The watch ignores an older one that arrives late.
+    let sentAt: Date
+
+    static func == (lhs: WatchWeekSnapshot, rhs: WatchWeekSnapshot) -> Bool {
+        lhs.weekStartYMD == rhs.weekStartYMD
+            && lhs.roundTarget == rhs.roundTarget
+            && lhs.practiceTarget == rhs.practiceTarget
+            && lhs.roundsThisWeek == rhs.roundsThisWeek
+            && lhs.practiceSessionsThisWeek == rhs.practiceSessionsThisWeek
+            && lhs.completedWeeksStreak == rhs.completedWeeksStreak
+            && lhs.hasActiveTargets == rhs.hasActiveTargets
+    }
+
     func toDictionary() -> [String: Any] {
         WatchCodablePayload.dictionary(self)
     }
-    
+
+    static func from(dictionary: [String: Any]) -> WatchWeekSnapshot? {
+        WatchCodablePayload.decode(WatchWeekSnapshot.self, from: dictionary)
+    }
+}
+
+/// iPhone → Watch weekly goal celebration notification.
+/// `id` makes a second completion in the same week a new show, even when the streak count matches the first.
+struct WatchWeeklyGoalCelebration: Codable, Equatable, Identifiable {
+    let id: UUID
+    let completedWeeksStreak: Int
+
+    init(id: UUID = UUID(), completedWeeksStreak: Int) {
+        self.id = id
+        self.completedWeeksStreak = completedWeeksStreak
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case completedWeeksStreak
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        completedWeeksStreak = try container.decode(Int.self, forKey: .completedWeeksStreak)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(completedWeeksStreak, forKey: .completedWeeksStreak)
+    }
+
+    func toDictionary() -> [String: Any] {
+        WatchCodablePayload.dictionary(self)
+    }
+
     static func from(dictionary: [String: Any]) -> WatchWeeklyGoalCelebration? {
         WatchCodablePayload.decode(WatchWeeklyGoalCelebration.self, from: dictionary)
     }
