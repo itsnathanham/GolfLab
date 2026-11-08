@@ -4,10 +4,21 @@ import Foundation
 enum GLCalendarISO {
     private static let cal = Calendar.current
 
+    /// Start of the calendar week containing `date`, as `yyyy-MM-dd`.
+    /// The week interval and the day string use the same calendar, so a non-default calendar cannot disagree with itself.
+    static func weekStartYMD(containing date: Date = Date(), calendar: Calendar = .current) -> String {
+        let anchor = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
+        return ymd(for: anchor, calendar: calendar)
+    }
+
     static func ymd(for date: Date) -> String {
-        let y = cal.component(.year, from: date)
-        let m = cal.component(.month, from: date)
-        let d = cal.component(.day, from: date)
+        ymd(for: date, calendar: cal)
+    }
+
+    private static func ymd(for date: Date, calendar: Calendar) -> String {
+        let y = calendar.component(.year, from: date)
+        let m = calendar.component(.month, from: date)
+        let d = calendar.component(.day, from: date)
         return String(format: "%04d-%02d-%02d", y, m, d)
     }
 

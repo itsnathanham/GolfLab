@@ -22,6 +22,10 @@ class WatchSessionService: NSObject, ObservableObject {
     @Published private(set) var isWaitingForPhoneToSave = false
     /// Weekly goal celebration triggered by practice logged on this Watch.
     @Published var weeklyGoalCelebration: WatchWeeklyGoalCelebration?
+    /// Latest week from the phone. Shown on the idle home screen.
+    @Published private(set) var weekSnapshot: WatchWeekSnapshot?
+
+    private static let weekDefaultsKey = "golflab.watchWeekSnapshot"
 
     private var appliedSessionId: UUID?
     private var holeClock: UInt64 = 0
@@ -33,6 +37,7 @@ class WatchSessionService: NSObject, ObservableObject {
     private override init() {
         super.init()
         restoreLocalScorecard()
+        restoreWeekSnapshot()
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
@@ -52,6 +57,21 @@ class WatchSessionService: NSObject, ObservableObject {
 
     var displayHoleNumber: Int {
         currentHole?.holeNumber ?? (currentHoleIndex + 1)
+    }
+
+    func applyWeekSnapshot(_ week: WatchWeekSnapshot) {
+        if let current = weekSnapshot, week.sentAt < current.sentAt { return }
+        weekSnapshot = week
+        if let data = try? JSONEncoder().encode(week) {
+            UserDefaults.standard.set(data, forKey: Self.weekDefaultsKey)
+        }
+    }
+
+    private func restoreWeekSnapshot() {
+        guard let data = UserDefaults.standard.data(forKey: Self.weekDefaultsKey),
+              let week = try? JSONDecoder().decode(WatchWeekSnapshot.self, from: data)
+        else { return }
+        weekSnapshot = week
     }
 
     func requestCompanionSyncFromPhone() {
@@ -216,6 +236,10 @@ class WatchSessionService: NSObject, ObservableObject {
     }
 
     private func applyReceivedApplicationContext(_ context: [String: Any]) {
+        if let weekDict = context[WatchMessageKey.weekData] as? [String: Any],
+           let week = WatchWeekSnapshot.from(dictionary: weekDict) {
+            applyWeekSnapshot(week)
+        }
         guard let typeRaw = context[WatchMessageKey.type] as? String,
               let type = WatchMessageType(rawValue: typeRaw)
         else { return }
@@ -225,6 +249,8 @@ class WatchSessionService: NSObject, ObservableObject {
                let snapshot = WatchCompanionSnapshot.decode(from: data) {
                 applyCompanionSnapshot(snapshot)
             }
+        case .weeklyGoals:
+            break
         case .holeEntry, .endRound, .syncRequest, .practiceEntry, .weeklyGoalCelebration:
             break
         }
@@ -412,6 +438,11 @@ extension WatchSessionService: WCSessionDelegate {
             if let celebrationDict = payload[WatchMessageKey.celebrationData] as? [String: Any],
                let celebration = WatchWeeklyGoalCelebration.from(dictionary: celebrationDict) {
                 weeklyGoalCelebration = celebration
+            }
+        case .weeklyGoals:
+            if let weekDict = payload[WatchMessageKey.weekData] as? [String: Any],
+               let week = WatchWeekSnapshot.from(dictionary: weekDict) {
+                applyWeekSnapshot(week)
             }
         case .holeEntry, .endRound, .syncRequest, .practiceEntry:
             break
