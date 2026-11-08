@@ -728,11 +728,13 @@ class RoundStore: ObservableObject {
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
         queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore, sendToWatch: fromWatch)
+        dropPendingCelebrationIfWeekUnfinished()
     }
 
     /// Drops a deleted practice row so calendar dots, streak, and range-ball totals recount immediately.
     func removePracticeSession(id: UUID) {
         allPracticeSessions.removeAll { $0.id == id }
+        dropPendingCelebrationIfWeekUnfinished()
     }
 
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
@@ -796,11 +798,23 @@ class RoundStore: ObservableObject {
     }
 
     /// Call after the practice log / end-round sheet closes so the fireworks are not hidden behind the sheet.
+    /// A queued show is dropped when this week is no longer complete, so dismissing a sheet cannot celebrate a bar
+    /// that was deleted or edited away — and cannot save the week mark that would block the next completion.
     func presentPendingWeeklyGoalCelebrationIfNeeded() {
         guard weeklyGoalCelebration == nil, let pending = weeklyGoalCelebrationPending else { return }
+        guard weeklyGoalsSnapshot().currentWeekComplete else {
+            weeklyGoalCelebrationPending = nil
+            return
+        }
         weeklyGoalCelebrationPending = nil
         WeeklyGoalCelebration.markCelebrated(weekStartYMD: pending.weekStartYMD)
         weeklyGoalCelebration = pending
+    }
+
+    /// A save or delete that leaves this week unfinished must not keep a show that was queued for the old bar.
+    private func dropPendingCelebrationIfWeekUnfinished() {
+        guard weeklyGoalCelebration == nil, !weeklyGoalsSnapshot().currentWeekComplete else { return }
+        weeklyGoalCelebrationPending = nil
     }
 
     /// The device that saved the completing event celebrates. A watch-origin save is marked celebrated up front so a
