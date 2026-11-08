@@ -10,10 +10,10 @@ struct WatchWeeklyGoalCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
 
-    /// Flags fan, then the card opens out of that bloom.
-    private static let bloomDelay: TimeInterval = 0.2
-    private static let cardDelay: TimeInterval = 0.38
-    private static let dismissAfter: TimeInterval = 3.1
+    /// Flags fan, then the card opens out of that bloom and stays up.
+    private static let bloomDelay: TimeInterval = 0.28
+    private static let cardDelay: TimeInterval = 0.7
+    private static let dismissAfter: TimeInterval = 5.8
 
     var body: some View {
         ZStack {
@@ -58,7 +58,7 @@ struct WatchWeeklyGoalCelebrationView: View {
             playCelebrationHaptics()
             let delay: TimeInterval = reduceMotion ? 0 : Self.cardDelay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                     showContent = true
                 }
             }

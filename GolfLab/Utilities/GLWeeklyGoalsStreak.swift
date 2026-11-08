@@ -128,32 +128,31 @@ enum GLWeeklyGoalsStreak {
 
     // MARK: - Tracking anchor (W1)
 
+    /// Earliest week the flagstick row should show.
+    /// A goal edit stores the new targets on this week and the previous targets on a 1970 sentinel.
+    /// That dated row is not when tracking started, so older rounds and practice still open the row.
     private static func trackingAnchorWeekStartYMD(
         context: EvaluationContext,
         currentWeekStartYMD: String
     ) -> String {
         let sorted = WeeklyGoalTargetRevision.sorted(context.goalRevisions)
         let dated = sorted.filter { $0.effectiveFromYMD != legacyRevisionSentinelYMD }
-        if let earliest = dated.first?.effectiveFromYMD {
-            return earliest
-        }
 
-        var activityWeekStarts: [String] = []
-        for r in context.rounds where context.isCompletedRound(r) {
-            if let w = context.weekStartYMD(forYMD: r.datePlayedYMD) {
-                activityWeekStarts.append(w)
+        var candidates: [String] = []
+        if let earliestRevision = dated.first?.effectiveFromYMD {
+            candidates.append(earliestRevision)
+        }
+        for round in context.rounds where context.isCompletedRound(round) {
+            if let week = context.weekStartYMD(forYMD: round.datePlayedYMD) {
+                candidates.append(week)
             }
         }
-        for p in context.practiceSessions {
-            if let w = context.weekStartYMD(forYMD: p.sessionDate) {
-                activityWeekStarts.append(w)
+        for session in context.practiceSessions {
+            if let week = context.weekStartYMD(forYMD: session.sessionDate) {
+                candidates.append(week)
             }
         }
-        if let earliestActivity = activityWeekStarts.min() {
-            return earliestActivity
-        }
-
-        return currentWeekStartYMD
+        return candidates.min() ?? currentWeekStartYMD
     }
 
     private static func weekStartsFromAnchor(

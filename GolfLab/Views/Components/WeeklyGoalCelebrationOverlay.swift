@@ -36,7 +36,8 @@ struct WeeklyGoalCelebrationOverlay: View {
         .onAppear {
             playCelebrationHaptics()
             revealBanner()
-            DispatchQueue.main.asyncAfter(deadline: .now() + autoDismissSeconds) {
+            let hold = reduceMotion ? 4.5 : autoDismissSeconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
                 onDismiss()
             }
         }
@@ -108,7 +109,7 @@ struct WeeklyGoalCelebrationOverlay: View {
     private func revealBanner() {
         let delay: TimeInterval = reduceMotion ? 0 : GolfFireworkEmitterView.cardRevealTime
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
+            withAnimation(.spring(response: 0.62, dampingFraction: 0.84)) {
                 bannerVisible = true
             }
         }

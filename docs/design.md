@@ -147,7 +147,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
-- Golf fireworks: three ambient shells (balls / flags / tees), then a fourth **flag bloom** (orange + white flags fanning at the top banner); the celebration card springs open out of that fan — **off** when Reduce Motion is enabled (card only).
+- Golf fireworks: three ambient shells climb a ballistic arc (fast mortar, coast to the break) and burst into balls / flags / tees, then a fourth **flag bloom** (orange + white flags fanning at the top banner). The celebration card springs open after that fan and stays up — **off** when Reduce Motion is enabled (card only).
 - Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
