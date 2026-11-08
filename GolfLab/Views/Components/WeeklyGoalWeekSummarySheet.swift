@@ -172,27 +172,7 @@ struct WeeklyGoalWeekSummarySheet: View {
     private var practiceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             GLFormFieldLabel(text: "Practice")
-            VStack(spacing: 0) {
-                ForEach(Array(detail.practices.enumerated()), id: \.element.id) { index, session in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(session.focusSubtitle.isEmpty ? "Logged practice" : session.focusSubtitle)
-                            .font(.glSubhead)
-                            .foregroundColor(.textPrimary)
-                        Text(GLCalendarISO.mmddyyyyDisplay(from: session.sessionDate))
-                            .font(.glFootnote)
-                            .foregroundColor(.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    if index < detail.practices.count - 1 {
-                        Rectangle()
-                            .fill(Color.borderDefault)
-                            .frame(height: 1)
-                    }
-                }
-            }
-            .glCardChromeFrame(outlined: true)
+            PracticeSessionCardList(sessions: detail.practices)
         }
     }
 

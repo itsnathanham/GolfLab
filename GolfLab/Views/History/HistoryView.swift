@@ -124,7 +124,9 @@ struct HistoryView: View {
                 showDaySummarySheet = false
             }
         }
-        .sheet(isPresented: $showDaySummarySheet) {
+        .sheet(isPresented: $showDaySummarySheet, onDismiss: {
+            roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+        }) {
             if let ymd = selectedCalendarYMD {
                 NavigationStack {
                     HistoryDaySummarySheet(
@@ -400,27 +402,7 @@ private struct HistoryDaySummarySheet: View {
     private var practiceList: some View {
         VStack(alignment: .leading, spacing: 8) {
             GLFormFieldLabel(text: "Practice")
-            VStack(spacing: 0) {
-                ForEach(Array(practices.enumerated()), id: \.element.id) { index, session in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(session.focusSubtitle.isEmpty ? "Logged practice" : session.focusSubtitle)
-                            .font(.glSubhead)
-                            .foregroundColor(.textPrimary)
-                        Text(GLCalendarISO.mmddyyyyDisplay(from: session.sessionDate))
-                            .font(.glFootnote)
-                            .foregroundColor(.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    if index < practices.count - 1 {
-                        Rectangle()
-                            .fill(Color.borderDefault)
-                            .frame(height: 1)
-                    }
-                }
-            }
-            .glCardChromeFrame(outlined: true)
+            PracticeSessionCardList(sessions: practices)
         }
     }
 }

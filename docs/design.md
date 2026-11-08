@@ -139,9 +139,9 @@ Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
 Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
-**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
+**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), tappable practice rows (`PracticeSessionRowView`: orange dot, focus, relative day, ball count, chevron) that open Edit practice, range-balls column chart (solid orange current week, muted priors).
 
-**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, practice rows (focus + date). No range-balls chart.
+**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, the same tappable practice rows. No range-balls chart.
 
 **Streak footer:** `flame.fill` (orange) + footnote caption (orange).
 
