@@ -150,7 +150,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 - Golf fireworks: three ambient shells (balls / flags / tees), then a fourth **flag bloom** (orange + white flags fanning at the top banner); the celebration card springs open out of that fan — **off** when Reduce Motion is enabled (card only).
 - Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
-- Celebrates each time this week goes from unfinished to finished. A harder round or practice target that reopens a finished week clears that week's mark, so meeting the new bar celebrates again; an easier goal, or the same numbers, leaves the mark. Queued if a sheet would hide the overlay.
+- Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
 - Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
 
 ---

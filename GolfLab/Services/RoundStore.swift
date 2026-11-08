@@ -840,12 +840,11 @@ class RoundStore: ObservableObject {
         }
     }
 
-    /// Forgets this week's celebration when a harder target makes a finished week unfinished.
+    /// Forgets this week's celebration when a harder target leaves the week unfinished.
     /// The visible overlay is left alone. A show that has not appeared yet is dropped so it cannot mark the week again.
     private func reopenCelebrationIfHarderGoalUnfinishedWeek(before: GLWeeklyGoalsStreak.Snapshot) {
         let after = weeklyGoalsSnapshot()
         guard WeeklyGoalCelebration.shouldForgetCelebratedWeek(
-            beforeComplete: before.currentWeekComplete,
             afterComplete: after.currentWeekComplete,
             beforeRoundTarget: before.roundTarget,
             beforePracticeTarget: before.practiceTarget,

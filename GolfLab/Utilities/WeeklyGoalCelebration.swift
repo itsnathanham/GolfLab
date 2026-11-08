@@ -36,17 +36,17 @@ enum WeeklyGoalCelebration {
         defaults.set(weekStartYMD, forKey: lastCelebratedWeekKey)
     }
 
-    /// True when a strictly harder target turns a finished week unfinished.
+    /// True when a strictly harder target leaves this week unfinished.
+    /// The week may already be unfinished, so a deleted session cannot leave the old mark in place.
     /// Either count may stay the same. An easier target, the same numbers, or a mixed edit (one up, one down) does not qualify.
     static func shouldForgetCelebratedWeek(
-        beforeComplete: Bool,
         afterComplete: Bool,
         beforeRoundTarget: Int,
         beforePracticeTarget: Int,
         afterRoundTarget: Int,
         afterPracticeTarget: Int
     ) -> Bool {
-        guard beforeComplete, !afterComplete else { return false }
+        guard !afterComplete else { return false }
         let roundsNotLower = afterRoundTarget >= beforeRoundTarget
         let practiceNotLower = afterPracticeTarget >= beforePracticeTarget
         let stricter = afterRoundTarget > beforeRoundTarget || afterPracticeTarget > beforePracticeTarget
