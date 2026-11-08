@@ -36,9 +36,43 @@ Ordered follow-ups. Status is per row.
 | 1   | **Practice cards** — redo the practice card UI/UX, and add edit and delete for a logged practice session                                                                                            | **Done** (tappable `PracticeSessionRowView` opens Edit practice; save updates the row; delete confirms and a later Watch replay of that id is ignored) |
 | 2   | **Streak color** — redo the purple used for the streak                                                                                                                                              | **Done** (orange `streakMark`; Flagstick + Streak hero toggle) |
 | 3   | **Streak celebration card** — update the weekly goals celebration banner/card (`WeeklyGoalCelebrationOverlay`) to match the chosen streak color + section treatment                                | **Done** (flag bloom + orange chrome) |
-| 4   | **Stock yardages** — rethink the stepper UI in `StockClubYardagesSection`, and fix the last entry                                                                                                   | **Not started** |
-| 5   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
-| 6   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Done** (`GOLF LAB` wordmark, this week’s rounds/practice/streak from the phone, `iPhone → Start round`, ghost Log practice) |
+| 4   | **Streak card animation** — the card should emerge from the 4th-shell burst after a short delay, not scale up from screen center. Consider a different card background. See notes below.            | **Not started** |
+| 5   | **Streak flags** — on long histories the current week is clipped off the right and needs a horizontal scroll. Week 1 through week 100 should still show the right flagsticks and progress. See notes below. | **Not started** |
+| 6   | **Stock yardages** — slightly larger club and yards type, a bigger stepper with easier taps, and reorder that does not steal page scroll. Drag handle is the grip only. Fix the last entry. See notes below. | **Not started** |
+| 7   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
+| 8   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Done** (`GOLF LAB` wordmark, this week’s rounds/practice/streak from the phone, `iPhone → Start round`, ghost Log practice) |
+
+
+### Streak card animation
+
+Follow-up to the celebration card (row 3 is done; this is the motion).
+
+- Better transition from the 4th shell (flag bloom) into the celebration card.
+- The card should come out of that burst, with a slight delay after the bloom, so it does not pop from the center of the screen.
+- Consider a different card background so the card reads clearly against the burst.
+
+**Status:** Not started.
+
+### Streak flags
+
+Flagstick week history (`WeeklyGoalsStreakSection`), including the hero week strip.
+
+- Long histories hide the current flag on the right. The user has to scroll horizontally to see the current week.
+- Walk every length, from the 1st week through the 100th, and make sure the visible flagsticks and progress are the ones that matter (current week in view, earlier weeks still reachable, labels still readable).
+
+**Status:** Not started.
+
+### Stock yardages
+
+`StockClubYardagesSection` stepper and list. Includes the earlier “fix the last entry” note.
+
+- Increase font sizes for clubs and yards, and scale the stepper up overall: a bit wider, larger type, a bit more height. Bigger, not a redesign.
+- Tap targets are tight; make − / + easier to hit.
+- Reordering an item to a spot far up or down the list (off screen) currently takes a drag, a drop, a page swipe, then another drag. One reorder should be able to move from top to bottom or the other way.
+- The whole stock yardages block eats vertical page scrolls. Swipes on the rows should scroll the profile page. The reorder drag should start only on the grip (the three horizontal lines).
+- Keep three gestures distinct: page swipe up/down, drag-and-drop reorder, and delete.
+
+**Status:** Not started.
 
 
 ---
