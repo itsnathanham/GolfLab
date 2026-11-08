@@ -83,7 +83,10 @@ struct StockClubYardagesSection: View {
                 CompactYardageStepper(
                     yardage: Binding(
                         get: { row.yardage },
-                        set: { updateYardage(id: row.id, yardage: $0) }
+                        set: { newValue in
+                            guard let newValue else { return }
+                            updateYardage(id: row.id, yardage: newValue)
+                        }
                     )
                 )
             }
