@@ -66,7 +66,6 @@ struct WeeklyGoalsStreakSection: View {
         .glCardChromeFrame(outlined: true)
     }
 
-    /// Eyebrow plus the hero streak count. The hairline stays so the card still reads as the flagstick header.
     private func flagstickHeader(streakWeeks: Int, showsStreak: Bool) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text("Weekly goals")

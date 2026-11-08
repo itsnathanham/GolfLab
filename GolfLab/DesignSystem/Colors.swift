@@ -123,14 +123,12 @@ extension Color {
     
     // MARK: - Weekly goals / streak (calendar orange marks; progress stays accent green)
     
-    /// Met-week flagsticks, flame, streak caption, celebration card chrome.
+    /// Met-week flagsticks, streak count, hero flame, celebration card chrome.
     static var streakMark: Color { chartOrange }
     /// Celebration orange. Same value as `streakMark`.
     static var streakSuccess: Color { chartOrange }
     /// Green accent used in firework particles.
     static var streakSuccessDeep: Color { accentMid }
-    /// Glyph on elevated miss marks (white ×).
-    static let streakOnSuccess = Color(hex: "#FFFFFF")
     /// Active streak footer / celebration streak line.
     static var streakTextActive: Color { chartOrange }
     /// Celebration card border.

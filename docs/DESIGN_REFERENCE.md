@@ -45,10 +45,9 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPurple` | `#A04DD8` | Season-best badges, GIR / practice series |
 | `chartOrange` | `#D98909` | Peak performance, calendar practice dots, streak marks |
 | **Weekly goals** | | *Orange marks; progress stays accent green* |
-| `streakMark` | `chartOrange` | Flagsticks, flame, streak caption |
+| `streakMark` | `chartOrange` | Flagsticks, streak count, hero flame |
 | `streakSuccess` | `chartOrange` | Celebration card / flag bloom |
 | `streakSuccessDeep` | `accentMid` | Firework particles |
-| `streakOnSuccess` | `#FFFFFF` | × on missed week marks |
 | `streakTextActive` | `chartOrange` | Celebration streak line |
 | `streakCardBorder` | orange @ 40% | Celebration card stroke |
 | **Calendar** | | |
