@@ -61,6 +61,9 @@ class RoundStore: ObservableObject {
     @Published var weeklyGoalCelebration: WeeklyGoalCelebrationPresentation?
     /// Queued until practice sheet dismisses or app returns to foreground.
     private var weeklyGoalCelebrationPending: WeeklyGoalCelebrationPresentation?
+    /// Bumped when a harder goal reopens this week. An in-flight watch fallback from the earlier completion
+    /// compares against this so it cannot mark the week celebrated again.
+    private var weeklyGoalCelebrationEpoch: UInt64 = 0
 
     /// Minimum holes of this par in the **resolved default season** (persisted + in-season active saved) before showing a numeric average in Hole Entry.
     private let minimumParAverageSample = 3
@@ -696,7 +699,10 @@ class RoundStore: ObservableObject {
     }
 
     /// Applies profile weekly targets + revision history (Home / History streak UI).
-    func applyWeeklyGoalState(from profile: UserProfile) {
+    /// `recordGoalEdit` is set only for a profile save that changed this week's targets. Hydration uses the default
+    /// so a cold launch cannot look like a goal increase and clear a celebration the user already earned.
+    func applyWeeklyGoalState(from profile: UserProfile, recordGoalEdit: Bool = false) {
+        let beforeGoals = recordGoalEdit ? weeklyGoalsSnapshot() : nil
         let r = profile.weeklyRoundTarget ?? 1
         let p = profile.weeklyPracticeTarget ?? 2
         weeklyRoundTarget = r
@@ -706,6 +712,9 @@ class RoundStore: ObservableObject {
             flatRound: r,
             flatPractice: p
         )
+        if let beforeGoals {
+            reopenCelebrationIfHarderGoalUnfinishedWeek(before: beforeGoals)
+        }
         profileDisplayName = profile.displayName
         publishWeekToWatch()
         guard profile.profilePhotoPath != profilePhotoPath else { return }
@@ -816,11 +825,12 @@ class RoundStore: ObservableObject {
 
     func dismissWeeklyGoalCelebration() {
         weeklyGoalCelebration = nil
+        presentPendingWeeklyGoalCelebrationIfNeeded()
     }
 
     /// Call after the practice log / end-round sheet closes so the fireworks are not hidden behind the sheet.
     /// A queued show is dropped when this week is no longer complete, so dismissing a sheet cannot celebrate a bar
-    /// that was deleted or edited away — and cannot save the week mark that would block the next completion.
+    /// that was deleted, edited away, or replaced — and cannot save the week mark that would block the next completion.
     func presentPendingWeeklyGoalCelebrationIfNeeded() {
         guard weeklyGoalCelebration == nil, let pending = weeklyGoalCelebrationPending else { return }
         guard weeklyGoalsSnapshot().currentWeekComplete else {
@@ -839,7 +849,9 @@ class RoundStore: ObservableObject {
     }
 
     /// The device that saved the completing event celebrates. A watch-origin save is marked celebrated up front so a
-    /// later phone save in the same week cannot double up; if the watch cannot be reached the phone shows it instead.
+    /// later phone save of that same completion cannot double up; if the watch cannot be reached the phone shows it instead.
+    /// A harder goal that reopens the week clears the mark and bumps `weeklyGoalCelebrationEpoch`, so this fallback
+    /// cannot re-lock the week. The next completion celebrates on whichever device saved it.
     private func queueWeeklyGoalCelebrationIfNeeded(before: GLWeeklyGoalsStreak.Snapshot, sendToWatch: Bool = false) {
         let after = weeklyGoalsSnapshot()
         guard let presentation = WeeklyGoalCelebration.presentationIfNewlyCompleted(before: before, after: after) else {
@@ -851,14 +863,32 @@ class RoundStore: ObservableObject {
             return
         }
 
+        let epoch = weeklyGoalCelebrationEpoch
         WeeklyGoalCelebration.markCelebrated(weekStartYMD: presentation.weekStartYMD)
         WatchConnectivityService.shared.sendWeeklyGoalCelebration(
+            id: presentation.id,
             completedWeeksStreak: presentation.completedWeeksStreak
         ) { [weak self] in
-            guard let self else { return }
+            guard let self, self.weeklyGoalCelebrationEpoch == epoch else { return }
             self.weeklyGoalCelebrationPending = presentation
             self.presentPendingWeeklyGoalCelebrationIfNeeded()
         }
+    }
+
+    /// Forgets this week's celebration when a harder target leaves the week unfinished.
+    /// The visible overlay is left alone. A show that has not appeared yet is dropped so it cannot mark the week again.
+    private func reopenCelebrationIfHarderGoalUnfinishedWeek(before: GLWeeklyGoalsStreak.Snapshot) {
+        let after = weeklyGoalsSnapshot()
+        guard WeeklyGoalCelebration.shouldForgetCelebratedWeek(
+            afterComplete: after.currentWeekComplete,
+            beforeRoundTarget: before.roundTarget,
+            beforePracticeTarget: before.practiceTarget,
+            afterRoundTarget: after.roundTarget,
+            afterPracticeTarget: after.practiceTarget
+        ) else { return }
+        WeeklyGoalCelebration.forgetCelebratedWeekIfCurrent()
+        weeklyGoalCelebrationEpoch &+= 1
+        weeklyGoalCelebrationPending = nil
     }
 
     /// Gross score average for holes of this par in the **same calendar season as the Stats season picker** (`StatsSeasonFilter.seasonYearAlignedWithStatsPicker`).

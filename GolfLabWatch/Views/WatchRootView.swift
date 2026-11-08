@@ -26,8 +26,13 @@ struct WatchRootView: View {
             if let celebration = session.weeklyGoalCelebration {
                 WatchWeeklyGoalCelebrationView(
                     completedWeeksStreak: celebration.completedWeeksStreak,
-                    onDismiss: { session.weeklyGoalCelebration = nil }
+                    onDismiss: {
+                        if session.weeklyGoalCelebration?.id == celebration.id {
+                            session.weeklyGoalCelebration = nil
+                        }
+                    }
                 )
+                .id(celebration.id)
             }
         }
     }
