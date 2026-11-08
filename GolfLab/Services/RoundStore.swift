@@ -99,6 +99,7 @@ class RoundStore: ObservableObject {
         } else {
             republishLatestTombstone()
         }
+        publishWeekToWatch()
     }
 
     func requestRoundSetupFromHome() {
@@ -639,6 +640,7 @@ class RoundStore: ObservableObject {
         }
 
         await syncWeeklyTargetsFromProfile()
+        publishWeekToWatch()
         if isRoundActive {
             refreshLiveActivity()
         }
@@ -705,6 +707,7 @@ class RoundStore: ObservableObject {
             flatPractice: p
         )
         profileDisplayName = profile.displayName
+        publishWeekToWatch()
         guard profile.profilePhotoPath != profilePhotoPath else { return }
         profilePhotoPath = profile.profilePhotoPath
         profilePhoto = ProfilePhotoStorage.load(path: profile.profilePhotoPath)
@@ -728,6 +731,23 @@ class RoundStore: ObservableObject {
         next.append(session)
         allPracticeSessions = PracticeSession.sortedForDisplay(next)
         queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore, sendToWatch: fromWatch)
+        publishWeekToWatch()
+    }
+
+    /// Sends this week's round and practice counts so the watch home can show them while idle.
+    func publishWeekToWatch() {
+        let snap = weeklyGoalsSnapshot()
+        let week = WatchWeekSnapshot(
+            weekStartYMD: snap.weekHistory.last?.weekStartYMD ?? GLCalendarISO.weekStartYMD(),
+            roundTarget: snap.roundTarget,
+            practiceTarget: snap.practiceTarget,
+            roundsThisWeek: snap.roundsThisWeek,
+            practiceSessionsThisWeek: snap.practiceSessionsThisWeek,
+            completedWeeksStreak: snap.completedWeeksStreak,
+            hasActiveTargets: snap.hasActiveTargets,
+            sentAt: Date()
+        )
+        WatchConnectivityService.shared.pushWeekSnapshot(week)
     }
 
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).

@@ -4,6 +4,14 @@ import Foundation
 enum GLCalendarISO {
     private static let cal = Calendar.current
 
+    /// Start of the calendar week containing `date`, as `yyyy-MM-dd`. Matches `GLWeeklyGoalsStreak` week bounds.
+    static func weekStartYMD(containing date: Date = Date(), calendar: Calendar = .current) -> String {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else {
+            return ymd(for: date)
+        }
+        return ymd(for: interval.start)
+    }
+
     static func ymd(for date: Date) -> String {
         let y = cal.component(.year, from: date)
         let m = cal.component(.month, from: date)

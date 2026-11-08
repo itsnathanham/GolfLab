@@ -36,20 +36,55 @@ struct WatchRootView: View {
 struct WatchIdleView: View {
     @EnvironmentObject private var session: WatchSessionService
 
+    private var week: WatchWeekSnapshot? { session.weekSnapshot }
+
+    private var weekIsCurrent: Bool {
+        guard let week else { return false }
+        return week.weekStartYMD == GLCalendarISO.weekStartYMD()
+    }
+
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 28))
-                .foregroundColor(WatchPalette.accent)
+        VStack(alignment: .leading, spacing: 6) {
             Text("Golf Lab")
-                .font(.headline)
-                .foregroundColor(WatchPalette.textPrimary)
-            Text(session.isWaitingForPhoneToSave
-                 ? "Round is on this watch.\nOpen Golf Lab on your iPhone to keep it."
-                 : "Start a round\non your iPhone")
-                .font(.footnote)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .tracking(0.14 * 12)
+                .textCase(.uppercase)
+                .foregroundColor(WatchPalette.accent)
+
+            Text("This week")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(0.08 * 10)
+                .textCase(.uppercase)
+                .foregroundColor(WatchPalette.textTertiary)
+
+            if let week, week.hasActiveTargets {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    if week.roundTarget > 0 {
+                        weekStat(
+                            value: countText(current: week.roundsThisWeek, target: week.roundTarget),
+                            label: "Rounds"
+                        )
+                    }
+                    if week.practiceTarget > 0 {
+                        weekStat(
+                            value: countText(current: week.practiceSessionsThisWeek, target: week.practiceTarget),
+                            label: "Practice"
+                        )
+                    }
+                }
+                if weekIsCurrent, week.completedWeeksStreak > 0 {
+                    Text(streakLine(week.completedWeeksStreak))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(WatchPalette.streakMark)
+                }
+            }
+
+            Text(hint)
+                .font(.system(size: 12))
                 .foregroundColor(WatchPalette.textSecondary)
-                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 4)
 
             NavigationLink {
                 WatchPracticeLogView()
@@ -57,14 +92,41 @@ struct WatchIdleView: View {
                 Text("Log practice")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 44)
+                    .frame(minHeight: 40)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(WatchPalette.practice)
-            .padding(.top, 4)
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .tint(WatchPalette.accent)
         }
         .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(WatchPalette.bg)
+    }
+
+    private var hint: String {
+        if session.isWaitingForPhoneToSave {
+            return "Round is on this watch.\nOpen Golf Lab on your iPhone to keep it."
+        }
+        return "iPhone → Start round"
+    }
+
+    private func countText(current: Int, target: Int) -> String {
+        guard weekIsCurrent else { return "—" }
+        return "\(current)/\(target)"
+    }
+
+    private func streakLine(_ weeks: Int) -> String {
+        weeks == 1 ? "1 week streak" : "\(weeks) week streak"
+    }
+
+    private func weekStat(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(value)
+                .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                .foregroundColor(WatchPalette.textPrimary)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(WatchPalette.textTertiary)
+        }
     }
 }

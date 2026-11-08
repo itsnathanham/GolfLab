@@ -152,6 +152,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Once per calendar week; queued if a sheet would hide the overlay.
 - Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
+- **Watch idle:** `GOLF LAB` wordmark (mono, tracked, accent), this week’s rounds / practice and streak pushed from the phone, the line `iPhone → Start round`, and a ghost `Log practice`. While a finished round is still on the watch, that line is the keep-it prompt. A week that is no longer current shows `—` until the phone syncs.
 
 ---
 

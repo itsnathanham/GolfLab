@@ -15,6 +15,7 @@ class WatchConnectivityService: NSObject, ObservableObject {
     private var pendingPracticeEntries: [WatchPracticeEntry] = []
     private var didNotifyActivation = false
     private var pendingWatchEnd = false
+    private var lastPushedWeek: WatchWeekSnapshot?
 
     private override init() {
         super.init()
@@ -48,16 +49,41 @@ class WatchConnectivityService: NSObject, ObservableObject {
     func pushCompanionSnapshot(_ snapshot: WatchCompanionSnapshot) {
         guard WCSession.isSupported(), let data = snapshot.encoded() else { return }
         let payload = snapshotPayload(snapshot, data: data)
+        var context: [String: Any] = [
+            WatchMessageKey.type: WatchMessageType.companionSnapshot.rawValue,
+            WatchMessageKey.companionSnapshot: data
+        ]
+        if let week = lastPushedWeek?.toDictionary() {
+            context[WatchMessageKey.weekData] = week
+        }
         do {
-            try WCSession.default.updateApplicationContext([
-                WatchMessageKey.type: WatchMessageType.companionSnapshot.rawValue,
-                WatchMessageKey.companionSnapshot: data
-            ])
+            try WCSession.default.updateApplicationContext(context)
         } catch {
             // The next live send or a later context update still carries the card.
         }
         guard WCSession.default.isReachable else { return }
         WCSession.default.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+    }
+
+    /// Current week for the watch home. Live when the phone is reachable; queued only when the payload changed.
+    func pushWeekSnapshot(_ week: WatchWeekSnapshot) {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        let changed = week != lastPushedWeek
+        lastPushedWeek = week
+        let payload: [String: Any] = [
+            WatchMessageKey.type: WatchMessageType.weeklyGoals.rawValue,
+            WatchMessageKey.weekData: week.toDictionary()
+        ]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(payload, replyHandler: nil) { _ in
+                WCSession.default.transferUserInfo(payload)
+            }
+        } else if changed {
+            WCSession.default.transferUserInfo(payload)
+        }
+        if changed || WCSession.default.isReachable {
+            mergeWeekIntoApplicationContext(week)
+        }
     }
 
     func clearEntries() {
@@ -177,9 +203,19 @@ class WatchConnectivityService: NSObject, ObservableObject {
             if let data = payload[WatchMessageKey.companionSnapshot] as? Data {
                 handleScorecardData(data)
             }
-        case .weeklyGoalCelebration:
+        case .weeklyGoalCelebration, .weeklyGoals:
             break
         }
+    }
+
+    private func mergeWeekIntoApplicationContext(_ week: WatchWeekSnapshot) {
+        guard WCSession.default.activationState == .activated else { return }
+        var context = WCSession.default.applicationContext
+        context[WatchMessageKey.weekData] = week.toDictionary()
+        if context[WatchMessageKey.type] == nil {
+            context[WatchMessageKey.type] = WatchMessageType.weeklyGoals.rawValue
+        }
+        try? WCSession.default.updateApplicationContext(context)
     }
 
     private func applyReceivedApplicationContext(_ context: [String: Any]) {
