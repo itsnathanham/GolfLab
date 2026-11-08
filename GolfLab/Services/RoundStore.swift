@@ -738,7 +738,7 @@ class RoundStore: ObservableObject {
     func publishWeekToWatch() {
         let snap = weeklyGoalsSnapshot()
         let week = WatchWeekSnapshot(
-            weekStartYMD: snap.weekHistory.last?.weekStartYMD ?? GLCalendarISO.weekStartYMD(),
+            weekStartYMD: GLCalendarISO.weekStartYMD(),
             roundTarget: snap.roundTarget,
             practiceTarget: snap.practiceTarget,
             roundsThisWeek: snap.roundsThisWeek,

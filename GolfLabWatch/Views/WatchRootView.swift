@@ -44,63 +44,68 @@ struct WatchIdleView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Golf Lab")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .tracking(0.14 * 12)
-                .textCase(.uppercase)
-                .foregroundColor(WatchPalette.accent)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Golf Lab")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .tracking(0.14 * 12)
+                    .textCase(.uppercase)
+                    .foregroundColor(WatchPalette.accent)
 
-            Text("This week")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(0.08 * 10)
-                .textCase(.uppercase)
-                .foregroundColor(WatchPalette.textTertiary)
+                Text("This week")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.08 * 10)
+                    .textCase(.uppercase)
+                    .foregroundColor(WatchPalette.textTertiary)
 
-            if let week, week.hasActiveTargets {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    if week.roundTarget > 0 {
-                        weekStat(
-                            value: countText(current: week.roundsThisWeek, target: week.roundTarget),
-                            label: "Rounds"
-                        )
+                if let week, week.hasActiveTargets {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        if week.roundTarget > 0 {
+                            weekStat(
+                                value: countText(current: week.roundsThisWeek, target: week.roundTarget),
+                                label: "Rounds"
+                            )
+                        }
+                        if week.practiceTarget > 0 {
+                            weekStat(
+                                value: countText(current: week.practiceSessionsThisWeek, target: week.practiceTarget),
+                                label: "Practice"
+                            )
+                        }
                     }
-                    if week.practiceTarget > 0 {
-                        weekStat(
-                            value: countText(current: week.practiceSessionsThisWeek, target: week.practiceTarget),
-                            label: "Practice"
-                        )
+                    if weekIsCurrent, week.completedWeeksStreak > 0 {
+                        Text(streakLine(week.completedWeeksStreak))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(WatchPalette.streakMark)
                     }
                 }
-                if weekIsCurrent, week.completedWeeksStreak > 0 {
-                    Text(streakLine(week.completedWeeksStreak))
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(WatchPalette.streakMark)
-                }
+
+                Text(hint)
+                    .font(.system(size: 12))
+                    .foregroundColor(WatchPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Text(hint)
-                .font(.system(size: 12))
-                .foregroundColor(WatchPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 4)
-
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(WatchPalette.bg)
+        .safeAreaInset(edge: .bottom, spacing: 8) {
             NavigationLink {
                 WatchPracticeLogView()
             } label: {
                 Text("Log practice")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(WatchPalette.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 40)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.roundedRectangle(radius: 12))
-            .tint(WatchPalette.accent)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 8)
         }
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(WatchPalette.bg)
     }
 
     private var hint: String {
