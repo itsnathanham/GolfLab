@@ -45,23 +45,17 @@ struct WeeklyGoalsStreakSection: View {
 
     private func flagstickCard(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            GLTrendCardHeader(title: "Weekly goals")
+            flagstickHeader(streakWeeks: snap.completedWeeksStreak, showsStreak: snap.hasActiveTargets)
 
             VStack(alignment: .leading, spacing: 14) {
                 if snap.hasActiveTargets {
-                    progressRow(
-                        label: "Rounds",
-                        current: snap.roundsThisWeek,
-                        target: snap.roundTarget,
-                        active: snap.roundTarget > 0
-                    )
-                    progressRow(
-                        label: "Practice",
-                        current: snap.practiceSessionsThisWeek,
-                        target: snap.practiceTarget,
-                        active: snap.practiceTarget > 0,
-                        footnote: GLPracticeRangeBalls.weeklyGoalsFootnote(count: snap.rangeBallsHitThisWeek)
-                    )
+                    goalChips(snap: snap)
+                    if let footnote = GLPracticeRangeBalls.weeklyGoalsFootnote(count: snap.rangeBallsHitThisWeek) {
+                        Text(footnote)
+                            .font(.glFootnote)
+                            .foregroundColor(.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     weekHistoryBlock(snap: snap)
                 } else {
                     emptyGoalsCopy
@@ -72,6 +66,35 @@ struct WeeklyGoalsStreakSection: View {
             .padding(.bottom, GLCardMetrics.padding)
         }
         .glCardChromeFrame(outlined: true)
+    }
+
+    private func flagstickHeader(streakWeeks: Int, showsStreak: Bool) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("Weekly goals")
+                .font(.glEyebrow)
+                .foregroundColor(.textTertiary)
+                .tracking(0.08 * 11)
+                .textCase(.uppercase)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if showsStreak {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(streakWeeks)")
+                        .font(GLFonts.mono(size: 32, weight: .semibold))
+                        .foregroundColor(.streakMark)
+                    Text("week streak")
+                        .font(.glFootnote)
+                        .foregroundColor(.streakMark)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 11)
+        .padding(.bottom, showsStreak ? 10 : 9)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.borderDefault)
+                .frame(height: 1)
+        }
     }
 
     // MARK: - Streak hero
@@ -102,25 +125,12 @@ struct WeeklyGoalsStreakSection: View {
 
                 if snap.hasActiveTargets {
                     heroWeekStrip(weeks: snap.weekHistory)
-                    HStack(spacing: 8) {
-                        if snap.roundTarget > 0 {
-                            heroMetricChip(
-                                label: "Rounds",
-                                value: "\(snap.roundsThisWeek) / \(snap.roundTarget)",
-                                fill: CGFloat(snap.roundsThisWeek) / CGFloat(max(snap.roundTarget, 1)),
-                                done: snap.roundsThisWeek >= snap.roundTarget
-                            )
-                        }
-                        if snap.practiceTarget > 0 {
-                            heroMetricChip(
-                                label: "Practice",
-                                value: "\(snap.practiceSessionsThisWeek) / \(snap.practiceTarget)",
-                                fill: CGFloat(snap.practiceSessionsThisWeek) / CGFloat(max(snap.practiceTarget, 1)),
-                                done: snap.practiceSessionsThisWeek >= snap.practiceTarget
-                            )
-                        }
-                    }
-                    streakFooter(streakWeeks: snap.completedWeeksStreak, heroPrompt: true)
+                    goalChips(snap: snap)
+                    streakFooter(
+                        streakWeeks: snap.completedWeeksStreak,
+                        flame: .streakMark,
+                        caption: snap.completedWeeksStreak == 0 ? .textSecondary : .streakMark
+                    )
                 } else {
                     emptyGoalsCopy
                 }
@@ -139,47 +149,24 @@ struct WeeklyGoalsStreakSection: View {
 
     // MARK: - Shared progress
 
-    private let progressBarHeight: CGFloat = 5
-
     @ViewBuilder
-    private func progressRow(
-        label: String,
-        current: Int,
-        target: Int,
-        active: Bool,
-        footnote: String? = nil
-    ) -> some View {
-        if active {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(label)
-                        .font(.glFootnote)
-                        .foregroundColor(.textSecondary)
-                    Spacer()
-                    Text("\(current) / \(target)")
-                        .font(GLFonts.mono(size: 13, weight: .semibold))
-                        .foregroundColor(.textPrimary)
-                }
-                GeometryReader { geo in
-                    let t = max(target, 1)
-                    let frac = min(1, CGFloat(current) / CGFloat(t))
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.bgElevated)
-                            .frame(height: progressBarHeight)
-                        Capsule()
-                            .fill(Color.accentTrack)
-                            .frame(width: max(4, geo.size.width * frac), height: progressBarHeight)
-                    }
-                }
-                .frame(height: progressBarHeight)
-
-                if let footnote {
-                    Text(footnote)
-                        .font(.glFootnote)
-                        .foregroundColor(.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private func goalChips(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
+        HStack(spacing: 8) {
+            if snap.roundTarget > 0 {
+                heroMetricChip(
+                    label: "Rounds",
+                    value: "\(snap.roundsThisWeek) / \(snap.roundTarget)",
+                    fill: CGFloat(snap.roundsThisWeek) / CGFloat(max(snap.roundTarget, 1)),
+                    done: snap.roundsThisWeek >= snap.roundTarget
+                )
+            }
+            if snap.practiceTarget > 0 {
+                heroMetricChip(
+                    label: "Practice",
+                    value: "\(snap.practiceSessionsThisWeek) / \(snap.practiceTarget)",
+                    fill: CGFloat(snap.practiceSessionsThisWeek) / CGFloat(max(snap.practiceTarget, 1)),
+                    done: snap.practiceSessionsThisWeek >= snap.practiceTarget
+                )
             }
         }
     }
@@ -228,7 +215,7 @@ struct WeeklyGoalsStreakSection: View {
             if !snap.weekHistory.isEmpty {
                 weekHistoryScroller(weeks: snap.weekHistory)
             }
-            streakFooter(streakWeeks: snap.completedWeeksStreak, heroPrompt: false)
+            streakFooter(streakWeeks: snap.completedWeeksStreak, flame: .orange, caption: .orange)
         }
         .padding(.top, 2)
     }
@@ -358,14 +345,14 @@ struct WeeklyGoalsStreakSection: View {
         }
     }
 
-    private func streakFooter(streakWeeks: Int, heroPrompt: Bool) -> some View {
+    private func streakFooter(streakWeeks: Int, flame: Color, caption: Color) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.streakMark)
+                .foregroundColor(flame)
             Text(Self.streakCaption(weeks: streakWeeks))
                 .font(.glFootnote)
-                .foregroundColor(heroPrompt && streakWeeks == 0 ? .textSecondary : .streakMark)
+                .foregroundColor(caption)
         }
     }
 
@@ -397,42 +384,29 @@ private struct FlagstickGlyph: View {
             let cupY = size.height - 6
 
             switch style {
-            case .met:
-                var stick = Path()
-                stick.move(to: CGPoint(x: stickX, y: 2))
-                stick.addLine(to: CGPoint(x: stickX, y: cupY - 2))
-                context.stroke(stick, with: .color(.textSecondary), lineWidth: 2)
+            case .met, .missed:
+                let flagColor: Color = style == .met ? .streakMark : .textTertiary
+                let stickColor: Color = style == .met ? .textSecondary : .textTertiary
 
-                var flag = Path()
-                flag.move(to: CGPoint(x: stickX, y: 2))
-                flag.addLine(to: CGPoint(x: size.width - 2, y: 7))
-                flag.addLine(to: CGPoint(x: stickX, y: 12))
-                flag.closeSubpath()
-                context.fill(flag, with: .color(.streakMark))
+                var pole = Path()
+                pole.move(to: CGPoint(x: stickX, y: 2))
+                pole.addLine(to: CGPoint(x: stickX, y: cupY - 2))
+                context.stroke(pole, with: .color(stickColor), lineWidth: 2)
 
-                let green = CGRect(x: stickX - 9, y: cupY - 3, width: 18, height: 6)
-                context.fill(Ellipse().path(in: green), with: .color(.bgElevated))
-                context.stroke(Ellipse().path(in: green), with: .color(.streakMark), lineWidth: 1)
+                var flagPath = Path()
+                flagPath.move(to: CGPoint(x: stickX, y: 2))
+                flagPath.addLine(to: CGPoint(x: size.width - 2, y: 7))
+                flagPath.addLine(to: CGPoint(x: stickX, y: 12))
+                flagPath.closeSubpath()
+                context.fill(flagPath, with: .color(flagColor))
+
+                let cup = CGRect(x: stickX - 9, y: cupY - 3, width: 18, height: 6)
+                context.fill(Ellipse().path(in: cup), with: .color(.bgElevated))
+                context.stroke(Ellipse().path(in: cup), with: .color(flagColor), lineWidth: 1)
                 context.fill(
                     Circle().path(in: CGRect(x: stickX - 2.4, y: cupY - 2.4, width: 4.8, height: 4.8)),
-                    with: .color(.streakMark)
+                    with: .color(flagColor)
                 )
-
-            case .missed:
-                var stick = Path()
-                stick.move(to: CGPoint(x: stickX, y: 6))
-                stick.addLine(to: CGPoint(x: stickX, y: cupY - 4))
-                context.stroke(stick, with: .color(.textTertiary), lineWidth: 2)
-
-                let cup = CGRect(x: stickX - 9, y: cupY - 9, width: 18, height: 18)
-                context.fill(Circle().path(in: cup), with: .color(.bgElevated))
-
-                var xPath = Path()
-                xPath.move(to: CGPoint(x: stickX - 4, y: cupY - 4))
-                xPath.addLine(to: CGPoint(x: stickX + 4, y: cupY + 4))
-                xPath.move(to: CGPoint(x: stickX + 4, y: cupY - 4))
-                xPath.addLine(to: CGPoint(x: stickX - 4, y: cupY + 4))
-                context.stroke(xPath, with: .color(.textPrimary), style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
 
             case .inProgress:
                 var stick = Path()
