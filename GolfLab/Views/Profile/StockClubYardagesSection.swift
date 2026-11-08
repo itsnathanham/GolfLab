@@ -1,203 +1,435 @@
 import SwiftUI
 import UIKit
 
-/// Profile bag setup: default clubs, add/delete, autosave.
+/// Profile bag: open distance rows, grip to reorder, swipe to delete, compact stepper.
 struct StockClubYardagesSection: View {
     @Binding var rows: [StockClubYardage]
+    /// Set while a reorder or swipe is in progress so the profile scroll view stays still.
+    @Binding var locksParentScroll: Bool
     var onChange: () -> Void
 
-    @State private var draftClub: StockClub?
-    @State private var draftYardage: Int = GLStockClubYardages.defaultYardsWhenSetting
-    @State private var draftHasYardage = false
+    @State private var reorder: ReorderDrag?
+    @State private var reorderGeneration = 0
+    @State private var openDeleteID: UUID?
+    @State private var activeSwipeID: UUID?
+    @State private var swipeDrag: CGFloat = 0
+    /// Resets when the gesture ends or the scroll view cancels it, so the profile cannot stay locked.
+    @GestureState private var gripActive = false
+    @GestureState private var swipeActive = false
 
-    private var usedClubs: Set<StockClub> {
-        Set(rows.map(\.club))
-    }
+    private let rowHeight: CGFloat = 48
+    private let deleteRevealWidth: CGFloat = 88
 
-    private var availableForDraft: [StockClub] {
-        StockClub.allCases.filter { !usedClubs.contains($0) }
+    private var availableClubs: [StockClub] {
+        let used = Set(rows.map(\.club))
+        return StockClub.allCases.filter { !used.contains($0) }
     }
 
     var body: some View {
         GLFormCard {
-            VStack(alignment: .leading, spacing: 16) {
-                GLFormFieldLabel(text: "Stock yardages")
-                Text("Total distance in yards.")
-                    .font(.glFootnote)
-                    .foregroundColor(.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if rows.isEmpty {
-                    Text("No clubs yet. Add one below.")
-                        .font(.glSubhead)
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    GLFormFieldLabel(text: "Stock yardages")
+                    Text("Total distance in yards.")
+                        .font(.glFootnote)
                         .foregroundColor(.textTertiary)
-                } else {
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                            clubRow(row: row, index: index)
-                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.bottom, 6)
+
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        clubRow(row, index: index)
+                    }
+                    if !availableClubs.isEmpty {
+                        addClubRow
                     }
                 }
-
-                addClubSlot
+                .padding(.horizontal, -GLCardMetrics.padding)
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: rows.map(\.id))
-    }
-
-    @ViewBuilder
-    private func clubRow(row: StockClubYardage, index: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
-                clubMenu(
-                    title: row.club.displayName,
-                    selected: row.club,
-                    excluding: usedClubs.subtracting([row.club])
-                ) { club in
-                    updateClub(at: index, club: club)
-                }
-
-                GLCircleTrashButton(accessibilityLabel: "Delete \(row.club.displayName)") {
-                    deleteRow(at: index)
-                }
+        .onDisappear {
+            locksParentScroll = false
+        }
+        .onChange(of: gripActive) { _, active in
+            guard !active else { return }
+            // GestureState clears on cancel too, sometimes before onEnded. A newer grip increments the generation and this pass does nothing.
+            let generation = reorderGeneration
+            DispatchQueue.main.async {
+                guard generation == reorderGeneration else { return }
+                commitReorder()
             }
-
-            StepperField(
-                label: "",
-                value: Binding(
-                    get: { row.yardage ?? GLStockClubYardages.defaultYardsWhenSetting },
-                    set: { updateYardage(at: index, yardage: $0) }
-                ),
-                min: GLStockClubYardages.minYards,
-                max: GLStockClubYardages.maxYards,
-                step: GLStockClubYardages.step
-            )
-            .accessibilityLabel("Yards")
+        }
+        .onChange(of: swipeActive) { _, active in
+            guard !active else { return }
+            DispatchQueue.main.async {
+                settleSwipe()
+            }
         }
     }
 
-    private var addClubSlot: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Add club")
-                .font(.glCaption)
-                .foregroundColor(.textSecondary)
+    private func clubRow(_ row: StockClubYardage, index: Int) -> some View {
+        let dragged = reorder?.id == row.id
+        return ZStack(alignment: .trailing) {
+            deleteButton(for: row)
 
-            if availableForDraft.isEmpty {
-                Text("Every available club is already in your bag.")
-                    .font(.glFootnote)
-                    .foregroundColor(.textTertiary)
-            } else {
-                clubMenu(
-                    title: draftClub?.displayName ?? "Select club",
-                    selected: draftClub,
-                    excluding: usedClubs,
-                    placeholder: draftClub == nil
-                ) { club in
-                    draftClub = club
-                    tryCommitDraft()
-                }
-
-                StepperField(
-                    label: "",
-                    value: draftYardageBinding,
-                    min: GLStockClubYardages.minYards,
-                    max: GLStockClubYardages.maxYards,
-                    step: GLStockClubYardages.step
+            HStack(spacing: 10) {
+                grip(for: row, index: index)
+                Text(row.club.displayName)
+                    .font(.glBody)
+                    .foregroundColor(.textPrimary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                CompactYardageStepper(
+                    yardage: Binding(
+                        get: { row.yardage },
+                        set: { updateYardage(id: row.id, yardage: $0) }
+                    )
                 )
-                .accessibilityLabel("Yards")
             }
+            .padding(.horizontal, GLCardMetrics.padding)
+            .frame(maxWidth: .infinity)
+            .frame(height: rowHeight)
+            .background(Color.cardBackground)
+            .offset(x: swipeOffset(for: row.id))
+            .simultaneousGesture(swipeGesture(for: row.id))
         }
-        .padding(.top, rows.isEmpty ? 0 : 4)
+        .frame(height: rowHeight)
+        .clipped()
+        .zIndex(dragged ? 1 : 0)
+        .offset(y: visualOffset(index: index))
+        .animation(dragged ? nil : .interactiveSpring(response: 0.22, dampingFraction: 0.86), value: reorder?.lastProposed)
+        .accessibilityElement(children: .contain)
+        .accessibilityAction(named: Text("Move up")) { shiftRow(id: row.id, by: -1) }
+        .accessibilityAction(named: Text("Move down")) { shiftRow(id: row.id, by: 1) }
+        .accessibilityAction(named: Text("Delete")) { deleteRow(id: row.id) }
     }
 
-    private func clubMenu(
-        title: String,
-        selected: StockClub?,
-        excluding: Set<StockClub>,
-        placeholder: Bool = false,
-        onSelect: @escaping (StockClub) -> Void
-    ) -> some View {
+    private func deleteButton(for row: StockClubYardage) -> some View {
+        Button {
+            deleteRow(id: row.id)
+        } label: {
+            Text("Delete")
+                .font(GLFonts.sans(size: 15, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(width: deleteRevealWidth)
+        .frame(maxHeight: .infinity)
+        .background(Color(uiColor: .systemRed))
+        .accessibilityLabel("Delete \(row.club.displayName)")
+        .accessibilityHidden(openDeleteID != row.id)
+    }
+
+    private func grip(for row: StockClubYardage, index: Int) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(.textTertiary)
+            .frame(width: 22, height: rowHeight)
+            .contentShape(Rectangle())
+            .highPriorityGesture(reorderGesture(for: row.id, index: index))
+            .accessibilityLabel("Reorder \(row.club.displayName)")
+            .accessibilityAddTraits(.isButton)
+    }
+
+    private var addClubRow: some View {
         Menu {
-            ForEach(StockClub.allCases) { club in
-                let taken = excluding.contains(club)
-                Button {
-                    onSelect(club)
-                } label: {
-                    if selected == club {
-                        Label(club.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(club.displayName)
-                    }
+            ForEach(availableClubs) { club in
+                Button(club.displayName) {
+                    addClub(club)
                 }
-                .disabled(taken && selected != club)
             }
         } label: {
-            HStack(spacing: 8) {
-                Text(title)
+            HStack(spacing: 10) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.accent)
+                    .frame(width: 22, height: 44)
+                Text("Add club")
                     .font(.glBody)
-                    .foregroundColor(placeholder ? .textTertiary : .textPrimary)
-                    .lineLimit(1)
+                    .foregroundColor(.textSecondary)
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.textTertiary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
+            .padding(.horizontal, GLCardMetrics.padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.bgElevated)
-            .cornerRadius(GLCardMetrics.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadius)
-                    .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, rows.isEmpty ? 0 : 4)
+        .accessibilityLabel("Add club")
+    }
+
+    // MARK: - Reorder
+
+    private func reorderGesture(for id: UUID, index: Int) -> some Gesture {
+        DragGesture(minimumDistance: 2)
+            .updating($gripActive) { _, state, _ in
+                state = true
+            }
+            .onChanged { value in
+                if reorder?.id != id {
+                    closeSwipe()
+                    reorderGeneration += 1
+                    reorder = ReorderDrag(
+                        id: id,
+                        originIndex: index,
+                        translation: value.translation.height,
+                        lastProposed: index
+                    )
+                    locksParentScroll = true
+                }
+                guard var drag = reorder, drag.id == id else { return }
+                drag.translation = value.translation.height
+                let proposed = proposedIndex(for: drag)
+                if proposed != drag.lastProposed {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    drag.lastProposed = proposed
+                }
+                reorder = drag
+            }
+            .onEnded { _ in
+                commitReorder()
+            }
+    }
+
+    private func proposedIndex(for drag: ReorderDrag) -> Int {
+        let delta = Int((drag.translation / rowHeight).rounded())
+        let last = max(rows.count - 1, 0)
+        return min(max(0, drag.originIndex + delta), last)
+    }
+
+    private func visualOffset(index: Int) -> CGFloat {
+        guard let drag = reorder else { return 0 }
+        let from = drag.originIndex
+        let to = drag.lastProposed
+        if index == from {
+            return drag.translation
+        }
+        if from < to, index > from, index <= to {
+            return -rowHeight
+        }
+        if to < from, index >= to, index < from {
+            return rowHeight
+        }
+        return 0
+    }
+
+    private func commitReorder() {
+        guard let drag = reorder else {
+            if activeSwipeID == nil {
+                locksParentScroll = false
+            }
+            return
+        }
+        let from = drag.originIndex
+        let to = drag.lastProposed
+        let didMove = rows.indices.contains(from) && from != to
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            if didMove {
+                rows.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+            }
+            reorder = nil
+        }
+        if didMove {
+            onChange()
+        }
+        locksParentScroll = activeSwipeID != nil
+    }
+
+    private func shiftRow(id: UUID, by delta: Int) {
+        guard let from = rows.firstIndex(where: { $0.id == id }) else { return }
+        let to = min(max(0, from + delta), rows.count - 1)
+        guard to != from else { return }
+        rows.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        onChange()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    // MARK: - Swipe to delete
+
+    private func swipeOffset(for id: UUID) -> CGFloat {
+        if activeSwipeID == id { return swipeDrag }
+        if openDeleteID == id { return -deleteRevealWidth }
+        return 0
+    }
+
+    private func swipeGesture(for id: UUID) -> some Gesture {
+        DragGesture(minimumDistance: 14, coordinateSpace: .local)
+            .updating($swipeActive) { _, state, _ in
+                state = true
+            }
+            .onChanged { value in
+                guard reorder == nil else { return }
+                let horizontal = abs(value.translation.width) > abs(value.translation.height) * 1.15
+                guard horizontal || activeSwipeID == id else { return }
+                if activeSwipeID != id {
+                    activeSwipeID = id
+                    if openDeleteID != id {
+                        openDeleteID = nil
+                    }
+                }
+                locksParentScroll = true
+                let base: CGFloat = openDeleteID == id ? -deleteRevealWidth : 0
+                swipeDrag = min(0, max(-deleteRevealWidth - 12, base + value.translation.width))
+            }
+            .onEnded { value in
+                guard activeSwipeID == id else { return }
+                let base: CGFloat = openDeleteID == id ? -deleteRevealWidth : 0
+                let projected = base + value.predictedEndTranslation.width
+                finishSwipe(id: id, open: projected < -deleteRevealWidth / 2)
+            }
+    }
+
+    private func settleSwipe() {
+        guard let id = activeSwipeID else {
+            locksParentScroll = reorder != nil
+            return
+        }
+        finishSwipe(id: id, open: swipeDrag < -deleteRevealWidth / 2)
+    }
+
+    private func finishSwipe(id: UUID, open: Bool) {
+        guard activeSwipeID == id || openDeleteID == id else {
+            locksParentScroll = reorder != nil
+            return
+        }
+        withAnimation(.easeOut(duration: 0.18)) {
+            openDeleteID = open ? id : nil
+            activeSwipeID = nil
+            swipeDrag = 0
+        }
+        locksParentScroll = reorder != nil
+    }
+
+    private func closeSwipe() {
+        openDeleteID = nil
+        activeSwipeID = nil
+        swipeDrag = 0
+    }
+
+    // MARK: - Mutations
+
+    private func updateYardage(id: UUID, yardage: Int) {
+        guard let index = rows.firstIndex(where: { $0.id == id }) else { return }
+        rows[index].yardage = yardage
+        onChange()
+    }
+
+    private func deleteRow(id: UUID) {
+        guard let index = rows.firstIndex(where: { $0.id == id }) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            rows.remove(at: index)
+            closeSwipe()
+        }
+        locksParentScroll = false
+        onChange()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func addClub(_ club: StockClub) {
+        guard !rows.contains(where: { $0.club == club }) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            rows.append(StockClubYardage(club: club, yardage: nil, displayOrder: rows.count))
+        }
+        onChange()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+}
+
+private struct ReorderDrag: Equatable {
+    var id: UUID
+    var originIndex: Int
+    var translation: CGFloat
+    var lastProposed: Int
+}
+
+/// Same − / value / + control as `StepperField`, sized for a bag row.
+/// An unset distance reads as a dash. The first step moves off 100 yards.
+private struct CompactYardageStepper: View {
+    @Binding var yardage: Int?
+
+    @State private var flashState: FlashState = .idle
+    @State private var flashToken = 0
+
+    private enum FlashState {
+        case idle
+        case minus
+        case plus
+    }
+
+    private var minusEnabled: Bool {
+        guard let yardage else { return true }
+        return yardage > GLStockClubYardages.minYards
+    }
+
+    private var plusEnabled: Bool {
+        guard let yardage else { return true }
+        return yardage < GLStockClubYardages.maxYards
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            stepButton(systemName: "minus", side: .minus, enabled: minusEnabled) {
+                apply(delta: -1, side: .minus)
+            }
+            Text(yardage.map { String($0) } ?? "—")
+                .font(GLFonts.mono(size: 15, weight: .semibold))
+                .foregroundColor(yardage == nil ? .textTertiary : .textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
+            stepButton(systemName: "plus", side: .plus, enabled: plusEnabled) {
+                apply(delta: 1, side: .plus)
+            }
+        }
+        .frame(width: 112, height: 34)
+        .background(Color.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadiusSmall))
+        .overlay(
+            RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadiusSmall)
+                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(yardage.map { "\($0) yards" } ?? "Yards not set")
+    }
+
+    private func apply(delta: Int, side: FlashState) {
+        let baseline = yardage ?? GLStockClubYardages.defaultYardsWhenSetting
+        yardage = GLStockClubYardages.clampYards(baseline + delta * GLStockClubYardages.step)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        flashToken += 1
+        let token = flashToken
+        flashState = side
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            if flashToken == token {
+                flashState = .idle
+            }
         }
     }
 
-    private var draftYardageBinding: Binding<Int> {
-        Binding(
-            get: { draftHasYardage ? draftYardage : GLStockClubYardages.defaultYardsWhenSetting },
-            set: { next in
-                draftYardage = GLStockClubYardages.clampYards(next)
-                draftHasYardage = true
-                tryCommitDraft()
-            }
-        )
-    }
-
-    private func updateClub(at index: Int, club: StockClub) {
-        guard rows.indices.contains(index) else { return }
-        guard !usedClubs.contains(club) || rows[index].club == club else { return }
-        rows[index].club = club
-        onChange()
-    }
-
-    private func updateYardage(at index: Int, yardage: Int) {
-        guard rows.indices.contains(index) else { return }
-        rows[index].yardage = GLStockClubYardages.clampYards(yardage)
-        onChange()
-    }
-
-    private func deleteRow(at index: Int) {
-        guard rows.indices.contains(index) else { return }
-        rows.remove(at: index)
-        onChange()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    private func tryCommitDraft() {
-        guard let club = draftClub, draftHasYardage else { return }
-        guard !usedClubs.contains(club) else { return }
-        let entry = StockClubYardage(
-            club: club,
-            yardage: GLStockClubYardages.clampYards(draftYardage),
-            displayOrder: rows.count
-        )
-        rows.append(entry)
-        draftClub = nil
-        draftYardage = GLStockClubYardages.defaultYardsWhenSetting
-        draftHasYardage = false
-        onChange()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    private func stepButton(
+        systemName: String,
+        side: FlashState,
+        enabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        let flashing = flashState == side
+        return Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(flashing ? .ctaOnAccent : (enabled ? .textPrimary : .textTertiary))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(width: 30, height: 34)
+        .background(flashing ? Color.accent : Color.bgElevated)
+        .animation(.easeOut(duration: 0.15), value: flashState)
+        .disabled(!enabled)
+        .accessibilityLabel(side == .minus ? "Decrease yards" : "Increase yards")
     }
 }

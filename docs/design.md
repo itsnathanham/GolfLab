@@ -126,7 +126,7 @@ Color.orange                 // flagstick flame + caption (system orange)
 Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
 ```
 
-**Layouts** (Profile → Streak layout): **Flagstick** (default) keeps the week marks, and adds the mono streak count plus the compact round and practice chips. **Streak hero** leads with that same count, a segmented week strip, and the chips.
+**Layouts** (Profile → Streak layout): **Flagstick** (default) is one header row — the mono streak count and “week streak” share a baseline, with no hairline under the title — then the week marks, the system-orange flame line, then the round and practice chips. **Streak hero** leads with the stacked count, a segmented week strip, and the chips.
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
@@ -280,7 +280,9 @@ Sub-label:     Sans, 11pt, textTertiary, uppercase
 ```
 
 Buttons must be large enough for one-handed use with a glove.
-Haptic feedback on every increment/decrement (light impact).
+Haptic feedback on every increment/decrement (light impact). The pressed side flashes `accent` with `ctaOnAccent` glyphs for 0.15s.
+
+**Stock yardages** (Profile) uses the same control at row scale: 112×34, 10pt radius, 30pt sides, mono 15 value. Rows are open (no rules). Three horizontal lines on the left reorder a club. Swipe left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
 
 ---
 

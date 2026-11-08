@@ -47,8 +47,12 @@ struct WeeklyGoalsStreakSection: View {
         VStack(alignment: .leading, spacing: 0) {
             flagstickHeader(streakWeeks: snap.completedWeeksStreak, showsStreak: snap.hasActiveTargets)
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 if snap.hasActiveTargets {
+                    if !snap.weekHistory.isEmpty {
+                        weekHistoryScroller(weeks: snap.weekHistory)
+                    }
+                    streakFooter(streakWeeks: snap.completedWeeksStreak, flame: .orange, caption: .orange)
                     goalChips(snap: snap)
                     if let footnote = GLPracticeRangeBalls.weeklyGoalsFootnote(count: snap.rangeBallsHitThisWeek) {
                         Text(footnote)
@@ -56,7 +60,6 @@ struct WeeklyGoalsStreakSection: View {
                             .foregroundColor(.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    weekHistoryBlock(snap: snap)
                 } else {
                     emptyGoalsCopy
                 }
@@ -69,32 +72,26 @@ struct WeeklyGoalsStreakSection: View {
     }
 
     private func flagstickHeader(streakWeeks: Int, showsStreak: Bool) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .lastTextBaseline, spacing: 8) {
             Text("Weekly goals")
                 .font(.glEyebrow)
                 .foregroundColor(.textTertiary)
                 .tracking(0.08 * 11)
                 .textCase(.uppercase)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 12)
             if showsStreak {
-                VStack(alignment: .trailing, spacing: 4) {
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(streakWeeks)")
-                        .font(GLFonts.mono(size: 32, weight: .semibold))
-                        .foregroundColor(.streakMark)
+                        .font(GLFonts.mono(size: 22, weight: .semibold))
                     Text("week streak")
-                        .font(.glFootnote)
-                        .foregroundColor(.streakMark)
+                        .font(GLFonts.sans(size: 12, weight: .regular))
                 }
+                .foregroundColor(.streakMark)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 11)
-        .padding(.bottom, showsStreak ? 10 : 9)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.borderDefault)
-                .frame(height: 1)
-        }
+        .padding(.horizontal, GLCardMetrics.padding)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Streak hero
@@ -208,17 +205,6 @@ struct WeeklyGoalsStreakSection: View {
     private let weekNodeSize: CGFloat = 28
     private let weekConnectorWidth: CGFloat = 10
     private let flagstickHeight: CGFloat = 36
-
-    @ViewBuilder
-    private func weekHistoryBlock(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !snap.weekHistory.isEmpty {
-                weekHistoryScroller(weeks: snap.weekHistory)
-            }
-            streakFooter(streakWeeks: snap.completedWeeksStreak, flame: .orange, caption: .orange)
-        }
-        .padding(.top, 2)
-    }
 
     private func weekHistoryScroller(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
         ScrollViewReader { proxy in
