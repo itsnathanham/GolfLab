@@ -139,9 +139,9 @@ Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
 Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
-**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
+**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), tappable practice rows (`PracticeSessionRowView`: orange dot, focus, relative day, ball count, chevron) that open Edit practice, range-balls column chart (solid orange current week, muted priors).
 
-**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, practice rows (focus + date). No range-balls chart.
+**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, the same tappable practice rows. No range-balls chart.
 
 **Streak footer:** `flame.fill` (orange) + footnote caption (orange).
 
@@ -152,6 +152,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
 - Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
+- **Watch idle:** `GOLF LAB` wordmark (mono, tracked, accent), this week’s rounds / practice and streak pushed from the phone, the line `iPhone → Start round`, and a ghost `Log practice`. While a finished round is still on the watch, that line is the keep-it prompt. A week that is no longer current shows `—` until the phone syncs.
 
 ---
 

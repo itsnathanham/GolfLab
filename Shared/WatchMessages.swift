@@ -25,6 +25,7 @@ enum WatchMessageKey {
     static let sessionId         = "sessionId"
     static let revision          = "revision"
     static let celebrationData   = "celebrationData"
+    static let weekData          = "weekData"
 }
 
 enum WatchMessageType: String {
@@ -35,6 +36,7 @@ enum WatchMessageType: String {
     case companionEnded     = "companionEnded"
     case syncRequest        = "syncRequest"
     case weeklyGoalCelebration = "weeklyGoalCelebration"
+    case weeklyGoals = "weeklyGoals"
 }
 
 /// Scorecard replicated between iPhone and Watch.
@@ -291,6 +293,37 @@ extension WatchPracticeEntry {
 
     static func from(dictionary: [String: Any]) -> WatchPracticeEntry? {
         WatchCodablePayload.decode(WatchPracticeEntry.self, from: dictionary)
+    }
+}
+
+/// iPhone → Watch current-week progress for the idle home screen.
+struct WatchWeekSnapshot: Codable, Equatable {
+    let weekStartYMD: String
+    let roundTarget: Int
+    let practiceTarget: Int
+    let roundsThisWeek: Int
+    let practiceSessionsThisWeek: Int
+    let completedWeeksStreak: Int
+    let hasActiveTargets: Bool
+    /// When the phone built this payload. The watch ignores an older one that arrives late.
+    let sentAt: Date
+
+    static func == (lhs: WatchWeekSnapshot, rhs: WatchWeekSnapshot) -> Bool {
+        lhs.weekStartYMD == rhs.weekStartYMD
+            && lhs.roundTarget == rhs.roundTarget
+            && lhs.practiceTarget == rhs.practiceTarget
+            && lhs.roundsThisWeek == rhs.roundsThisWeek
+            && lhs.practiceSessionsThisWeek == rhs.practiceSessionsThisWeek
+            && lhs.completedWeeksStreak == rhs.completedWeeksStreak
+            && lhs.hasActiveTargets == rhs.hasActiveTargets
+    }
+
+    func toDictionary() -> [String: Any] {
+        WatchCodablePayload.dictionary(self)
+    }
+
+    static func from(dictionary: [String: Any]) -> WatchWeekSnapshot? {
+        WatchCodablePayload.decode(WatchWeekSnapshot.self, from: dictionary)
     }
 }
 

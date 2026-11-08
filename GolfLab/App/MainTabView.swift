@@ -90,6 +90,7 @@ struct MainTabView: View {
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
             }
+            roundStore.publishWeekToWatch()
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
             Task { await roundStore.loadRounds() }
