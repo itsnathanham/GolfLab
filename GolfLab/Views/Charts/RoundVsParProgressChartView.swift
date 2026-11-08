@@ -681,7 +681,7 @@ struct AvgVsParProgressionCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     VsParLineChartView(
                         series: averageSeries,
-                        totalXSlots: VsParCumulativeProgression.chartHoleSlots,
+                        totalXSlots: averageSeries.solid.count,
                         xAxisLabel: "Hole",
                         yAxisLabel: "Score",
                         anchorLineAtEvenPar: true,

@@ -28,17 +28,17 @@ Ordered list from field testing. **Do these in sequence** unless a quick win is 
 
 ## Next
 
-Ordered follow-ups. **Not started.**
+Ordered follow-ups. Status is per row.
 
 
 | #   | Item                                                                                                                                                                                                 | Status         |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1   | **Practice cards** — redo the practice card UI/UX, and add edit and delete for a logged practice session                                                                                            | **Not started** |
+| 1   | **Practice cards** — redo the practice card UI/UX, and add edit and delete for a logged practice session                                                                                            | **Done** (tappable `PracticeSessionRowView` opens Edit practice; save updates the row; delete confirms and a later Watch replay of that id is ignored) |
 | 2   | **Streak color** — redo the purple used for the streak                                                                                                                                              | **Done** (orange `streakMark`; Flagstick + Streak hero toggle) |
 | 3   | **Streak celebration card** — update the weekly goals celebration banner/card (`WeeklyGoalCelebrationOverlay`) to match the chosen streak color + section treatment                                | **Done** (flag bloom + orange chrome) |
 | 4   | **Stock yardages** — rethink the stepper UI in `StockClubYardagesSection`, and fix the last entry                                                                                                   | **Not started** |
 | 5   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
-| 6   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Not started** |
+| 6   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Done** (`GOLF LAB` wordmark, this week’s rounds/practice/streak from the phone, `iPhone → Start round`, ghost Log practice) |
 
 
 ---

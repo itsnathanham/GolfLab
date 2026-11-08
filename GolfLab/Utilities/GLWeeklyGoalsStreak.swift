@@ -373,6 +373,14 @@ enum GLWeeklyGoalsStreak {
         )
     }
 
+    /// Streak week label (`W12`) for a calendar day, when that week is in `history`.
+    static func weekNumber(containingYMD ymd: String, history: [WeekRecord], calendar: Calendar = .current) -> Int? {
+        guard let date = dateFromYMD(ymd, calendar: calendar),
+              let bounds = weekBoundsYMD(forWeekContaining: date, calendar: calendar)
+        else { return nil }
+        return history.first { $0.weekStartYMD == bounds.start }?.weekNumber
+    }
+
     static func dateRangeDisplay(startYMD: String, endYMD: String, calendar: Calendar = .current) -> String {
         guard let start = dateFromYMD(startYMD, calendar: calendar),
               let end = dateFromYMD(endYMD, calendar: calendar)

@@ -124,14 +124,20 @@ struct HistoryView: View {
                 showDaySummarySheet = false
             }
         }
-        .sheet(isPresented: $showDaySummarySheet) {
+        .sheet(isPresented: $showDaySummarySheet, onDismiss: {
+            roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
+        }) {
             if let ymd = selectedCalendarYMD {
-                HistoryDaySummarySheet(
-                    ymd: ymd,
-                    rounds: roundsForDay(ymd: ymd),
-                    practices: practicesForDay(ymd: ymd)
-                )
+                NavigationStack {
+                    HistoryDaySummarySheet(
+                        ymd: ymd,
+                        weekNumber: weekNumber(containingYMD: ymd),
+                        rounds: roundsForDay(ymd: ymd),
+                        practices: practicesForDay(ymd: ymd)
+                    )
+                }
                 .presentationDragIndicator(.visible)
+                .environmentObject(roundStore)
             }
         }
         .alert(isPresented: $showDeleteAlert) { deleteAlert }
@@ -149,7 +155,16 @@ struct HistoryView: View {
     }
 
     private func practicesForDay(ymd: String) -> [PracticeSession] {
-        roundStore.allPracticeSessions.filter { $0.sessionDate == ymd }
+        PracticeSession.sortedForDisplay(
+            roundStore.allPracticeSessions.filter { $0.sessionDate == ymd }
+        )
+    }
+
+    private func weekNumber(containingYMD ymd: String) -> Int? {
+        GLWeeklyGoalsStreak.weekNumber(
+            containingYMD: ymd,
+            history: roundStore.weeklyGoalsSnapshot().weekHistory
+        )
     }
 
     private var emptyMessage: String {
@@ -276,6 +291,8 @@ private struct HistoryDaySummarySheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let ymd: String
+    /// Streak week label when this day falls in tracked history. Hidden otherwise.
+    let weekNumber: Int?
     let rounds: [Round]
     let practices: [PracticeSession]
 
@@ -287,9 +304,9 @@ private struct HistoryDaySummarySheet: View {
                     .padding(.top, GLTopBarMetrics.sheetTopPadding + GLTopBarMetrics.sheetExtraTopInset)
                     .padding(.bottom, 16)
 
-                VStack(alignment: .leading, spacing: 18) {
-                    summaryHeader
-                    summaryCounts
+                VStack(alignment: .leading, spacing: 14) {
+                    dateCard
+                    countCard
 
                     if !rounds.isEmpty {
                         roundList
@@ -319,44 +336,44 @@ private struct HistoryDaySummarySheet: View {
         }
     }
 
-    private var summaryHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(GLCalendarISO.mmddyyyyDisplay(from: ymd))
-                .font(GLFonts.mono(size: 22, weight: .semibold))
-                .foregroundColor(.textPrimary)
-            Text("Selected date")
-                .font(.glFootnote)
-                .foregroundColor(.textTertiary)
+    private var dateCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(GLCalendarISO.daySheetTitle(from: ymd))
+                    .font(GLFonts.mono(size: 18, weight: .semibold))
+                    .foregroundColor(.textPrimary)
+                Text(GLCalendarISO.weekdayName(from: ymd))
+                    .font(.glFootnote)
+                    .foregroundColor(.textSecondary)
+            }
+            Spacer(minLength: 8)
+            if let weekNumber {
+                Text("W\(weekNumber)")
+                    .font(GLFonts.mono(size: 13, weight: .semibold))
+                    .foregroundColor(.streakMark)
+            }
         }
         .glCardSurface(outlined: true)
     }
 
-    private var summaryCounts: some View {
-        HStack(spacing: 8) {
-            countPill(label: "Rounds", value: rounds.count)
-            countPill(label: "Practice", value: practices.count)
-            Spacer(minLength: 0)
+    private var countCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            countLine(label: "Rounds", value: rounds.count)
+            countLine(label: "Practice", value: practices.count)
         }
+        .glCardSurface(outlined: true)
     }
 
-    private func countPill(label: String, value: Int) -> some View {
-        HStack(spacing: 8) {
-            Text(label.uppercased())
-                .font(.glEyebrow)
-                .foregroundColor(.textTertiary)
-                .tracking(0.08 * 11)
+    private func countLine(label: String, value: Int) -> some View {
+        HStack {
+            Text(label)
+                .font(.glFootnote)
+                .foregroundColor(.textSecondary)
+            Spacer()
             Text("\(value)")
-                .font(GLFonts.mono(size: 14, weight: .semibold))
+                .font(GLFonts.mono(size: 12, weight: .semibold))
                 .foregroundColor(.textPrimary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color.cardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(Color.borderDefault, lineWidth: GLCardMetrics.strokeWidth)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private var roundList: some View {
@@ -364,17 +381,13 @@ private struct HistoryDaySummarySheet: View {
             GLFormFieldLabel(text: "Rounds")
             VStack(spacing: 0) {
                 ForEach(Array(rounds.enumerated()), id: \.element.id) { index, round in
-                    HStack {
-                        Text(round.courseName)
-                            .font(.glSubhead)
-                            .foregroundColor(.textPrimary)
-                        Spacer()
-                        Text(round.datePlayedDisplay)
-                            .font(GLFonts.mono(size: 12, weight: .medium))
-                            .foregroundColor(.textTertiary)
+                    NavigationLink {
+                        RoundDetailView(round: round)
+                    } label: {
+                        RoundListRowView(round: round, showIncompleteFlag: true)
                     }
-                    .padding(.horizontal, GLCardMetrics.padding)
-                    .padding(.vertical, 12)
+                    .buttonStyle(.plain)
+                    .navigationLinkIndicatorVisibility(.hidden)
                     if index < rounds.count - 1 {
                         Rectangle()
                             .fill(Color.borderDefault)
@@ -389,24 +402,7 @@ private struct HistoryDaySummarySheet: View {
     private var practiceList: some View {
         VStack(alignment: .leading, spacing: 8) {
             GLFormFieldLabel(text: "Practice")
-            VStack(spacing: 0) {
-                ForEach(Array(practices.enumerated()), id: \.element.id) { index, session in
-                    HStack {
-                        Text(session.focusSubtitle.isEmpty ? "Logged practice" : session.focusSubtitle)
-                            .font(.glSubhead)
-                            .foregroundColor(.textPrimary)
-                        Spacer()
-                    }
-                    .padding(.horizontal, GLCardMetrics.padding)
-                    .padding(.vertical, 12)
-                    if index < practices.count - 1 {
-                        Rectangle()
-                            .fill(Color.borderDefault)
-                            .frame(height: 1)
-                    }
-                }
-            }
-            .glCardChromeFrame(outlined: true)
+            PracticeSessionCardList(sessions: practices)
         }
     }
 }

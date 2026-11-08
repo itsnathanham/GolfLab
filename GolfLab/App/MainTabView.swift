@@ -90,6 +90,7 @@ struct MainTabView: View {
             if roundStore.isRoundActive {
                 roundStore.pushCompanionSnapshotToWatch()
             }
+            roundStore.publishWeekToWatch()
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
             Task { await roundStore.loadRounds() }
@@ -98,8 +99,13 @@ struct MainTabView: View {
             if let celebration = roundStore.weeklyGoalCelebration {
                 WeeklyGoalCelebrationOverlay(
                     presentation: celebration,
-                    onDismiss: { roundStore.dismissWeeklyGoalCelebration() }
+                    onDismiss: {
+                        if roundStore.weeklyGoalCelebration?.id == celebration.id {
+                            roundStore.dismissWeeklyGoalCelebration()
+                        }
+                    }
                 )
+                .id(celebration.id)
                 .zIndex(1000)
             }
         }

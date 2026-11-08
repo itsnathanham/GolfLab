@@ -518,7 +518,6 @@ private struct CoursePickerSheet: View {
         .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .presentationDragIndicator(.visible)
-        .presentationDetents([.medium, .large])
     }
 
     private var topNav: some View {

@@ -345,8 +345,17 @@ struct StatsView: View {
             holesByRoundId: holesByRoundId,
             rounds: chronologicalRounds,
             holeRowCountByRoundId: roundStore.holeRowCountByRoundId,
-            slotCount: VsParCumulativeProgression.chartHoleSlots
+            slotCount: progressionHoleSlots
         )
+    }
+
+    /// 9- and 18-hole filters lock the axis. All rounds uses the longest round in view, and holes past a round's length are left out.
+    private var progressionHoleSlots: Int {
+        if let holeCount = holeFilter.holeCount {
+            return holeCount
+        }
+        let counts = chronologicalRounds.map(\.holes).filter { $0 > 0 }
+        return counts.max() ?? VsParCumulativeProgression.chartHoleSlots
     }
 
     private var firSeries: [Double] {

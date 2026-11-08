@@ -118,38 +118,41 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Progress bars stay accent green. Met-week marks, flame, streak caption, and celebration chrome use calendar orange (`chartOrange` / `streakMark`).
+Progress bars stay accent green. Met-week flagsticks, the streak count, the hero flame, and celebration chrome use calendar orange (`chartOrange` / `streakMark`). The flagstick card’s flame and caption use system orange.
 
 ```swift
-Color(hex: "#D98909")        // streakMark / streakSuccess — flagsticks, flame, caption, celebration
+Color(hex: "#D98909")        // streakMark / streakSuccess — flagsticks, streak count, hero flame, celebration
+Color.orange                 // flagstick flame + caption (system orange)
 Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
-Color(hex: "#FFFFFF")        // streakOnSuccess    — × on missed marks
 ```
 
-**Layouts** (Profile → Streak layout): **Flagstick** (default) keeps the classic card with flagstick week marks; **Streak hero** leads with a mono streak count, segmented week strip, and compact goal chips.
+**Layouts** (Profile → Streak layout): **Flagstick** (default) keeps the week marks, and adds the mono streak count plus the compact round and practice chips. **Streak hero** leads with that same count, a segmented week strip, and the chips.
 
 **Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
 
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
 | Met (past or current week)              | Orange flagstick in cup |
-| Missed (finished week only)             | Bare stick + `bgElevated` cup with white × |
+| Missed (finished week only)             | Same flagstick, in `textTertiary` |
 | In progress (current week, not yet met) | Dashed orange flag + ellipsis on cup |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
-Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet` (same sheet as a calendar day: drag indicator, no height cap, so it can swipe to the top).
+Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
-**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), practice rows, range-balls column chart (solid orange current week, muted priors).
+**Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), tappable practice rows (`PracticeSessionRowView`: orange dot, focus, relative day, ball count, chevron) that open Edit practice, range-balls column chart (solid orange current week, muted priors).
 
-**Streak footer:** `flame.fill` (orange) + footnote caption (orange).
+**Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, the same tappable practice rows. No range-balls chart.
+
+**Streak footer:** Flagstick uses `flame.fill` and the caption in system orange, including the zero-week prompt. Hero uses `streakMark` for the flame and caption, and `textSecondary` for the caption when the streak is 0.
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
 - Golf fireworks: three ambient shells (balls / flags / tees), then a fourth **flag bloom** (orange + white flags fanning at the top banner); the celebration card springs open out of that fan — **off** when Reduce Motion is enabled (card only).
 - Top card: flag tile, “Weekly goals complete”, short copy, orange mono streak line, orange border (`streakCardBorder`).
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
-- Once per calendar week; queued if a sheet would hide the overlay.
+- Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
 - Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
+- **Watch idle:** `GOLF LAB` wordmark (mono, tracked, accent), this week’s rounds / practice and streak pushed from the phone, the line `iPhone → Start round`, and a ghost `Log practice`. While a finished round is still on the watch, that line is the keep-it prompt. A week that is no longer current shows `—` until the phone syncs.
 
 ---
 
