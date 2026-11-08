@@ -54,6 +54,15 @@ extension PracticeSession {
         sessions.compactMap(\.loggedRangeBallsHit).first ?? GLPracticeRangeBalls.defaultCount
     }
 
+    /// Focus names only. Ball count stays in the row’s trailing column.
+    var focusTitle: String {
+        var bits: [String] = []
+        if practicedRange { bits.append("Range") }
+        if practicedChipping { bits.append("Chipping") }
+        if practicedPutting { bits.append("Putting") }
+        return bits.isEmpty ? "Practice" : bits.joined(separator: " · ")
+    }
+
     var focusSubtitle: String {
         var bits: [String] = []
         if practicedRange {

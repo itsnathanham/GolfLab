@@ -87,7 +87,7 @@ enum GLCalendarISO {
         return weekdayNameFormatter.string(from: date)
     }
 
-    private static func date(fromYMD ymdPrefix: String) -> Date? {
+    static func date(fromYMD ymdPrefix: String) -> Date? {
         let head = String(ymdPrefix.prefix(10))
         let parts = head.split(separator: "-", omittingEmptySubsequences: false).map(String.init)
         guard parts.count == 3,
