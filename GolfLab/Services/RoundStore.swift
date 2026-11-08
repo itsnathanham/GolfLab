@@ -730,6 +730,11 @@ class RoundStore: ObservableObject {
         queueWeeklyGoalCelebrationIfNeeded(before: goalsBefore, sendToWatch: fromWatch)
     }
 
+    /// Drops a deleted practice row so calendar dots, streak, and range-ball totals recount immediately.
+    func removePracticeSession(id: UUID) {
+        allPracticeSessions.removeAll { $0.id == id }
+    }
+
     /// Persists practice sessions relayed from Apple Watch (same path as iPhone Log practice).
     func savePracticeSessionsFromWatch(_ entries: [WatchPracticeEntry]) async {
         guard !entries.isEmpty else { return }
@@ -749,6 +754,7 @@ class RoundStore: ObservableObject {
                 let inserted = try await GolfLabData.store.insertPracticeSession(insert)
                 upsertPracticeSession(inserted, fromWatch: true)
             } catch {
+                // A deleted-session replay throws and must not be inserted again.
                 continue
             }
         }
