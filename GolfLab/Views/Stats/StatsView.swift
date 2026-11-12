@@ -11,12 +11,8 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    statsTopBar
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.top, GLTopBarMetrics.screenRootTopPadding)
-                        .padding(.bottom, 14)
-
                     filterRow
+                        .padding(.top, GLTopBarMetrics.sheetTopPadding)
                         .padding(.bottom, 18)
 
                     if filteredRounds.count < 2 {
@@ -104,12 +100,6 @@ struct StatsView: View {
         .onChange(of: selectedSeasonYear) { _, newYear in
             StatsSeasonFilter.persistStatsSeasonPickerYear(newYear)
         }
-    }
-
-    // MARK: - Top bar
-
-    private var statsTopBar: some View {
-        GLHubRootTopBar { EmptyView() }
     }
 
     // MARK: - Pills

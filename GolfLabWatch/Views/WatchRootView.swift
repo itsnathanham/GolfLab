@@ -59,12 +59,6 @@ struct WatchIdleView: View {
         VStack(spacing: 8) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Golf Lab")
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .tracking(0.14 * 12)
-                        .textCase(.uppercase)
-                        .foregroundColor(WatchPalette.accent)
-
                     Text("This week")
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(0.08 * 10)

@@ -83,7 +83,8 @@ struct HomeView: View {
     // MARK: - Top bar
 
     private var homeTopBar: some View {
-        GLHubRootTopBar {
+        HStack {
+            Spacer(minLength: 0)
             NavigationLink {
                 ProfileView()
                     .environmentObject(roundStore)

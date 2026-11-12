@@ -61,7 +61,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 
 ## 3. Typography
 
-**Fonts:** IBM Plex Sans (UI), IBM Plex Mono (numbers, wordmark, axes, badges).
+**Fonts:** IBM Plex Sans (UI), IBM Plex Mono (numbers, axes, badges).
 
 **Scale (reduced for density)**
 
@@ -124,8 +124,7 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | Pattern | Where | Use |
 |---------|--------|-----|
 | `GLScreenTopBar` | `GLChrome.swift` | Centered **14pt semibold** title with **68pt** leading/trailing columns (reduced from 72pt). |
-| `GLHubRootTopBar` | `GLChrome.swift` | **Golf Lab** wordmark (mono, accent green) + trailing hub title. |
-| `GLTopBarMetrics` | `GLChrome.swift` | Tighter top padding (4pt screenRoot, 16pt sheet). |
+| `GLTopBarMetrics` | `GLChrome.swift` | Tighter top padding (4pt screenRoot, 16pt sheet). Hub tabs have no wordmark. Home keeps the profile avatar at the trailing edge. |
 | `GLPrimaryCTAButton` | `GLButtonStyles.swift` | Green fill, black text, **48pt**, uppercase, tracking, 12pt radius. |
 | `GLSecondaryGhostButton` | `GLButtonStyles.swift` | Ghost secondary with white @ 8% border, 12pt radius. |
 | `GLFormFieldLabel` | `GLFormChrome.swift` | Uppercase caption label (12pt, 0.10em tracking). |

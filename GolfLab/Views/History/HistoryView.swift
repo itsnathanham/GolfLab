@@ -65,13 +65,9 @@ struct HistoryView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    historyTopBar
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.top, GLTopBarMetrics.screenRootTopPadding)
-                        .padding(.bottom, 14)
-
                     WeeklyGoalsStreakSection()
                         .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.top, GLTopBarMetrics.sheetTopPadding)
                         .padding(.bottom, 18)
 
                     HistoryCalendarMonthCard(
@@ -176,12 +172,6 @@ struct HistoryView: View {
         case .allTime:
             return "No rounds yet."
         }
-    }
-
-    // MARK: - Top bar
-
-    private var historyTopBar: some View {
-        GLHubRootTopBar { EmptyView() }
     }
 
     // MARK: - Scope pills
