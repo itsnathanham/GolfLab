@@ -39,6 +39,7 @@ Ordered follow-ups. Status is per row.
 | 4   | **Stock yardages** — rethink the stepper UI in `StockClubYardagesSection`, and fix the last entry                                                                                                   | **Done** (open rows, grip reorder, swipe delete, compact green-flash stepper; Add club hidden when the bag is full) |
 | 5   | **Range balls** — add Stats tracking for range balls hit. Think through Stats filtering, and how this stat differs from round-based metrics (it is practice volume, not a scoring rate)            | **Not started** |
 | 6   | **Watch home** — fix the watch homepage UI, and update the logo on Home so it matches                                                                                                               | **Done** (`GOLF LAB` wordmark, this week’s rounds/practice/streak from the phone, `iPhone → Start round`, ghost Log practice) |
+| 7   | **Watch streak freeze**                                                                                                                                                                             | **Not started** |
 
 
 ---
