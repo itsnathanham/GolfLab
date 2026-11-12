@@ -95,7 +95,7 @@ struct WeeklyGoalsStreakSection: View {
     private func goalChips(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
         HStack(spacing: 8) {
             if snap.roundTarget > 0 {
-                heroMetricChip(
+                goalMetricChip(
                     label: "Rounds",
                     value: "\(snap.roundsThisWeek) / \(snap.roundTarget)",
                     fill: CGFloat(snap.roundsThisWeek) / CGFloat(max(snap.roundTarget, 1)),
@@ -103,7 +103,7 @@ struct WeeklyGoalsStreakSection: View {
                 )
             }
             if snap.practiceTarget > 0 {
-                heroMetricChip(
+                goalMetricChip(
                     label: "Practice",
                     value: "\(snap.practiceSessionsThisWeek) / \(snap.practiceTarget)",
                     fill: CGFloat(snap.practiceSessionsThisWeek) / CGFloat(max(snap.practiceTarget, 1)),
@@ -113,7 +113,7 @@ struct WeeklyGoalsStreakSection: View {
         }
     }
 
-    private func heroMetricChip(label: String, value: String, fill: CGFloat, done: Bool) -> some View {
+    private func goalMetricChip(label: String, value: String, fill: CGFloat, done: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label.uppercased())
                 .font(.glEyebrow)
@@ -230,23 +230,17 @@ struct WeeklyGoalsStreakSection: View {
 
     private func weekAccessibilityLabel(_ week: GLWeeklyGoalsStreak.WeekRecord) -> String {
         let state: String
-        if week.showsFreezeMark {
-            switch week.outcome {
-            case .complete: state = "frozen, goals met"
-            case .missed: state = "frozen, goals missed"
-            case .inProgress: state = "frozen"
-            }
-        } else {
-            switch week.outcome {
-            case .complete: state = "goals met"
-            case .missed: state = "missed"
-            case .inProgress: state = "in progress"
-            }
+        switch week.outcome {
+        case .complete:
+            state = week.showsFreezeMark ? "frozen, goals met" : "goals met"
+        case .missed:
+            state = week.showsFreezeMark ? "frozen, goals missed" : "missed"
+        case .inProgress:
+            state = week.showsFreezeMark ? "frozen" : "in progress"
         }
         return "Week \(week.weekNumber), \(state). Shows week summary."
     }
 
-    /// Icy flake only — no pin — so a frozen week is obviously not a flagstick.
     private var freezeSnowflake: some View {
         Canvas { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)

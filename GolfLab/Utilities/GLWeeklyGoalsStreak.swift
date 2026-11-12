@@ -69,8 +69,8 @@ enum GLWeeklyGoalsStreak {
             return emptySnapshot(roundTarget: roundTarget, practiceTarget: practiceTarget)
         }
 
-        let freezes = normalizedFreezes(freezes)
-        let activeFreeze = freezes.first { $0.isActive }
+        let spans = normalizedFreezes(freezes)
+        let activeFreeze = spans.first { $0.isActive }
 
         let ctx = EvaluationContext(
             now: now,
@@ -106,12 +106,12 @@ enum GLWeeklyGoalsStreak {
 
         let anchorStart = trackingAnchorWeekStartYMD(context: ctx, currentWeekStartYMD: thisBounds.start)
         let weekStarts = weekStartsFromAnchor(anchorStartYMD: anchorStart, throughCurrentWeekStartYMD: thisBounds.start, calendar: calendar)
-        let visibleStarts = weekStarts.filter { !isFrozenGap($0, spans: freezes) }
+        let visibleStarts = weekStarts.filter { !isFrozenGap($0, spans: spans) }
         let history: [WeekRecord] = visibleStarts.enumerated().map { index, startYMD in
             let bounds = ctx.boundsYMD(forWeekStartYMD: startYMD) ?? (startYMD, startYMD)
             let (rT, pT) = ctx.targets(forWeekStartYMD: startYMD)
             let met = ctx.weekSatisfied(startYMD: bounds.start, endYMD: bounds.end, roundT: rT, practiceT: pT)
-            let locked = freezes.first { $0.lockedWeekStartYMD == startYMD }
+            let locked = spans.first { $0.lockedWeekStartYMD == startYMD }
             let outcome: WeekOutcome
             if let locked {
                 outcome = locked.lockedComplete ? .complete : .missed
@@ -131,7 +131,7 @@ enum GLWeeklyGoalsStreak {
         let streak = completedStreak(
             history: history,
             currentWeekStartYMD: thisBounds.start,
-            freezes: freezes
+            freezes: spans
         )
 
         return Snapshot(

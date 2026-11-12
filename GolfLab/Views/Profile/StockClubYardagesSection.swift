@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Profile bag: open distance rows, grip to reorder, swipe to delete, compact stepper.
+/// Profile bag: open distance rows, grip to reorder, swipe the club name to delete.
 struct StockClubYardagesSection: View {
     @Binding var rows: [StockClubYardage]
     /// Set while a reorder or swipe is in progress so the profile scroll view stays still.
@@ -270,7 +270,6 @@ struct StockClubYardagesSection: View {
         return 0
     }
 
-    /// Horizontal-only pan on the club name. A vertical move never begins, so the profile page can scroll.
     private func horizontalSwipeCatcher(for id: UUID) -> some View {
         HorizontalSwipeCatcher(
             onChanged: { translation in
