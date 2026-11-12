@@ -24,6 +24,10 @@ class WatchSessionService: NSObject, ObservableObject {
     @Published var weeklyGoalCelebration: WatchWeeklyGoalCelebration?
     /// Latest week from the phone. Shown on the idle home screen.
     @Published private(set) var weekSnapshot: WatchWeekSnapshot?
+    /// Newest week payload accepted. Kept off `@Published` so a phone sync that
+    /// repeats the same counts with a new `sentAt` does not rebuild the idle
+    /// screen under an in-flight tap.
+    private var latestWeekSentAt: Date?
 
     private static let weekDefaultsKey = "golflab.watchWeekSnapshot"
 
@@ -60,8 +64,11 @@ class WatchSessionService: NSObject, ObservableObject {
     }
 
     func applyWeekSnapshot(_ week: WatchWeekSnapshot) {
-        if let current = weekSnapshot, week.sentAt < current.sentAt { return }
-        weekSnapshot = week
+        if let latestWeekSentAt, week.sentAt < latestWeekSentAt { return }
+        latestWeekSentAt = week.sentAt
+        if weekSnapshot != week {
+            weekSnapshot = week
+        }
         if let data = try? JSONEncoder().encode(week) {
             UserDefaults.standard.set(data, forKey: Self.weekDefaultsKey)
         }
@@ -71,6 +78,7 @@ class WatchSessionService: NSObject, ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: Self.weekDefaultsKey),
               let week = try? JSONDecoder().decode(WatchWeekSnapshot.self, from: data)
         else { return }
+        latestWeekSentAt = week.sentAt
         weekSnapshot = week
     }
 

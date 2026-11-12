@@ -21,60 +21,64 @@ struct WatchPracticeLogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Practice day")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(WatchPalette.textTertiary)
-                        .textCase(.uppercase)
-                    Text(GLCalendarISO.mmddyyyyDisplay(from: sessionDateYMD))
-                        .font(.system(size: 18, weight: .semibold, design: .monospaced))
-                        .foregroundColor(WatchPalette.textPrimary)
-                }
+        VStack(spacing: 8) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Practice day")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(WatchPalette.textTertiary)
+                            .textCase(.uppercase)
+                        Text(GLCalendarISO.mmddyyyyDisplay(from: sessionDateYMD))
+                            .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                            .foregroundColor(WatchPalette.textPrimary)
+                    }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Focus")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(WatchPalette.textTertiary)
-                        .textCase(.uppercase)
-                    WatchToggle(label: "Range", isOn: $practicedRange, kind: .practice)
-                    WatchToggle(label: "Chipping", isOn: $practicedChipping, kind: .practice)
-                    WatchToggle(label: "Putting", isOn: $practicedPutting, kind: .practice)
-                }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Focus")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(WatchPalette.textTertiary)
+                            .textCase(.uppercase)
+                        WatchToggle(label: "Range", isOn: $practicedRange, kind: .practice)
+                        WatchToggle(label: "Chipping", isOn: $practicedChipping, kind: .practice)
+                        WatchToggle(label: "Putting", isOn: $practicedPutting, kind: .practice)
+                    }
 
-                if practicedRange {
-                    WatchMetricStepper(
-                        title: "Range balls",
-                        value: $rangeBalls,
-                        min: GLPracticeRangeBalls.min,
-                        max: 300,
-                        step: GLPracticeRangeBalls.step,
-                        valuePointSize: 24,
-                        buttonSize: 40
-                    )
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    if practicedRange {
+                        WatchMetricStepper(
+                            title: "Range balls",
+                            value: $rangeBalls,
+                            min: GLPracticeRangeBalls.min,
+                            max: 300,
+                            step: GLPracticeRangeBalls.step,
+                            valuePointSize: 24,
+                            buttonSize: 40
+                        )
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
-
-                Button {
-                    savePractice()
-                } label: {
-                    Text("Save practice")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 44)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(WatchPalette.practice)
-                .disabled(!canSave)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .animation(.easeInOut(duration: 0.2), value: practicedRange)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button {
+                savePractice()
+            } label: {
+                Text("Save practice")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(WatchPalette.accent)
+            .disabled(!canSave)
             .padding(.horizontal, 8)
-            .padding(.bottom, 8)
         }
         .background(WatchPalette.bg)
         .navigationTitle("Log practice")
         .navigationBarTitleDisplayMode(.inline)
-        .animation(.easeInOut(duration: 0.2), value: practicedRange)
     }
 
     private func savePractice() {
