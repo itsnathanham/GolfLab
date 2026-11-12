@@ -347,6 +347,7 @@ struct WatchToggle: View {
             .frame(minHeight: 46)
             .background(backgroundColor)
             .cornerRadius(10)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isOn)

@@ -7,13 +7,9 @@ struct CoachView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    GLHubRootTopBar { EmptyView() }
-                        .padding(.horizontal, GLLayout.horizontalInset)
-                        .padding(.top, GLTopBarMetrics.screenRootTopPadding)
-                        .padding(.bottom, 14)
-
                     comingSoonContent
                         .padding(.horizontal, GLLayout.horizontalInset)
+                        .padding(.top, GLTopBarMetrics.sheetTopPadding)
                 }
             }
             .background(Color.appBackground)

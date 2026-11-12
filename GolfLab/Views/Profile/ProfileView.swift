@@ -5,11 +5,11 @@ import PhotosUI
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var roundStore: RoundStore
-    @AppStorage(GLStreakSectionStyle.defaultsKey) private var streakStyleRaw = GLStreakSectionStyle.flagstick.rawValue
     @State private var profile: UserProfile?
     @State private var displayName = ""
     @State private var weeklyRoundGoal = 1
     @State private var weeklyPracticeGoal = 2
+    @State private var streakFreezes: [GLWeeklyGoalsStreak.FreezeSpan] = []
     @State private var stockClubRows: [StockClubYardage] = GLStockClubYardages.defaultBagRows()
     @State private var showSaveErrorAlert = false
     @State private var saveErrorMessage = ""
@@ -60,10 +60,10 @@ struct ProfileView: View {
                                     .foregroundColor(.textSecondary)
                                 StepperField(label: "practices", value: $weeklyPracticeGoal, min: 0, max: 14)
                             }
+
+                            streakFreezeRow
                         }
                     }
-
-                    streakStyleCard
 
                     StockClubYardagesSection(
                         rows: $stockClubRows,
@@ -158,35 +158,47 @@ struct ProfileView: View {
         }
     }
 
-    private var streakStyleBinding: Binding<GLStreakSectionStyle> {
+    private var streakIsFrozen: Bool {
+        streakFreezes.contains(where: \.isActive)
+    }
+
+    private var streakFreezeRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Freeze streak")
+                        .font(GLFonts.sans(size: 14, weight: .medium))
+                        .foregroundColor(.textPrimary)
+                    Text("Off-season pause. This week locks as met or missed. No new week marks until you turn it off. Rounds and practice still log.")
+                        .font(.glFootnote)
+                        .foregroundColor(.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Toggle("Freeze streak", isOn: streakFreezeBinding)
+                    .labelsHidden()
+                    .tint(.accent)
+            }
+        }
+    }
+
+    private var streakFreezeBinding: Binding<Bool> {
         Binding(
-            get: { GLStreakSectionStyle(rawValue: streakStyleRaw) ?? .flagstick },
-            set: { streakStyleRaw = $0.rawValue }
+            get: { streakIsFrozen },
+            set: { setStreakFrozen($0) }
         )
     }
 
-    private var streakStyleCard: some View {
-        GLFormCard {
-            VStack(alignment: .leading, spacing: 12) {
-                GLFormFieldLabel(text: "Streak layout")
-                Text("Try Flagstick or Streak hero on Home and History. Tap a week mark for that week’s summary.")
-                    .font(.glFootnote)
-                    .foregroundColor(.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Picker("Streak layout", selection: streakStyleBinding) {
-                    ForEach(GLStreakSectionStyle.allCases) { style in
-                        Text(style.title).tag(style)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Text(streakStyleBinding.wrappedValue.detail)
-                    .font(.glFootnote)
-                    .foregroundColor(.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+    private func setStreakFrozen(_ frozen: Bool) {
+        let live = roundStore.weeklyGoalsSnapshot(ignoringFreezes: true)
+        streakFreezes = GLWeeklyGoalsStreak.freezesBySetting(
+            frozen: frozen,
+            existing: streakFreezes,
+            currentWeekStartYMD: GLCalendarISO.weekStartYMD(),
+            currentWeekComplete: live.currentWeekComplete
+        )
+        roundStore.streakFreezes = streakFreezes
+        scheduleProfileAutosave()
     }
     
     private var profilePhotoSection: some View {
@@ -251,6 +263,7 @@ struct ProfileView: View {
                 displayName = RoundStore.initials(from: p.displayName)
                 weeklyRoundGoal = p.weeklyRoundTarget ?? 1
                 weeklyPracticeGoal = p.weeklyPracticeTarget ?? 2
+                streakFreezes = p.streakFreezes ?? []
                 if let saved = p.stockClubYardages {
                     stockClubRows = GLStockClubYardages.ordered(saved)
                 } else {
@@ -307,13 +320,15 @@ struct ProfileView: View {
                 weeklyRoundTarget: weeklyRoundGoal,
                 weeklyPracticeTarget: weeklyPracticeGoal,
                 weeklyGoalTargetRevisions: revisionsPatch,
-                stockClubYardages: stockToSave
+                stockClubYardages: stockToSave,
+                streakFreezes: streakFreezes
             )
             suppressAutosave = true
             profile = updated
             displayName = RoundStore.initials(from: updated.displayName)
             weeklyRoundGoal = updated.weeklyRoundTarget ?? 1
             weeklyPracticeGoal = updated.weeklyPracticeTarget ?? 2
+            streakFreezes = updated.streakFreezes ?? streakFreezes
             if let saved = updated.stockClubYardages {
                 stockClubRows = saved
             }

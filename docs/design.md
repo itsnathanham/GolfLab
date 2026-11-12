@@ -118,32 +118,33 @@ All colors tested for OLED contrast against pure black backgrounds.
 
 ### Weekly goals / streak
 
-Progress bars stay accent green. Met-week flagsticks, the streak count, the hero flame, and celebration chrome use calendar orange (`chartOrange` / `streakMark`). The flagstick card’s flame and caption use system orange.
+Progress bars stay accent green. Met-week flagsticks, the streak count, and celebration chrome use calendar orange (`chartOrange` / `streakMark`). The flagstick card’s flame and caption use system orange. A frozen week is a cyan snowflake (`chartCyan`), and the footer reads “Streak frozen”.
 
 ```swift
-Color(hex: "#D98909")        // streakMark / streakSuccess — flagsticks, streak count, hero flame, celebration
+Color(hex: "#D98909")        // streakMark / streakSuccess — flagsticks, streak count, celebration
 Color.orange                 // flagstick flame + caption (system orange)
 Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
 ```
 
-**Layouts** (Profile → Streak layout): **Flagstick** (default) is one header row — the mono streak count and “week streak” share a baseline, with no hairline under the title — then the week marks, the system-orange flame line, then the round and practice chips. **Streak hero** leads with the stacked count, a segmented week strip, and the chips.
+**Layout:** one header row — the mono streak count and “week streak” share a baseline, with no hairline under the title — then the week marks, the flame line, then the round and practice chips. Profile has no layout picker. **Freeze streak** sits on the weekly goals card. Turning it on locks this week as met or missed, hides every later calendar week, and leaves the streak count where it was. Turning it off in that same week removes the pause. Turning it off later continues at the next number (freeze on week 29, come back, the next mark is week 30). Rounds and practice still log. A frozen week does not celebrate.
 
-**Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …):
+**Week history row** (horizontal scroll, oldest → newest, labels `W1`, `W2`, …). A short row stays left-aligned. A row wider than the card opens on the newest week. Labels keep their full width (`W100` does not clip).
 
 | State                                   | Visual                                                            |
 | --------------------------------------- | ----------------------------------------------------------------- |
 | Met (past or current week)              | Orange flagstick in cup |
 | Missed (finished week only)             | Same flagstick, in `textTertiary` |
 | In progress (current week, not yet met) | Dashed orange flag + ellipsis on cup |
+| Frozen (latest mark only, while pause is on) | Cyan snowflake, no pin. Met or missed stays on the week sheet |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
-Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
+The row uses a trailing scroll anchor so a long history is not stuck on week 1. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
 **Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), tappable practice rows (`PracticeSessionRowView`: orange dot, focus, relative day, ball count, chevron) that open Edit practice, range-balls column chart (solid orange current week, muted priors).
 
 **Day summary sheet** (History calendar): date card (`Nov 7 '26`, weekday, streak `W#` in `streakMark` when that week is tracked), rounds/practice counts with no bars, the same `RoundListRowView` rows, the same tappable practice rows. No range-balls chart.
 
-**Streak footer:** Flagstick uses `flame.fill` and the caption in system orange, including the zero-week prompt. Hero uses `streakMark` for the flame and caption, and `textSecondary` for the caption when the streak is 0.
+**Streak footer:** `flame.fill` and the caption in system orange, including the zero-week prompt. While a freeze is on, the flame is a cyan snowflake and the caption is “Streak frozen”. The header count stays the completed run.
 
 **Weekly goal completion celebration** (app-root overlay on `MainTabView`):
 
@@ -152,7 +153,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 - Haptics: `.success` notification on appear, `.light` tap on each launch, `.medium` thump on each burst (including the flag bloom).
 - Celebrates each time this week goes from unfinished to finished. A strictly harder round or practice target clears that week's mark when the week is unfinished afterward — including when a deleted session already reopened it — so meeting the new bar celebrates again. An easier goal, the same numbers, or a mixed edit leaves the mark. Queued if a sheet would hide the overlay.
 - Watch (`WatchWeeklyGoalCelebrationView`): flag bloom only (no ambient shells), compact “Goals met” card opens out of the fan; phone only steps in when the watch is unreachable.
-- **Watch idle:** `GOLF LAB` wordmark (mono, tracked, accent), this week’s rounds / practice and streak pushed from the phone, the line `iPhone → Start round`, and a ghost `Log practice`. While a finished round is still on the watch, that line is the keep-it prompt. A week that is no longer current shows `—` until the phone syncs.
+- **Watch idle:** this week’s rounds / practice and streak pushed from the phone, the line `iPhone → Start round`, and a system green `Log practice` button pinned under the summary. While a finished round is still on the watch, that line is the keep-it prompt. A week that is no longer current shows `—` until the phone syncs.
 
 ---
 
@@ -160,7 +161,7 @@ Auto-scroll to the newest week on appear. **Tap a week** → `WeeklyGoalWeekSumm
 
 Two fonts only. No exceptions.
 
-**IBM Plex Mono** — numbers, stat values, the wordmark, score badges, time/date
+**IBM Plex Mono** — numbers, stat values, score badges, time/date
 metadata. Monospaced type gives numeric data analytical weight and makes values
 instantly legible at a glance. Do not use Mono for labels, navigation, or prose.
 
@@ -282,7 +283,7 @@ Sub-label:     Sans, 11pt, textTertiary, uppercase
 Buttons must be large enough for one-handed use with a glove.
 Haptic feedback on every increment/decrement (light impact). The pressed side flashes `accent` with `ctaOnAccent` glyphs for 0.15s.
 
-**Stock yardages** (Profile) uses the same control at row scale: 112×34, 10pt radius, 30pt sides, mono 15 value. Rows are open (no rules). Three horizontal lines on the left reorder a club. Swipe left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
+**Stock yardages** (Profile) uses the same control beside the club name: 148×52, 10pt radius, 44×52 sides, mono 22 value. Rows are 64pt and open (no rules). The reorder grip is a 22pt three-line icon in a 44pt-wide target. Swipe the club name left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
 
 ---
 
@@ -322,6 +323,8 @@ Linecap:       round
 Linejoin:      round
 Terminal dot:  4pt radius, filled
 ```
+
+Vs par progression uses `chartCyan` on last round, the history round, end round, and the Stats average. A single round is a solid line. The average is dashed. Scoring trend and the other metric charts keep their own colors.
 
 **Gradient fill below line (stock-app style):**
 

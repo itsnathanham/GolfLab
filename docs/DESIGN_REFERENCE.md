@@ -45,7 +45,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPurple` | `#A04DD8` | Season-best badges, GIR / practice series |
 | `chartOrange` | `#D98909` | Peak performance, calendar practice dots, streak marks |
 | **Weekly goals** | | *Orange marks; progress stays accent green* |
-| `streakMark` | `chartOrange` | Flagsticks, streak count, hero flame |
+| `streakMark` | `chartOrange` | Flagsticks, streak count |
 | `streakSuccess` | `chartOrange` | Celebration card / flag bloom |
 | `streakSuccessDeep` | `accentMid` | Firework particles |
 | `streakTextActive` | `chartOrange` | Celebration streak line |
@@ -61,7 +61,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 
 ## 3. Typography
 
-**Fonts:** IBM Plex Sans (UI), IBM Plex Mono (numbers, wordmark, axes, badges).
+**Fonts:** IBM Plex Sans (UI), IBM Plex Mono (numbers, axes, badges).
 
 **Scale (reduced for density)**
 
@@ -124,14 +124,13 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | Pattern | Where | Use |
 |---------|--------|-----|
 | `GLScreenTopBar` | `GLChrome.swift` | Centered **14pt semibold** title with **68pt** leading/trailing columns (reduced from 72pt). |
-| `GLHubRootTopBar` | `GLChrome.swift` | **Golf Lab** wordmark (mono, accent green) + trailing hub title. |
-| `GLTopBarMetrics` | `GLChrome.swift` | Tighter top padding (4pt screenRoot, 16pt sheet). |
+| `GLTopBarMetrics` | `GLChrome.swift` | Tighter top padding (4pt screenRoot, 16pt sheet). Hub tabs have no wordmark. Home keeps the profile avatar at the trailing edge. |
 | `GLPrimaryCTAButton` | `GLButtonStyles.swift` | Green fill, black text, **48pt**, uppercase, tracking, 12pt radius. |
 | `GLSecondaryGhostButton` | `GLButtonStyles.swift` | Ghost secondary with white @ 8% border, 12pt radius. |
 | `GLFormFieldLabel` | `GLFormChrome.swift` | Uppercase caption label (12pt, 0.10em tracking). |
 | `GLTrendCardHeader` | `Typography.swift` | 11pt uppercase chart title + hairline. |
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value. |
-| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: Flagstick or Streak hero (`GLStreakSectionStyle`); tap week → summary sheet. |
+| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: flagstick week row (opens on the newest week); frozen week is a cyan snowflake; tap week → summary sheet. |
 | `WeeklyGoalWeekSummarySheet` | `Views/Components/` | Week detail sheet: meters, rounds → detail, practice, range-ball columns. |
 | `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: ambient fireworks + flag-bloom reveal (`GolfFireworkEmitterView`). |
 

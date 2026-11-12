@@ -642,6 +642,7 @@ struct RoundVsParProgressCard: View {
                         xAxisLabel: "Hole",
                         yAxisLabel: "Score",
                         overlaySeries: overlays,
+                        seriesColor: .chartCyan,
                         showsAreaGradient: false
                     )
                     if !overlays.isEmpty {

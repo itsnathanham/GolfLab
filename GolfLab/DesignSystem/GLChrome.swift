@@ -46,27 +46,6 @@ struct GLScreenTopBar<Leading: View, Trailing: View>: View {
     }
 }
 
-/// Home / Stats / History: wordmark at leading edge; trailing content (screen title or avatar).
-struct GLHubRootTopBar<Trailing: View>: View {
-    private let trailing: () -> Trailing
-
-    init(@ViewBuilder trailing: @escaping () -> Trailing) {
-        self.trailing = trailing
-    }
-
-    var body: some View {
-        HStack(alignment: .center) {
-            Text("Golf Lab")
-                .font(GLFonts.mono(size: 14, weight: .semibold))
-                .foregroundColor(.accent)
-                .tracking(0.14 * 14)
-                .textCase(.uppercase)
-            Spacer()
-            trailing()
-        }
-    }
-}
-
 /// Leading control on pushed surfaces (`ProfileView`, `RoundDetailView`, sheets) — circle + chevron, `docs/design.md` hairline.
 struct GLCircleBackButton: View {
     let action: () -> Void

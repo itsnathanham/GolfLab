@@ -50,6 +50,8 @@ class RoundStore: ObservableObject {
     @Published var weeklyPracticeTarget: Int = 2
     /// Goal history for streak math (past weeks use targets that were active then).
     @Published var weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision] = []
+    /// Off-season pauses. An active span hides later weeks and shows the snowflake.
+    @Published var streakFreezes: [GLWeeklyGoalsStreak.FreezeSpan] = []
     /// Course cache for autocomplete and filtering.
     let courseCache = CourseCache()
 
@@ -712,6 +714,7 @@ class RoundStore: ObservableObject {
             flatRound: r,
             flatPractice: p
         )
+        streakFreezes = profile.streakFreezes ?? []
         if let beforeGoals {
             reopenCelebrationIfHarderGoalUnfinishedWeek(before: beforeGoals)
         }
@@ -794,7 +797,11 @@ class RoundStore: ObservableObject {
 
     // MARK: - Weekly goal celebration
 
-    func weeklyGoalsSnapshot(now: Date = Date(), calendar: Calendar = .current) -> GLWeeklyGoalsStreak.Snapshot {
+    func weeklyGoalsSnapshot(
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        ignoringFreezes: Bool = false
+    ) -> GLWeeklyGoalsStreak.Snapshot {
         GLWeeklyGoalsStreak.snapshot(
             now: now,
             calendar: calendar,
@@ -803,7 +810,8 @@ class RoundStore: ObservableObject {
             goalRevisions: weeklyGoalTargetRevisions,
             rounds: allRounds,
             holeRowCountByRoundId: holeRowCountByRoundId,
-            practiceSessions: allPracticeSessions
+            practiceSessions: allPracticeSessions,
+            freezes: ignoringFreezes ? [] : streakFreezes
         )
     }
 
