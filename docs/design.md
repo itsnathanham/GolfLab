@@ -283,7 +283,7 @@ Sub-label:     Sans, 11pt, textTertiary, uppercase
 Buttons must be large enough for one-handed use with a glove.
 Haptic feedback on every increment/decrement (light impact). The pressed side flashes `accent` with `ctaOnAccent` glyphs for 0.15s.
 
-**Stock yardages** (Profile) uses the same control at row scale: 112×34, 10pt radius, 30pt sides, mono 15 value. Rows are open (no rules). Three horizontal lines on the left reorder a club. Swipe left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
+**Stock yardages** (Profile) uses the same control beside the club name: 148×52, 10pt radius, 44×52 sides, mono 22 value. Rows are 64pt and open (no rules). The reorder grip is a 22pt three-line icon in a 44pt-wide target. Swipe the club name left to delete. An unset distance is an em dash; the first step moves off 100 yards. Add club is omitted once every club is already in the bag.
 
 ---
 

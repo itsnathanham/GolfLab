@@ -16,7 +16,8 @@ struct StockClubYardagesSection: View {
     /// Resets when the grip gesture ends or the scroll view cancels it, so the profile cannot stay locked.
     @GestureState private var gripActive = false
 
-    private let rowHeight: CGFloat = 48
+    private let rowHeight: CGFloat = 64
+    private let gripWidth: CGFloat = 44
     private let deleteRevealWidth: CGFloat = 88
 
     private var availableClubs: [StockClub] {
@@ -66,12 +67,13 @@ struct StockClubYardagesSection: View {
         return ZStack(alignment: .trailing) {
             deleteButton(for: row)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 grip(for: row, index: index)
                 Text(row.club.displayName)
                     .font(.glBody)
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(horizontalSwipeCatcher(for: row.id))
                 CompactYardageStepper(
@@ -120,9 +122,9 @@ struct StockClubYardagesSection: View {
 
     private func grip(for row: StockClubYardage, index: Int) -> some View {
         Image(systemName: "line.3.horizontal")
-            .font(.system(size: 14, weight: .semibold))
+            .font(.system(size: 22, weight: .bold))
             .foregroundColor(.textTertiary)
-            .frame(width: 22, height: rowHeight)
+            .frame(width: gripWidth, height: rowHeight)
             .contentShape(Rectangle())
             .highPriorityGesture(reorderGesture(for: row.id, index: index))
             .accessibilityLabel("Reorder \(row.club.displayName)")
@@ -137,11 +139,11 @@ struct StockClubYardagesSection: View {
                 }
             }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.accent)
-                    .frame(width: 22, height: 44)
+                    .frame(width: gripWidth, height: 44)
                 Text("Add club")
                     .font(.glBody)
                     .foregroundColor(.textSecondary)
@@ -347,7 +349,7 @@ private struct ReorderDrag: Equatable {
     var startY: CGFloat
 }
 
-/// Same − / value / + control as `StepperField`, sized for a bag row.
+/// Same − / value / + control as `StepperField`, sized to sit beside a club name.
 /// An unset distance reads as a dash. The first step moves off 100 yards.
 private struct CompactYardageStepper: View {
     @Binding var yardage: Int?
@@ -377,7 +379,7 @@ private struct CompactYardageStepper: View {
                 apply(delta: -1, side: .minus)
             }
             Text(yardage.map { String($0) } ?? "—")
-                .font(GLFonts.mono(size: 15, weight: .semibold))
+                .font(GLFonts.mono(size: 22, weight: .semibold))
                 .foregroundColor(yardage == nil ? .textTertiary : .textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -386,7 +388,7 @@ private struct CompactYardageStepper: View {
                 apply(delta: 1, side: .plus)
             }
         }
-        .frame(width: 112, height: 34)
+        .frame(width: 148, height: 52)
         .background(Color.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: GLCardMetrics.cornerRadiusSmall))
         .overlay(
@@ -420,13 +422,13 @@ private struct CompactYardageStepper: View {
         let flashing = flashState == side
         return Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(flashing ? .ctaOnAccent : (enabled ? .textPrimary : .textTertiary))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(width: 30, height: 34)
+        .frame(width: 44, height: 52)
         .background(flashing ? Color.accent : Color.bgElevated)
         .animation(.easeOut(duration: 0.15), value: flashState)
         .disabled(!enabled)
