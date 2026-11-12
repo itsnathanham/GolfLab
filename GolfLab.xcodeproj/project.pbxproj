@@ -74,7 +74,6 @@
 		D41B3669ED6AD57DA06A1DE4 /* WatchMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FDC7E010D4C7586ABCDBD6 /* WatchMessages.swift */; };
 		A0C003AF066B312B2326D3AA /* ScorecardSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C001AF066B312B2326D1AA /* ScorecardSync.swift */; };
 		D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8B4C201AF066B312B2326C0 /* WeeklyGoalsStreakSection.swift */; };
-		2D105200866D4318AD7F253E /* GLStreakSectionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D105200866D4318AD7F253D /* GLStreakSectionStyle.swift */; };
 		5772F368B8FA4D0A9FBE14AA /* WeeklyGoalWeekSummarySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5772F368B8FA4D0A9FBE14A9 /* WeeklyGoalWeekSummarySheet.swift */; };
 		DEDA9A241D34378F6D175E1D /* GLCalendarChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEFDABF24F2C4AA3DA701EB3 /* GLCalendarChrome.swift */; };
 		DFF7A7A348C0AED2BA557B72 /* RoundTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE30AAB3C603E26C96545B9 /* RoundTabView.swift */; };
@@ -245,7 +244,6 @@
 		D753DD0C25E4760B60F42D9A /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		D7C36111E50165737A0D9111 /* GLChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLChrome.swift; sourceTree = "<group>"; };
 		D8B4C201AF066B312B2326C0 /* WeeklyGoalsStreakSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalsStreakSection.swift; sourceTree = "<group>"; };
-		2D105200866D4318AD7F253D /* GLStreakSectionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLStreakSectionStyle.swift; sourceTree = "<group>"; };
 		5772F368B8FA4D0A9FBE14A9 /* WeeklyGoalWeekSummarySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyGoalWeekSummarySheet.swift; sourceTree = "<group>"; };
 		DAB0B845CE6E4D63353F0EAF /* GLFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLFonts.swift; sourceTree = "<group>"; };
 		DEFDABF24F2C4AA3DA701EB3 /* GLCalendarChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLCalendarChrome.swift; sourceTree = "<group>"; };
@@ -380,7 +378,6 @@
 				A1B2C3D4E5F60718293A4B5A /* ActiveRoundDraftStore.swift */,
 				5E60441036AA2A749FC58294 /* GLCalendarISO.swift */,
 				F8B4C201AF066B312B2326B0 /* GLWeeklyGoalsStreak.swift */,
-				2D105200866D4318AD7F253D /* GLStreakSectionStyle.swift */,
 				VSPAR01AF066B312B2326C0 /* VsParCumulativeProgression.swift */,
 				VSPAR02AF066B312B2326C2 /* SeasonHolesFetch.swift */,
 				A1WGC201AF066B312B232700 /* WeeklyGoalCelebration.swift */,
@@ -832,7 +829,6 @@
 				1C88DF64DFBD4D3F9993F959 /* StockClubYardagesSection.swift in Sources */,
 				E8B4C201AF066B312B2326A2 /* WeeklyGoalTargetRevision.swift in Sources */,
 				D8B4C201AF066B312B2326C1 /* WeeklyGoalsStreakSection.swift in Sources */,
-				2D105200866D4318AD7F253E /* GLStreakSectionStyle.swift in Sources */,
 				5772F368B8FA4D0A9FBE14AA /* WeeklyGoalWeekSummarySheet.swift in Sources */,
 				808144D94F4C099CA8CF426D /* WatchConnectivityService.swift in Sources */,
 				9416E535836DDDFE45BF570F /* WatchMessages.swift in Sources */,

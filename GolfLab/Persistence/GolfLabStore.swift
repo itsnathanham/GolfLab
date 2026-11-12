@@ -13,7 +13,8 @@ protocol GolfLabStore: AnyObject {
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
         weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
-        stockClubYardages: [StockClubYardage]?
+        stockClubYardages: [StockClubYardage]?,
+        streakFreezes: [GLWeeklyGoalsStreak.FreezeSpan]?
     ) async throws -> UserProfile
     func updateProfilePhoto(userId: UUID, path: String?) async throws
     func ensureProfile(userId: UUID) throws -> UserProfile
@@ -168,7 +169,8 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         weeklyRoundTarget: Int?,
         weeklyPracticeTarget: Int?,
         weeklyGoalTargetRevisions: [WeeklyGoalTargetRevision]?,
-        stockClubYardages: [StockClubYardage]?
+        stockClubYardages: [StockClubYardage]?,
+        streakFreezes: [GLWeeklyGoalsStreak.FreezeSpan]?
     ) async throws -> UserProfile {
         let context = try requireContext()
         let profile = try findProfile(userId: userId) ?? {
@@ -184,6 +186,9 @@ final class SwiftDataGolfLabStore: GolfLabStore {
         profile.weeklyPracticeTarget = weeklyPracticeTarget
         if let weeklyGoalTargetRevisions {
             profile.weeklyGoalTargetRevisionsData = try JSONEncoder().encode(weeklyGoalTargetRevisions)
+        }
+        if let streakFreezes {
+            profile.streakFreezesData = try JSONEncoder().encode(streakFreezes)
         }
         if let stockClubYardages {
             try replaceStockClubYardages(on: profile, userId: userId, rows: stockClubYardages)
@@ -569,6 +574,10 @@ private extension SDProfile {
             guard let weeklyGoalTargetRevisionsData else { return nil }
             return try? JSONDecoder().decode([WeeklyGoalTargetRevision].self, from: weeklyGoalTargetRevisionsData)
         }()
+        let streakFreezes: [GLWeeklyGoalsStreak.FreezeSpan]? = {
+            guard let streakFreezesData else { return nil }
+            return try? JSONDecoder().decode([GLWeeklyGoalsStreak.FreezeSpan].self, from: streakFreezesData)
+        }()
         let stockYardages: [StockClubYardage]? = resolvedStockClubYardages()
         return UserProfile(
             id: id,
@@ -580,6 +589,7 @@ private extension SDProfile {
             weeklyPracticeTarget: weeklyPracticeTarget,
             weeklyGoalTargetRevisions: revisions,
             stockClubYardages: stockYardages,
+            streakFreezes: streakFreezes,
             profilePhotoPath: profilePhotoPath
         )
     }
@@ -611,6 +621,10 @@ private extension SDProfile {
             guard let weeklyGoalTargetRevisions = profile.weeklyGoalTargetRevisions else { return nil }
             return try? JSONEncoder().encode(weeklyGoalTargetRevisions)
         }()
+        let streakFreezesData: Data? = {
+            guard let streakFreezes = profile.streakFreezes else { return nil }
+            return try? JSONEncoder().encode(streakFreezes)
+        }()
         // Relationship rows are attached by `replaceStockClubYardages` after insert.
         return SDProfile(
             id: profile.id,
@@ -621,6 +635,7 @@ private extension SDProfile {
             weeklyRoundTarget: profile.weeklyRoundTarget,
             weeklyPracticeTarget: profile.weeklyPracticeTarget,
             weeklyGoalTargetRevisionsData: revisionsData,
+            streakFreezesData: streakFreezesData,
             stockClubYardagesData: nil,
             hasConfiguredStockClubYardages: profile.stockClubYardages != nil
         )

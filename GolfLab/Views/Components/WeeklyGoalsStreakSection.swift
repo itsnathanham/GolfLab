@@ -3,24 +3,12 @@ import SwiftUI
 /// Home + History: weekly round/practice targets, progress, week history, streak (`docs/design.md` § Weekly goals).
 struct WeeklyGoalsStreakSection: View {
     @EnvironmentObject private var roundStore: RoundStore
-    @AppStorage(GLStreakSectionStyle.defaultsKey) private var styleRaw = GLStreakSectionStyle.flagstick.rawValue
     @State private var selectedWeek: GLWeeklyGoalsStreak.WeekRecord?
-
-    private var style: GLStreakSectionStyle {
-        GLStreakSectionStyle(rawValue: styleRaw) ?? .flagstick
-    }
 
     var body: some View {
         let snap = roundStore.weeklyGoalsSnapshot()
 
-        Group {
-            switch style {
-            case .flagstick:
-                flagstickCard(snap: snap)
-            case .hero:
-                heroCard(snap: snap)
-            }
-        }
+        flagstickCard(snap: snap)
         .sheet(item: $selectedWeek, onDismiss: {
             roundStore.presentPendingWeeklyGoalCelebrationIfNeeded()
         }) { week in
@@ -52,7 +40,7 @@ struct WeeklyGoalsStreakSection: View {
                     if !snap.weekHistory.isEmpty {
                         weekHistoryScroller(weeks: snap.weekHistory)
                     }
-                    streakFooter(streakWeeks: snap.completedWeeksStreak, flame: .orange, caption: .orange)
+                    streakFooter(snap: snap)
                     goalChips(snap: snap)
                     if let footnote = GLPracticeRangeBalls.weeklyGoalsFootnote(count: snap.rangeBallsHitThisWeek) {
                         Text(footnote)
@@ -92,49 +80,6 @@ struct WeeklyGoalsStreakSection: View {
         .padding(.horizontal, GLCardMetrics.padding)
         .padding(.top, 12)
         .padding(.bottom, 4)
-    }
-
-    // MARK: - Streak hero
-
-    private func heroCard(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("WEEKLY GOALS")
-                            .font(.glEyebrow)
-                            .foregroundColor(.textTertiary)
-                            .tracking(0.08 * 11)
-                        Text("Streak runs on both targets")
-                            .font(.glFootnote)
-                            .foregroundColor(.textSecondary)
-                    }
-                    Spacer(minLength: 8)
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("\(snap.completedWeeksStreak)")
-                            .font(GLFonts.mono(size: 32, weight: .semibold))
-                            .foregroundColor(.streakMark)
-                        Text("week streak")
-                            .font(.glFootnote)
-                            .foregroundColor(.streakMark)
-                    }
-                }
-
-                if snap.hasActiveTargets {
-                    heroWeekStrip(weeks: snap.weekHistory)
-                    goalChips(snap: snap)
-                    streakFooter(
-                        streakWeeks: snap.completedWeeksStreak,
-                        flame: .streakMark,
-                        caption: snap.completedWeeksStreak == 0 ? .textSecondary : .streakMark
-                    )
-                } else {
-                    emptyGoalsCopy
-                }
-            }
-            .padding(GLCardMetrics.padding)
-        }
-        .glCardChromeFrame(outlined: true)
     }
 
     private var emptyGoalsCopy: some View {
@@ -207,33 +152,49 @@ struct WeeklyGoalsStreakSection: View {
     private let flagstickHeight: CGFloat = 36
 
     private func weekHistoryScroller(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 0) {
-                    ForEach(Array(weeks.enumerated()), id: \.element.id) { index, week in
-                        if index > 0 {
-                            weekConnector
+        GeometryReader { geo in
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 0) {
+                        ForEach(Array(weeks.enumerated()), id: \.element.id) { index, week in
+                            if index > 0 {
+                                weekConnector
+                            }
+                            weekNode(week: week)
+                                .id(week.id)
                         }
-                        weekNode(week: week)
-                            .id(week.id)
                     }
+                    .padding(.vertical, 2)
+                    // A short row stays left-aligned. A row wider than the card starts at the newest week.
+                    .frame(minWidth: geo.size.width, alignment: .leading)
                 }
-                .padding(.vertical, 2)
-            }
-            .onAppear { scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy) }
-            .onChange(of: weeks.map(\.id)) { _, _ in
-                scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy)
+                .defaultScrollAnchor(.trailing)
+                .onAppear { scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy) }
+                .onChange(of: weeks.map(\.id)) { _, _ in
+                    scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy, animated: true)
+                }
             }
         }
+        .frame(height: weekRowHeight)
     }
+
+    private var weekRowHeight: CGFloat { flagstickHeight + 26 }
 
     private func scrollWeekHistoryToNewest(
         weeks: [GLWeeklyGoalsStreak.WeekRecord],
-        proxy: ScrollViewProxy
+        proxy: ScrollViewProxy,
+        animated: Bool = false
     ) {
         guard let lastId = weeks.last?.id else { return }
+        // Yield so a long row has a width before the scroll. A one-week row is only as wide as the card, so this stays put.
         DispatchQueue.main.async {
-            proxy.scrollTo(lastId, anchor: .trailing)
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo(lastId, anchor: .trailing)
+                }
+            } else {
+                proxy.scrollTo(lastId, anchor: .trailing)
+            }
         }
     }
 
@@ -252,8 +213,14 @@ struct WeeklyGoalsStreakSection: View {
                 Text("W\(week.weekNumber)")
                     .font(GLFonts.mono(size: 10, weight: .medium))
                     .foregroundColor(.textTertiary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .frame(minWidth: weekNodeSize + 6)
-                flagstickMark(outcome: week.outcome)
+                if week.showsFreezeMark {
+                    freezeSnowflake
+                } else {
+                    flagstickMark(outcome: week.outcome)
+                }
             }
             .contentShape(Rectangle())
         }
@@ -263,12 +230,60 @@ struct WeeklyGoalsStreakSection: View {
 
     private func weekAccessibilityLabel(_ week: GLWeeklyGoalsStreak.WeekRecord) -> String {
         let state: String
-        switch week.outcome {
-        case .complete: state = "goals met"
-        case .missed: state = "missed"
-        case .inProgress: state = "in progress"
+        if week.showsFreezeMark {
+            switch week.outcome {
+            case .complete: state = "frozen, goals met"
+            case .missed: state = "frozen, goals missed"
+            case .inProgress: state = "frozen"
+            }
+        } else {
+            switch week.outcome {
+            case .complete: state = "goals met"
+            case .missed: state = "missed"
+            case .inProgress: state = "in progress"
+            }
         }
         return "Week \(week.weekNumber), \(state). Shows week summary."
+    }
+
+    /// Icy flake only — no pin — so a frozen week is obviously not a flagstick.
+    private var freezeSnowflake: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let arm = min(size.width, size.height) * 0.34
+            var crystal = Path()
+            for index in 0..<6 {
+                let angle = (Double(index) * 60 - 90) * .pi / 180
+                let tip = CGPoint(
+                    x: center.x + CGFloat(cos(angle)) * arm,
+                    y: center.y + CGFloat(sin(angle)) * arm
+                )
+                crystal.move(to: center)
+                crystal.addLine(to: tip)
+                let branch = arm * 0.36
+                let branchAngle = 42 * .pi / 180
+                let inward = CGPoint(
+                    x: tip.x - CGFloat(cos(angle)) * arm * 0.4,
+                    y: tip.y - CGFloat(sin(angle)) * arm * 0.4
+                )
+                crystal.move(to: inward)
+                crystal.addLine(to: CGPoint(
+                    x: inward.x + CGFloat(cos(angle + branchAngle)) * branch,
+                    y: inward.y + CGFloat(sin(angle + branchAngle)) * branch
+                ))
+                crystal.move(to: inward)
+                crystal.addLine(to: CGPoint(
+                    x: inward.x + CGFloat(cos(angle - branchAngle)) * branch,
+                    y: inward.y + CGFloat(sin(angle - branchAngle)) * branch
+                ))
+            }
+            context.stroke(crystal, with: .color(Color.chartCyan), lineWidth: 1.5)
+            context.fill(
+                Path(ellipseIn: CGRect(x: center.x - 1.5, y: center.y - 1.5, width: 3, height: 3)),
+                with: .color(Color.chartCyan)
+            )
+        }
+        .frame(width: weekNodeSize, height: flagstickHeight)
     }
 
     private func flagstickMark(outcome: GLWeeklyGoalsStreak.WeekOutcome) -> some View {
@@ -285,60 +300,23 @@ struct WeeklyGoalsStreakSection: View {
         .frame(width: weekNodeSize, height: flagstickHeight)
     }
 
-    private func heroWeekStrip(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 3) {
-                        ForEach(weeks) { week in
-                            Button {
-                                selectedWeek = week
-                            } label: {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(heroStripFill(week.outcome))
-                                    .frame(width: 22, height: 10)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(weekAccessibilityLabel(week))
-                            .id(week.id)
-                        }
-                    }
-                }
-                .onAppear { scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy) }
-                .onChange(of: weeks.map(\.id)) { _, _ in
-                    scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy)
-                }
-            }
-            if let first = weeks.first, let last = weeks.last {
-                HStack {
-                    Text("W\(first.weekNumber)")
-                        .font(GLFonts.mono(size: 10, weight: .medium))
-                        .foregroundColor(.textTertiary)
-                    Spacer()
-                    Text(first.id == last.id ? "W\(last.weekNumber)" : "W\(last.weekNumber) · now")
-                        .font(GLFonts.mono(size: 10, weight: .medium))
-                        .foregroundColor(.textTertiary)
-                }
-            }
-        }
-    }
-
-    private func heroStripFill(_ outcome: GLWeeklyGoalsStreak.WeekOutcome) -> Color {
-        switch outcome {
-        case .complete: return .streakMark
-        case .missed: return Color.white.opacity(0.12)
-        case .inProgress: return Color.streakMark.opacity(0.35)
-        }
-    }
-
-    private func streakFooter(streakWeeks: Int, flame: Color, caption: Color) -> some View {
+    private func streakFooter(snap: GLWeeklyGoalsStreak.Snapshot) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(flame)
-            Text(Self.streakCaption(weeks: streakWeeks))
-                .font(.glFootnote)
-                .foregroundColor(caption)
+            if snap.isFrozen {
+                Image(systemName: "snowflake")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.chartCyan)
+                Text("Streak frozen")
+                    .font(.glFootnote)
+                    .foregroundColor(.chartCyan)
+            } else {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.orange)
+                Text(Self.streakCaption(weeks: snap.completedWeeksStreak))
+                    .font(.glFootnote)
+                    .foregroundColor(.orange)
+            }
         }
     }
 

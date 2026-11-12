@@ -14,6 +14,21 @@ enum GLWeeklyGoalsStreak {
         let weekNumber: Int
         let weekStartYMD: String
         let outcome: WeekOutcome
+        /// Latest mark while a freeze is on. The pin comes back when the freeze ends.
+        var showsFreezeMark: Bool = false
+    }
+
+    /// One off-season pause. The locked week stays in the row. Calendar weeks after it,
+    /// up to but not including the week the freeze is turned off, are not streak weeks.
+    struct FreezeSpan: Codable, Equatable, Identifiable, Sendable {
+        var id: UUID
+        var lockedWeekStartYMD: String
+        /// Goals were already met when the freeze was turned on.
+        var lockedComplete: Bool
+        /// Nil while the freeze is still on. The calendar week it was turned off.
+        var resumedWeekStartYMD: String?
+
+        var isActive: Bool { resumedWeekStartYMD == nil }
     }
 
     struct Snapshot: Sendable, Equatable {
@@ -26,10 +41,13 @@ enum GLWeeklyGoalsStreak {
         let rangeBallsHitThisWeek: Int
         /// Both active requirements satisfied for the calendar week containing `now`.
         let currentWeekComplete: Bool
-        /// Consecutive calendar weeks (including the current week when complete) meeting all active requirements.
+        /// Consecutive met weeks. An open current week does not add and does not break the run.
+        /// A freeze-locked miss does not break it either. A finished week that was actually missed does.
         let completedWeeksStreak: Int
-        /// Oldest → newest weeks since tracking anchor (W1 = first entry).
+        /// Oldest → newest weeks since tracking anchor (W1 = first entry). Frozen gaps are omitted.
         let weekHistory: [WeekRecord]
+        /// A freeze is on. The latest history mark is the snowflake.
+        let isFrozen: Bool
     }
 
     private static let legacyRevisionSentinelYMD = "1970-01-01"
@@ -43,12 +61,16 @@ enum GLWeeklyGoalsStreak {
         goalRevisions: [WeeklyGoalTargetRevision],
         rounds: [Round],
         holeRowCountByRoundId: [UUID: Int],
-        practiceSessions: [PracticeSession]
+        practiceSessions: [PracticeSession],
+        freezes: [FreezeSpan] = []
     ) -> Snapshot {
         let hasActiveTargets = roundTarget > 0 || practiceTarget > 0
         guard hasActiveTargets else {
             return emptySnapshot(roundTarget: roundTarget, practiceTarget: practiceTarget)
         }
+
+        let freezes = normalizedFreezes(freezes)
+        let activeFreeze = freezes.first { $0.isActive }
 
         let ctx = EvaluationContext(
             now: now,
@@ -71,7 +93,8 @@ enum GLWeeklyGoalsStreak {
                 rangeBallsHitThisWeek: 0,
                 currentWeekComplete: false,
                 completedWeeksStreak: 0,
-                weekHistory: []
+                weekHistory: [],
+                isFrozen: activeFreeze != nil
             )
         }
 
@@ -83,35 +106,33 @@ enum GLWeeklyGoalsStreak {
 
         let anchorStart = trackingAnchorWeekStartYMD(context: ctx, currentWeekStartYMD: thisBounds.start)
         let weekStarts = weekStartsFromAnchor(anchorStartYMD: anchorStart, throughCurrentWeekStartYMD: thisBounds.start, calendar: calendar)
-        let history: [WeekRecord] = weekStarts.enumerated().map { index, startYMD in
+        let visibleStarts = weekStarts.filter { !isFrozenGap($0, spans: freezes) }
+        let history: [WeekRecord] = visibleStarts.enumerated().map { index, startYMD in
             let bounds = ctx.boundsYMD(forWeekStartYMD: startYMD) ?? (startYMD, startYMD)
             let (rT, pT) = ctx.targets(forWeekStartYMD: startYMD)
             let met = ctx.weekSatisfied(startYMD: bounds.start, endYMD: bounds.end, roundT: rT, practiceT: pT)
-            let isCurrent = startYMD == thisBounds.start
-            let outcome: WeekOutcome = if isCurrent {
-                met ? .complete : .inProgress
+            let locked = freezes.first { $0.lockedWeekStartYMD == startYMD }
+            let outcome: WeekOutcome
+            if let locked {
+                outcome = locked.lockedComplete ? .complete : .missed
+            } else if startYMD == thisBounds.start {
+                outcome = met ? .complete : .inProgress
             } else {
-                met ? .complete : .missed
+                outcome = met ? .complete : .missed
             }
             return WeekRecord(
                 weekNumber: index + 1,
                 weekStartYMD: startYMD,
-                outcome: outcome
+                outcome: outcome,
+                showsFreezeMark: activeFreeze?.lockedWeekStartYMD == startYMD
             )
         }
 
-        var streak = 0
-        for weekOffset in 0..<maxWeeks {
-            guard let anchor = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: now),
-                  let b = ctx.boundsYMD(forWeekContaining: anchor)
-            else { break }
-            let (rT, pT) = ctx.targets(forWeekStartYMD: b.start)
-            if ctx.weekSatisfied(startYMD: b.start, endYMD: b.end, roundT: rT, practiceT: pT) {
-                streak += 1
-            } else {
-                break
-            }
-        }
+        let streak = completedStreak(
+            history: history,
+            currentWeekStartYMD: thisBounds.start,
+            freezes: freezes
+        )
 
         return Snapshot(
             hasActiveTargets: true,
@@ -120,10 +141,84 @@ enum GLWeeklyGoalsStreak {
             roundsThisWeek: rThis,
             practiceSessionsThisWeek: pThis,
             rangeBallsHitThisWeek: rangeBallsThis,
-            currentWeekComplete: currentMet,
+            currentWeekComplete: activeFreeze == nil && currentMet,
             completedWeeksStreak: streak,
-            weekHistory: history
+            weekHistory: history,
+            isFrozen: activeFreeze != nil
         )
+    }
+
+    /// Turns a freeze on or off. Turning it off in the same week removes the span.
+    static func freezesBySetting(
+        frozen: Bool,
+        existing: [FreezeSpan],
+        currentWeekStartYMD: String,
+        currentWeekComplete: Bool
+    ) -> [FreezeSpan] {
+        var spans = normalizedFreezes(existing)
+        if frozen {
+            guard !spans.contains(where: \.isActive) else { return spans }
+            spans.append(
+                FreezeSpan(
+                    id: UUID(),
+                    lockedWeekStartYMD: currentWeekStartYMD,
+                    lockedComplete: currentWeekComplete,
+                    resumedWeekStartYMD: nil
+                )
+            )
+            return spans
+        }
+        guard let index = spans.lastIndex(where: \.isActive) else { return spans }
+        if spans[index].lockedWeekStartYMD == currentWeekStartYMD {
+            spans.remove(at: index)
+            return spans
+        }
+        spans[index].resumedWeekStartYMD = currentWeekStartYMD
+        return spans
+    }
+
+    private static func normalizedFreezes(_ freezes: [FreezeSpan]) -> [FreezeSpan] {
+        freezes.sorted { $0.lockedWeekStartYMD < $1.lockedWeekStartYMD }
+    }
+
+    /// Calendar weeks strictly after a locked week and before that freeze resumes are not streak weeks.
+    private static func isFrozenGap(_ weekStartYMD: String, spans: [FreezeSpan]) -> Bool {
+        for span in spans {
+            guard weekStartYMD > span.lockedWeekStartYMD else { continue }
+            if let resumed = span.resumedWeekStartYMD {
+                if weekStartYMD < resumed { return true }
+            } else {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func completedStreak(
+        history: [WeekRecord],
+        currentWeekStartYMD: String,
+        freezes: [FreezeSpan]
+    ) -> Int {
+        let lockedMisses = Set(freezes.filter { !$0.lockedComplete }.map(\.lockedWeekStartYMD))
+        var weeks = Array(history.reversed())
+        if let newest = weeks.first,
+           newest.weekStartYMD == currentWeekStartYMD,
+           newest.outcome == .inProgress {
+            weeks.removeFirst()
+        }
+        var streak = 0
+        for week in weeks {
+            switch week.outcome {
+            case .complete:
+                streak += 1
+            case .missed, .inProgress:
+                if lockedMisses.contains(week.weekStartYMD) {
+                    continue
+                }
+                return streak
+            }
+        }
+        return streak
     }
 
     // MARK: - Tracking anchor (W1)
@@ -213,7 +308,8 @@ enum GLWeeklyGoalsStreak {
             rangeBallsHitThisWeek: 0,
             currentWeekComplete: false,
             completedWeeksStreak: 0,
-            weekHistory: []
+            weekHistory: [],
+            isFrozen: false
         )
     }
 

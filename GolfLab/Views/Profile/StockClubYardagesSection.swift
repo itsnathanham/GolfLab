@@ -13,9 +13,8 @@ struct StockClubYardagesSection: View {
     @State private var openDeleteID: UUID?
     @State private var activeSwipeID: UUID?
     @State private var swipeDrag: CGFloat = 0
-    /// Resets when the gesture ends or the scroll view cancels it, so the profile cannot stay locked.
+    /// Resets when the grip gesture ends or the scroll view cancels it, so the profile cannot stay locked.
     @GestureState private var gripActive = false
-    @GestureState private var swipeActive = false
 
     private let rowHeight: CGFloat = 48
     private let deleteRevealWidth: CGFloat = 88
@@ -60,12 +59,6 @@ struct StockClubYardagesSection: View {
                 commitReorder()
             }
         }
-        .onChange(of: swipeActive) { _, active in
-            guard !active else { return }
-            DispatchQueue.main.async {
-                settleSwipe()
-            }
-        }
     }
 
     private func clubRow(_ row: StockClubYardage, index: Int) -> some View {
@@ -80,6 +73,7 @@ struct StockClubYardagesSection: View {
                     .foregroundColor(.textPrimary)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(horizontalSwipeCatcher(for: row.id))
                 CompactYardageStepper(
                     yardage: Binding(
                         get: { row.yardage },
@@ -95,13 +89,11 @@ struct StockClubYardagesSection: View {
             .frame(height: rowHeight)
             .background(Color.cardBackground)
             .offset(x: swipeOffset(for: row.id))
-            .simultaneousGesture(swipeGesture(for: row.id))
         }
         .frame(height: rowHeight)
         .clipped()
         .zIndex(dragged ? 1 : 0)
         .offset(y: visualOffset(index: index))
-        .animation(dragged ? nil : .interactiveSpring(response: 0.22, dampingFraction: 0.86), value: reorder?.lastProposed)
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: Text("Move up")) { shiftRow(id: row.id, by: -1) }
         .accessibilityAction(named: Text("Move down")) { shiftRow(id: row.id, by: 1) }
@@ -167,7 +159,7 @@ struct StockClubYardagesSection: View {
     // MARK: - Reorder
 
     private func reorderGesture(for id: UUID, index: Int) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 1, coordinateSpace: .global)
             .updating($gripActive) { _, state, _ in
                 state = true
             }
@@ -178,18 +170,16 @@ struct StockClubYardagesSection: View {
                     reorder = ReorderDrag(
                         id: id,
                         originIndex: index,
-                        translation: value.translation.height,
-                        lastProposed: index
+                        translation: 0,
+                        lastProposed: index,
+                        startY: value.startLocation.y
                     )
                     locksParentScroll = true
                 }
                 guard var drag = reorder, drag.id == id else { return }
-                drag.translation = value.translation.height
-                let proposed = proposedIndex(for: drag)
-                if proposed != drag.lastProposed {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    drag.lastProposed = proposed
-                }
+                // Screen coordinates, so a neighbor sliding out from under the grip cannot jump the translation.
+                drag.translation = value.location.y - drag.startY
+                stepProposedIndex(&drag)
                 reorder = drag
             }
             .onEnded { _ in
@@ -197,10 +187,28 @@ struct StockClubYardagesSection: View {
             }
     }
 
-    private func proposedIndex(for drag: ReorderDrag) -> Int {
-        let delta = Int((drag.translation / rowHeight).rounded())
+    /// Move one slot at a time, and only after the finger is most of the way into the next row.
+    /// A fast drag still crosses several clubs, with one haptic each.
+    private func stepProposedIndex(_ drag: inout ReorderDrag) {
+        let position = CGFloat(drag.originIndex) + drag.translation / rowHeight
         let last = max(rows.count - 1, 0)
-        return min(max(0, drag.originIndex + delta), last)
+        var proposed = drag.lastProposed
+        var crossed = 0
+        while proposed < last, position >= CGFloat(proposed) + 0.65 {
+            proposed += 1
+            crossed += 1
+        }
+        while proposed > 0, position <= CGFloat(proposed) - 0.65 {
+            proposed -= 1
+            crossed += 1
+        }
+        guard crossed > 0 else { return }
+        drag.lastProposed = proposed
+        let haptic = UIImpactFeedbackGenerator(style: .light)
+        haptic.prepare()
+        for _ in 0..<crossed {
+            haptic.impactOccurred()
+        }
     }
 
     private func visualOffset(index: Int) -> CGFloat {
@@ -260,15 +268,11 @@ struct StockClubYardagesSection: View {
         return 0
     }
 
-    private func swipeGesture(for id: UUID) -> some Gesture {
-        DragGesture(minimumDistance: 14, coordinateSpace: .local)
-            .updating($swipeActive) { _, state, _ in
-                state = true
-            }
-            .onChanged { value in
+    /// Horizontal-only pan on the club name. A vertical move never begins, so the profile page can scroll.
+    private func horizontalSwipeCatcher(for id: UUID) -> some View {
+        HorizontalSwipeCatcher(
+            onChanged: { translation in
                 guard reorder == nil else { return }
-                let horizontal = abs(value.translation.width) > abs(value.translation.height) * 1.15
-                guard horizontal || activeSwipeID == id else { return }
                 if activeSwipeID != id {
                     activeSwipeID = id
                     if openDeleteID != id {
@@ -277,22 +281,14 @@ struct StockClubYardagesSection: View {
                 }
                 locksParentScroll = true
                 let base: CGFloat = openDeleteID == id ? -deleteRevealWidth : 0
-                swipeDrag = min(0, max(-deleteRevealWidth - 12, base + value.translation.width))
-            }
-            .onEnded { value in
+                swipeDrag = min(0, max(-deleteRevealWidth - 12, base + translation))
+            },
+            onEnded: { translation, predicted in
                 guard activeSwipeID == id else { return }
                 let base: CGFloat = openDeleteID == id ? -deleteRevealWidth : 0
-                let projected = base + value.predictedEndTranslation.width
-                finishSwipe(id: id, open: projected < -deleteRevealWidth / 2)
+                finishSwipe(id: id, open: base + predicted < -deleteRevealWidth / 2 || base + translation < -deleteRevealWidth / 2)
             }
-    }
-
-    private func settleSwipe() {
-        guard let id = activeSwipeID else {
-            locksParentScroll = reorder != nil
-            return
-        }
-        finishSwipe(id: id, open: swipeDrag < -deleteRevealWidth / 2)
+        )
     }
 
     private func finishSwipe(id: UUID, open: Bool) {
@@ -348,6 +344,7 @@ private struct ReorderDrag: Equatable {
     var originIndex: Int
     var translation: CGFloat
     var lastProposed: Int
+    var startY: CGFloat
 }
 
 /// Same − / value / + control as `StepperField`, sized for a bag row.
@@ -434,5 +431,68 @@ private struct CompactYardageStepper: View {
         .animation(.easeOut(duration: 0.15), value: flashState)
         .disabled(!enabled)
         .accessibilityLabel(side == .minus ? "Decrease yards" : "Increase yards")
+    }
+}
+
+/// Pan that begins only when the finger is clearly moving sideways.
+/// A vertical drag fails this recognizer so the profile `ScrollView` can scroll.
+private struct HorizontalSwipeCatcher: UIViewRepresentable {
+    var onChanged: (CGFloat) -> Void
+    var onEnded: (_ translation: CGFloat, _ predicted: CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onChanged: onChanged, onEnded: onEnded)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handle(_:)))
+        pan.delegate = context.coordinator
+        view.addGestureRecognizer(pan)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onChanged = onChanged
+        context.coordinator.onEnded = onEnded
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onChanged: (CGFloat) -> Void
+        var onEnded: (CGFloat, CGFloat) -> Void
+
+        init(onChanged: @escaping (CGFloat) -> Void, onEnded: @escaping (CGFloat, CGFloat) -> Void) {
+            self.onChanged = onChanged
+            self.onEnded = onEnded
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * 1.25
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.y) >= abs(velocity.x)
+        }
+
+        @objc func handle(_ pan: UIPanGestureRecognizer) {
+            let translation = pan.translation(in: pan.view).x
+            switch pan.state {
+            case .changed:
+                onChanged(translation)
+            case .ended, .cancelled, .failed:
+                let predicted = translation + pan.velocity(in: pan.view).x * 0.15
+                onEnded(translation, predicted)
+            default:
+                break
+            }
+        }
     }
 }

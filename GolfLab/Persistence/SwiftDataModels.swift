@@ -11,6 +11,8 @@ final class SDProfile {
     var weeklyRoundTarget: Int?
     var weeklyPracticeTarget: Int?
     var weeklyGoalTargetRevisionsData: Data?
+    /// JSON `[GLWeeklyGoalsStreak.FreezeSpan]`. Nil until the user freezes a streak.
+    var streakFreezesData: Data?
     /// Legacy JSON blob from an earlier PR revision; migrated into `stockClubYardages` on save.
     var stockClubYardagesData: Data?
     /// False until the user edits stock yardages at least once (nil vs empty bag).
@@ -30,6 +32,7 @@ final class SDProfile {
         weeklyRoundTarget: Int? = nil,
         weeklyPracticeTarget: Int? = nil,
         weeklyGoalTargetRevisionsData: Data? = nil,
+        streakFreezesData: Data? = nil,
         stockClubYardagesData: Data? = nil,
         hasConfiguredStockClubYardages: Bool = false,
         profilePhotoPath: String? = nil
@@ -42,6 +45,7 @@ final class SDProfile {
         self.weeklyRoundTarget = weeklyRoundTarget
         self.weeklyPracticeTarget = weeklyPracticeTarget
         self.weeklyGoalTargetRevisionsData = weeklyGoalTargetRevisionsData
+        self.streakFreezesData = streakFreezesData
         self.stockClubYardagesData = stockClubYardagesData
         self.hasConfiguredStockClubYardages = hasConfiguredStockClubYardages
         self.profilePhotoPath = profilePhotoPath

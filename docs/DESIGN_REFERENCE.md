@@ -45,7 +45,7 @@ Implement in `GolfLab/DesignSystem/Colors.swift`.
 | `chartPurple` | `#A04DD8` | Season-best badges, GIR / practice series |
 | `chartOrange` | `#D98909` | Peak performance, calendar practice dots, streak marks |
 | **Weekly goals** | | *Orange marks; progress stays accent green* |
-| `streakMark` | `chartOrange` | Flagsticks, streak count, hero flame |
+| `streakMark` | `chartOrange` | Flagsticks, streak count |
 | `streakSuccess` | `chartOrange` | Celebration card / flag bloom |
 | `streakSuccessDeep` | `accentMid` | Firework particles |
 | `streakTextActive` | `chartOrange` | Celebration streak line |
@@ -131,7 +131,7 @@ No decorative dividers; separation = surface contrast + **1px** borders. **No sh
 | `GLFormFieldLabel` | `GLFormChrome.swift` | Uppercase caption label (12pt, 0.10em tracking). |
 | `GLTrendCardHeader` | `Typography.swift` | 11pt uppercase chart title + hairline. |
 | `GLStatSummaryTile` | `Typography.swift` | 2×2 summary cell: micro label + mono value. |
-| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: Flagstick or Streak hero (`GLStreakSectionStyle`); tap week → summary sheet. |
+| `WeeklyGoalsStreakSection` | `Views/Components/` | Home + History: flagstick week row (opens on the newest week); frozen week is a cyan snowflake; tap week → summary sheet. |
 | `WeeklyGoalWeekSummarySheet` | `Views/Components/` | Week detail sheet: meters, rounds → detail, practice, range-ball columns. |
 | `WeeklyGoalCelebrationOverlay` | `Views/Components/` | Root overlay: ambient fireworks + flag-bloom reveal (`GolfFireworkEmitterView`). |
 
