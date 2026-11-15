@@ -52,7 +52,7 @@ struct WeeklyGoalTargetRevision: Codable, Equatable, Sendable, Identifiable {
     /// `yyyy-MM-dd` start of the calendar week containing `date` (same rules as streak evaluation).
     static func weekStartYMD(containing date: Date, calendar: Calendar = .current) -> String? {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
-        return GLCalendarISO.ymd(for: interval.start)
+        return GLCalendarISO.ymd(for: interval.start, calendar: calendar)
     }
 
     /// Targets that apply to a week whose **week start** is `weekStartYMD`. Uses the latest revision with `effective_from <= weekStartYMD`.
