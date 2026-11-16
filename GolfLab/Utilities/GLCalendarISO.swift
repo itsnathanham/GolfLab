@@ -15,7 +15,8 @@ enum GLCalendarISO {
         ymd(for: date, calendar: cal)
     }
 
-    private static func ymd(for date: Date, calendar: Calendar) -> String {
+    /// Day key for `date` in `calendar`. Week bounds must use the same calendar as the interval that produced `date`.
+    static func ymd(for date: Date, calendar: Calendar) -> String {
         let y = calendar.component(.year, from: date)
         let m = calendar.component(.month, from: date)
         let d = calendar.component(.day, from: date)

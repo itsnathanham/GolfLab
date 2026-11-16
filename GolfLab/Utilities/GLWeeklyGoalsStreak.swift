@@ -41,7 +41,8 @@ enum GLWeeklyGoalsStreak {
         let rangeBallsHitThisWeek: Int
         /// Both active requirements satisfied for the calendar week containing `now`.
         let currentWeekComplete: Bool
-        /// Consecutive met weeks. An open current week does not add and does not break the run.
+        /// Consecutive met weeks, including the current week once its goals are met.
+        /// A week that is still unfinished does not add and does not break the run.
         /// A freeze-locked miss does not break it either. A finished week that was actually missed does.
         let completedWeeksStreak: Int
         /// Oldest → newest weeks since tracking anchor (W1 = first entry). Frozen gaps are omitted.
@@ -98,6 +99,7 @@ enum GLWeeklyGoalsStreak {
             )
         }
 
+        let todayYMD = GLCalendarISO.ymd(for: now, calendar: calendar)
         let rThis = ctx.countRounds(startYMD: thisBounds.start, endYMD: thisBounds.end)
         let pThis = ctx.countPractice(startYMD: thisBounds.start, endYMD: thisBounds.end)
         let rangeBallsThis = ctx.countRangeBallsHit(startYMD: thisBounds.start, endYMD: thisBounds.end)
@@ -112,13 +114,17 @@ enum GLWeeklyGoalsStreak {
             let (rT, pT) = ctx.targets(forWeekStartYMD: startYMD)
             let met = ctx.weekSatisfied(startYMD: bounds.start, endYMD: bounds.end, roundT: rT, practiceT: pT)
             let locked = spans.first { $0.lockedWeekStartYMD == startYMD }
+            // Open through the last day. A week is not a miss while that day is still in progress.
+            let stillOpen = startYMD == thisBounds.start || bounds.end >= todayYMD
             let outcome: WeekOutcome
             if let locked {
                 outcome = locked.lockedComplete ? .complete : .missed
-            } else if startYMD == thisBounds.start {
-                outcome = met ? .complete : .inProgress
+            } else if met {
+                outcome = .complete
+            } else if stillOpen {
+                outcome = .inProgress
             } else {
-                outcome = met ? .complete : .missed
+                outcome = .missed
             }
             return WeekRecord(
                 weekNumber: index + 1,
@@ -128,11 +134,7 @@ enum GLWeeklyGoalsStreak {
             )
         }
 
-        let streak = completedStreak(
-            history: history,
-            currentWeekStartYMD: thisBounds.start,
-            freezes: spans
-        )
+        let streak = completedStreak(history: history, freezes: spans)
 
         return Snapshot(
             hasActiveTargets: true,
@@ -194,24 +196,20 @@ enum GLWeeklyGoalsStreak {
         return false
     }
 
+    /// Walks newest → oldest. An open week is skipped, so it cannot zero a finished run.
     private static func completedStreak(
         history: [WeekRecord],
-        currentWeekStartYMD: String,
         freezes: [FreezeSpan]
     ) -> Int {
         let lockedMisses = Set(freezes.filter { !$0.lockedComplete }.map(\.lockedWeekStartYMD))
-        var weeks = Array(history.reversed())
-        if let newest = weeks.first,
-           newest.weekStartYMD == currentWeekStartYMD,
-           newest.outcome == .inProgress {
-            weeks.removeFirst()
-        }
         var streak = 0
-        for week in weeks {
+        for week in history.reversed() {
             switch week.outcome {
+            case .inProgress:
+                continue
             case .complete:
                 streak += 1
-            case .missed, .inProgress:
+            case .missed:
                 if lockedMisses.contains(week.weekStartYMD) {
                     continue
                 }
@@ -259,12 +257,20 @@ enum GLWeeklyGoalsStreak {
             return [currentStartYMD]
         }
         var starts: [String] = []
+        var seen = Set<String>()
         for offset in 0..<maxWeeks {
             guard let weekDate = calendar.date(byAdding: .weekOfYear, value: offset, to: anchorDate),
                   let bounds = weekBoundsYMD(forWeekContaining: weekDate, calendar: calendar)
             else { break }
-            starts.append(bounds.start)
-            if bounds.start >= currentStartYMD { break }
+            // A week that starts after this one has not happened. Do not score it as a miss.
+            if bounds.start > currentStartYMD { break }
+            if seen.insert(bounds.start).inserted {
+                starts.append(bounds.start)
+            }
+            if bounds.start == currentStartYMD { break }
+        }
+        if !seen.contains(currentStartYMD) {
+            starts.append(currentStartYMD)
         }
         if starts.isEmpty { return [currentStartYMD] }
         return starts
@@ -292,9 +298,9 @@ enum GLWeeklyGoalsStreak {
         calendar: Calendar
     ) -> (start: String, end: String)? {
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
-        let start = GLCalendarISO.ymd(for: interval.start)
+        let start = GLCalendarISO.ymd(for: interval.start, calendar: calendar)
         let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.start
-        let end = GLCalendarISO.ymd(for: lastDay)
+        let end = GLCalendarISO.ymd(for: lastDay, calendar: calendar)
         return (start, end)
     }
 
