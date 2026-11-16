@@ -138,7 +138,7 @@ Color(hex: "#4AB530")        // streakSuccessDeep  — firework accents
 | Frozen (latest mark only, while pause is on) | Cyan snowflake, no pin. Met or missed stays on the week sheet |
 
 Connectors between nodes: 2pt × 10pt `bgElevated` bars, vertically aligned to flagstick centers.
-The row uses a trailing scroll anchor so a long history is not stuck on week 1. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
+A long row waits until the flags have their width, then scrolls so the newest week — the current one, through `W100` and past — sits fully inside the card. A short row does not scroll. **Tap a week** → `WeeklyGoalWeekSummarySheet`, same sheet height as the History day summary and Select course: most of the screen, small gap at the top.
 
 **Week summary sheet:** header (W# · date range · outcome), goal meters (rounds/practice x/y, no section title), tappable rounds using `RoundListRowView` (same row as History → `RoundDetailView`), tappable practice rows (`PracticeSessionRowView`: orange dot, focus, relative day, ball count, chevron) that open Edit practice, range-balls column chart (solid orange current week, muted priors).
 
