@@ -4,6 +4,10 @@ import SwiftUI
 struct WeeklyGoalsStreakSection: View {
     @EnvironmentObject private var roundStore: RoundStore
     @State private var selectedWeek: GLWeeklyGoalsStreak.WeekRecord?
+    /// Width, viewport, and newest week we last pinned. Later layout noise must not pull the row back to the end.
+    @State private var pinnedWeekHistoryWidth: CGFloat = -1
+    @State private var pinnedViewportWidth: CGFloat = -1
+    @State private var pinnedNewestWeekID: String?
 
     var body: some View {
         let snap = roundStore.weeklyGoalsSnapshot()
@@ -150,6 +154,9 @@ struct WeeklyGoalsStreakSection: View {
     private let weekNodeSize: CGFloat = 28
     private let weekConnectorWidth: CGFloat = 10
     private let flagstickHeight: CGFloat = 36
+    /// Sits after the newest flag. Scrolling this to the trailing edge keeps that flag on screen
+    /// even when the scroll lands a hair short of the target.
+    private static let weekHistoryEndID = "week-history-end"
 
     private func weekHistoryScroller(weeks: [GLWeeklyGoalsStreak.WeekRecord]) -> some View {
         GeometryReader { geo in
@@ -163,15 +170,48 @@ struct WeeklyGoalsStreakSection: View {
                             weekNode(week: week)
                                 .id(week.id)
                         }
+                        Color.clear
+                            .frame(width: 4, height: 1)
+                            .accessibilityHidden(true)
+                            .id(Self.weekHistoryEndID)
                     }
+                    .fixedSize(horizontal: true, vertical: false)
                     .padding(.vertical, 2)
-                    // A short row stays left-aligned. A row wider than the card starts at the newest week.
+                    .background {
+                        GeometryReader { contentGeo in
+                            Color.clear.preference(
+                                key: WeekHistoryWidthKey.self,
+                                value: contentGeo.size.width
+                            )
+                        }
+                    }
+                    // A short row stays left-aligned. A longer row keeps its real width.
                     .frame(minWidth: geo.size.width, alignment: .leading)
                 }
-                .defaultScrollAnchor(.trailing)
-                .onAppear { scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy) }
-                .onChange(of: weeks.map(\.id)) { _, _ in
-                    scrollWeekHistoryToNewest(weeks: weeks, proxy: proxy, animated: true)
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .onPreferenceChange(WeekHistoryWidthKey.self) { width in
+                    revealNewestWeek(
+                        weeks: weeks,
+                        contentWidth: width,
+                        viewportWidth: geo.size.width,
+                        proxy: proxy
+                    )
+                }
+                .onChange(of: geo.size.width) { _, width in
+                    revealNewestWeek(
+                        weeks: weeks,
+                        contentWidth: pinnedWeekHistoryWidth,
+                        viewportWidth: width,
+                        proxy: proxy
+                    )
+                }
+                .onChange(of: weeks.last?.id) { _, _ in
+                    revealNewestWeek(
+                        weeks: weeks,
+                        contentWidth: pinnedWeekHistoryWidth,
+                        viewportWidth: geo.size.width,
+                        proxy: proxy
+                    )
                 }
             }
         }
@@ -180,20 +220,46 @@ struct WeeklyGoalsStreakSection: View {
 
     private var weekRowHeight: CGFloat { flagstickHeight + 26 }
 
-    private func scrollWeekHistoryToNewest(
+    /// Lower bound on the row width. A label like W100 can be wider; this still knows when 30 flags cannot fit.
+    private func estimatedWeekRowWidth(weekCount: Int) -> CGFloat {
+        guard weekCount > 0 else { return 0 }
+        let nodes = CGFloat(weekCount) * (weekNodeSize + 6)
+        let connectors = CGFloat(max(weekCount - 1, 0)) * weekConnectorWidth
+        return nodes + connectors + 4
+    }
+
+    /// Scrolls only after the flags have a real width, and only when they overflow the card.
+    /// Anchoring before that leaves the newest week one flag past the right edge.
+    private func revealNewestWeek(
         weeks: [GLWeeklyGoalsStreak.WeekRecord],
-        proxy: ScrollViewProxy,
-        animated: Bool = false
+        contentWidth: CGFloat,
+        viewportWidth: CGFloat,
+        proxy: ScrollViewProxy
     ) {
-        guard let lastId = weeks.last?.id else { return }
-        // Yield so a long row has a width before the scroll. A one-week row is only as wide as the card, so this stays put.
+        guard viewportWidth > 1, contentWidth > 1 else { return }
+        guard let newestID = weeks.last?.id else { return }
+        let laidOutWidth = max(contentWidth, estimatedWeekRowWidth(weekCount: weeks.count))
+        let newestChanged = newestID != pinnedNewestWeekID
+        let viewportChanged = abs(viewportWidth - pinnedViewportWidth) > 0.5
+        let grew = pinnedWeekHistoryWidth < 0 || laidOutWidth > pinnedWeekHistoryWidth + 8
+        // Fits in the card: stay left-aligned, and remember that width so a later overflow pins again.
+        guard laidOutWidth > viewportWidth + 1 else {
+            if newestChanged || viewportChanged || grew {
+                pinnedWeekHistoryWidth = laidOutWidth
+                pinnedViewportWidth = viewportWidth
+                pinnedNewestWeekID = newestID
+            }
+            return
+        }
+        guard newestChanged || viewportChanged || grew else { return }
+        pinnedWeekHistoryWidth = laidOutWidth
+        pinnedViewportWidth = viewportWidth
+        pinnedNewestWeekID = newestID
+        // The row's width can still settle one frame after this preference. Pin again once it has.
         DispatchQueue.main.async {
-            if animated {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo(lastId, anchor: .trailing)
-                }
-            } else {
-                proxy.scrollTo(lastId, anchor: .trailing)
+            proxy.scrollTo(Self.weekHistoryEndID, anchor: UnitPoint.trailing)
+            DispatchQueue.main.async {
+                proxy.scrollTo(Self.weekHistoryEndID, anchor: UnitPoint.trailing)
             }
         }
     }
@@ -394,5 +460,13 @@ private struct FlagstickGlyph: View {
                 }
             }
         }
+    }
+}
+
+/// Intrinsic width of the week row, before it is stretched to the card width.
+private struct WeekHistoryWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
