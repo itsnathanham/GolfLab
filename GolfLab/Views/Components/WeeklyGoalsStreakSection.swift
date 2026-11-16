@@ -247,7 +247,7 @@ struct WeeklyGoalsStreakSection: View {
             let arm = min(size.width, size.height) * 0.34
             var crystal = Path()
             for index in 0..<6 {
-                let angle = (Double(index) * 60 - 90) * .pi / 180
+                let angle = (Double(index) * 60 - 90) * Double.pi / 180
                 let tip = CGPoint(
                     x: center.x + CGFloat(cos(angle)) * arm,
                     y: center.y + CGFloat(sin(angle)) * arm
@@ -255,7 +255,7 @@ struct WeeklyGoalsStreakSection: View {
                 crystal.move(to: center)
                 crystal.addLine(to: tip)
                 let branch = arm * 0.36
-                let branchAngle = 42 * .pi / 180
+                let branchAngle = 42 * Double.pi / 180
                 let inward = CGPoint(
                     x: tip.x - CGFloat(cos(angle)) * arm * 0.4,
                     y: tip.y - CGFloat(sin(angle)) * arm * 0.4
