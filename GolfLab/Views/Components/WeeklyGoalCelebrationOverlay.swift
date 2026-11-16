@@ -2,13 +2,16 @@ import SwiftUI
 import UIKit
 
 /// App-root overlay when the current week newly completes all active weekly targets (`docs/design.md` § Weekly goals).
-/// Flag bloom: ambient fireworks first, then an orange-and-white flag fan reveals the celebration card.
+/// Flag bloom: ambient fireworks first, then the card bursts out of the last shell with the flag fan.
 struct WeeklyGoalCelebrationOverlay: View {
     let presentation: WeeklyGoalCelebrationPresentation
     let onDismiss: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var bannerVisible = false
+    @State private var cardShown = false
+    @State private var cardExpanded = false
+    /// Window coordinates of the card. The flag shell breaks here, and the card scales from that center.
+    @State private var cardCenter: CGPoint?
 
     /// Lets the last burst fade before the overlay goes away.
     private let autoDismissSeconds: TimeInterval = GolfFireworkEmitterView.showDuration
@@ -18,24 +21,43 @@ struct WeeklyGoalCelebrationOverlay: View {
             Color.black.opacity(0.12)
                 .ignoresSafeArea()
 
-            GolfFireworkEmitterView()
+            GolfFireworkEmitterView(bloomCenter: cardCenter, onBloom: { revealCard(animated: true) })
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 celebrationBanner
+                    .background {
+                        GeometryReader { geo in
+                            let frame = geo.frame(in: .global)
+                            let center = frame.width > 40 && frame.height > 20
+                                ? CGPoint(x: frame.midX, y: frame.midY)
+                                : nil
+                            Color.clear.preference(key: CelebrationCardCenterKey.self, value: center)
+                        }
+                    }
+                    .opacity(cardShown ? 1 : 0)
+                    .animation(nil, value: cardShown)
+                    .scaleEffect(cardExpanded ? 1 : 0.04, anchor: .center)
+                    .animation(.easeOut(duration: 0.42), value: cardExpanded)
                     .padding(.horizontal, GLLayout.horizontalInset)
                     .padding(.top, 12)
-                    .opacity(bannerVisible ? 1 : 0)
-                    .scaleEffect(bannerVisible ? 1 : 0.42, anchor: .center)
                 Spacer(minLength: 0)
             }
             .padding(.top, 52)
+            .onPreferenceChange(CelebrationCardCenterKey.self) { cardCenter = $0 }
         }
         .contentShape(Rectangle())
         .onTapGesture { onDismiss() }
         .onAppear {
             playCelebrationHaptics()
-            revealBanner()
+            if reduceMotion {
+                revealCard(animated: false)
+            } else {
+                // The bloom callback is the real cue. This only covers a shell that never launched.
+                DispatchQueue.main.asyncAfter(deadline: .now() + GolfFireworkEmitterView.cardRevealTime + 0.2) {
+                    revealCard(animated: true)
+                }
+            }
             let hold = reduceMotion ? 4.5 : autoDismissSeconds
             DispatchQueue.main.asyncAfter(deadline: .now() + hold) {
                 onDismiss()
@@ -106,11 +128,17 @@ struct WeeklyGoalCelebrationOverlay: View {
         return parts.joined(separator: " ")
     }
 
-    private func revealBanner() {
-        let delay: TimeInterval = reduceMotion ? 0 : GolfFireworkEmitterView.cardRevealTime
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withAnimation(.spring(response: 0.62, dampingFraction: 0.84)) {
-                bannerVisible = true
+    /// Snaps in at the break and eases out with the flags, from the same center the shell hits.
+    private func revealCard(animated: Bool) {
+        guard !cardExpanded else { return }
+        cardShown = true
+        if animated {
+            cardExpanded = true
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                cardExpanded = true
             }
         }
     }
@@ -135,5 +163,13 @@ struct WeeklyGoalCelebrationOverlay: View {
                 burstThump.prepare()
             }
         }
+    }
+}
+
+/// Window-space center of the celebration card, measured from its layout frame (scale does not move it).
+private struct CelebrationCardCenterKey: PreferenceKey {
+    static var defaultValue: CGPoint?
+    static func reduce(value: inout CGPoint?, nextValue: () -> CGPoint?) {
+        value = nextValue() ?? value
     }
 }
