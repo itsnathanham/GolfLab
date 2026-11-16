@@ -1,9 +1,13 @@
 import SwiftUI
 import UIKit
 
-/// Golf-themed fireworks: ambient shells, then a flag bloom whose fan reveals the celebration card.
+/// Golf-themed fireworks: ambient shells, then a flag bloom that breaks on the celebration card.
 /// Timing constants are shared with `WeeklyGoalCelebrationOverlay` so haptics land on each burst.
 struct GolfFireworkEmitterView: UIViewRepresentable {
+    /// Card center in window coordinates. The flag-bloom shell breaks here so the card erupts from the burst.
+    var bloomCenter: CGPoint?
+    var onBloom: () -> Void = {}
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Seconds after appear until each shell leaves the bottom edge. The first waits for a dismissing sheet to clear.
@@ -13,8 +17,8 @@ struct GolfFireworkEmitterView: UIViewRepresentable {
     static let riseDuration: TimeInterval = 1.15
     /// Seconds after appear when each shell bursts.
     static var burstTimes: [TimeInterval] { launchDelays.map { $0 + riseDuration } }
-    /// Card springs in after the flag fan has opened, so the flags read before the card covers the origin.
-    static var cardRevealTime: TimeInterval { (burstTimes.last ?? (4.05 + riseDuration)) + 0.62 }
+    /// The celebration card opens on this break, from the shell, not after the fan has finished.
+    static var cardRevealTime: TimeInterval { burstTimes.last ?? (4.05 + riseDuration) }
     /// Card stays up after it appears. Tap still dismisses.
     static let cardHold: TimeInterval = 5
     /// Seconds until the overlay dismisses.
@@ -23,17 +27,24 @@ struct GolfFireworkEmitterView: UIViewRepresentable {
     func makeUIView(context: Context) -> GolfFireworkView {
         let view = GolfFireworkView()
         view.animationsEnabled = !reduceMotion
+        view.bloomCenterInGlobal = bloomCenter
+        view.onBloom = onBloom
         return view
     }
 
     func updateUIView(_ uiView: GolfFireworkView, context: Context) {
         uiView.animationsEnabled = !reduceMotion
+        uiView.bloomCenterInGlobal = bloomCenter
+        uiView.onBloom = onBloom
     }
 }
 
 /// Runs the show once it has a non-zero size, so it does not depend on how often SwiftUI calls `updateUIView`.
 final class GolfFireworkView: UIView {
     var animationsEnabled = true
+    /// Window coordinates of the celebration card. Read when the bloom shell launches, after layout.
+    var bloomCenterInGlobal: CGPoint?
+    var onBloom: () -> Void = {}
     private var hasLaunched = false
 
     override init(frame: CGRect) {
@@ -74,12 +85,9 @@ final class GolfFireworkView: UIView {
             ? bounds.width * 0.5
             : bounds.width * CGFloat.random(in: 0.2...0.8)
         let start = CGPoint(x: startX, y: bounds.height + 16)
-        let apex = CGPoint(
-            x: bloom
-                ? bounds.width * 0.5
-                : min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
-            // Bloom aims at the top banner slot so the card opens out of the flag fan.
-            y: bounds.height * (bloom ? CGFloat.random(in: 0.16...0.24) : CGFloat.random(in: 0.26...0.46))
+        let apex = bloom ? bloomApex(fallbackX: startX) : CGPoint(
+            x: min(max(startX + CGFloat.random(in: -48...48), 32), bounds.width - 32),
+            y: bounds.height * CGFloat.random(in: 0.26...0.46)
         )
 
         let path = ballisticPath(from: start, to: apex)
@@ -126,6 +134,7 @@ final class GolfFireworkView: UIView {
             trail.birthRate = 0
             if bloom {
                 self?.flagBloom(at: apex)
+                self?.onBloom()
             } else {
                 self?.burst(at: apex, kind: kind)
             }
@@ -161,9 +170,20 @@ final class GolfFireworkView: UIView {
         return emitter
     }
 
+    /// Where the flag shell breaks. The card scales from this same point.
+    private func bloomApex(fallbackX: CGFloat) -> CGPoint {
+        let fallback = CGPoint(x: bounds.width * 0.5, y: bounds.height * 0.2)
+        guard let global = bloomCenterInGlobal, window != nil else {
+            return CGPoint(x: fallbackX, y: fallback.y)
+        }
+        let local = convert(global, from: nil)
+        guard bounds.insetBy(dx: 8, dy: 8).contains(local) else { return fallback }
+        return local
+    }
+
     // MARK: - Flag bloom
 
-    /// Radial fan of orange and white flags. They hold the ring, then fade as the card settles.
+    /// Radial fan of orange and white flags around the card as it bursts out of the same point.
     private func flagBloom(at point: CGPoint) {
         guard window != nil else { return }
         let count = 14
@@ -191,7 +211,7 @@ final class GolfFireworkView: UIView {
             let host = CALayer()
             host.bounds = flag.bounds
             host.position = point
-            host.transform = CATransform3DMakeScale(0.35, 0.35, 1)
+            host.transform = CATransform3DMakeScale(0.12, 0.12, 1)
             host.addSublayer(flag)
             layer.addSublayer(host)
 
@@ -199,16 +219,16 @@ final class GolfFireworkView: UIView {
             move.fromValue = NSValue(cgPoint: point)
             move.toValue = NSValue(cgPoint: end)
             move.beginTime = CACurrentMediaTime() + stagger
-            move.duration = 0.58
+            move.duration = 0.42
             move.timingFunction = CAMediaTimingFunction(name: .easeOut)
             move.fillMode = .both
             move.isRemovedOnCompletion = false
 
             let grow = CABasicAnimation(keyPath: "transform.scale")
-            grow.fromValue = 0.35
+            grow.fromValue = 0.12
             grow.toValue = 1
             grow.beginTime = move.beginTime
-            grow.duration = 0.58
+            grow.duration = 0.42
             grow.timingFunction = CAMediaTimingFunction(name: .easeOut)
             grow.fillMode = .both
             grow.isRemovedOnCompletion = false
@@ -216,8 +236,8 @@ final class GolfFireworkView: UIView {
             let fade = CABasicAnimation(keyPath: "opacity")
             fade.fromValue = 1
             fade.toValue = 0
-            fade.beginTime = CACurrentMediaTime() + stagger + 0.72
-            fade.duration = 0.7
+            fade.beginTime = CACurrentMediaTime() + stagger + 0.48
+            fade.duration = 0.55
             fade.fillMode = .forwards
             fade.isRemovedOnCompletion = false
 
@@ -225,7 +245,7 @@ final class GolfFireworkView: UIView {
             host.add(grow, forKey: "grow")
             host.add(fade, forKey: "fade")
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + stagger + 1.6) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + stagger + 1.15) {
                 host.removeFromSuperlayer()
             }
         }
